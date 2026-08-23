@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta name="description" content="System Architecture & Clean Code — Expanded Edition 2026. A practical software engineering guide by LearnForge.">
+
+<title>System Architecture & Clean Code | LearnForge</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+--bg:#07111f;
+--card:#0d1b2e;
+--card2:#10243b;
+--text:#f5f9ff;
+--muted:#91a4ba;
+--line:#1c334d;
+--cyan:#22d3ee;
+--blue:#38bdf8;
+--green:#4ade80;
+}
+
+html{scroll-behavior:smooth}
+
+body{
+font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+background:var(--bg);
+color:var(--text);
+line-height:1.6;
+}
+
+a{
+text-decoration:none;
+color:inherit;
+}
+
+.container{
+width:min(1100px,92%);
+margin:auto;
+}
+
+/* NAV */
+
+nav{
+position:sticky;
+top:0;
+z-index:100;
+background:rgba(7,17,31,.9);
+backdrop-filter:blur(18px);
+border-bottom:1px solid rgba(255,255,255,.06);
+}
+
+.nav{
+height:70px;
+display:flex;
+align-items:center;
+justify-content:space-between;
+}
+
+.logo{
+font-size:22px;
+font-weight:900;
+}
+
+.logo span{
+color:var(--cyan);
+}
+
+.back{
+font-size:14px;
+color:#b9c8d9;
+}
+
+.back:hover{
+color:white;
+}
+
+/* PRODUCT */
+
+.product{
+padding:70px 0 80px;
+}
+
+.product-grid{
+display:grid;
+grid-template-columns:380px 1fr;
+gap:65px;
+align-items:start;
+}
+
+/* BOOK */
+
+.book-area{
+display:flex;
+justify-content:center;
+position:sticky;
+top:105px;
+}
+
+.book{
+width:290px;
+height:390px;
+padding:32px;
+border-radius:8px 17px 17px 8px;
+
+background:
+linear-gradient(135deg,rgba(255,255,255,.09),transparent 35%),
+linear-gradient(145deg,#123451,#06111f);
+
+border:1px solid #31536f;
+
+box-shadow:
+0 40px 90px rgba(0,0,0,.6),
+14px 10px 0 #0a1726,
+28px 20px 0 #081321;
+
+display:flex;
+flex-direction:column;
+justify-content:space-between;
+
+transform:rotate(2deg);
+}
+
+.book small{
+font-size:10px;
+font-weight:900;
+letter-spacing:2px;
+color:#67e8f9;
+}
+
+.book-line{
+height:4px;
+width:75px;
+background:var(--cyan);
+border-radius:10px;
+margin-bottom:22px;
+}
+
+.book h2{
+font-size:31px;
+line-height:1.02;
+letter-spacing:-1.5px;
+}
+
+.book p{
+font-size:11px;
+color:#8ba2ba;
+letter-spacing:.5px;
+}
+
+.book-footer{
+font-size:10px;
+color:#6f849a;
+}
+
+/* CONTENT */
+
+.eyebrow{
+display:inline-block;
+padding:6px 10px;
+border:1px solid rgba(34,211,238,.25);
+background:rgba(34,211,238,.07);
+border-radius:999px;
+color:#67e8f9;
+font-size:11px;
+font-weight:900;
+letter-spacing:.7px;
+margin-bottom:18px;
+}
+
+h1{
+font-size:clamp(38px,6vw,64px);
+line-height:1.02;
+letter-spacing:-2.5px;
+margin-bottom:20px;
+}
+
+.gradient{
+background:linear-gradient(90deg,#22d3ee,#60a5fa,#4ade80);
+-webkit-background-clip:text;
+color:transparent;
+}
+
+.lead{
+font-size:18px;
+color:var(--muted);
+max-width:650px;
+margin-bottom:25px;
+}
+
+.rating{
+display:flex;
+gap:12px;
+align-items:center;
+margin-bottom:25px;
+font-size:14px;
+}
+
+.stars{
+color:#facc15;
+letter-spacing:2px;
+}
+
+.buy-box{
+padding:22px;
+border:1px solid var(--line);
+border-radius:16px;
+background:linear-gradient(180deg,#0d1b2e,#091625);
+margin-bottom:28px;
+}
+
+.price{
+font-size:35px;
+font-weight:900;
+margin-bottom:5px;
+}
+
+.price-note{
+color:var(--muted);
+font-size:13px;
+margin-bottom:18px;
+}
+
+.buy{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+}
+
+.btn{
+display:inline-flex;
+align-items:center;
+justify-content:center;
+padding:13px 20px;
+border-radius:11px;
+font-weight:900;
+border:1px solid var(--line);
+cursor:pointer;
+}
+
+.primary{
+background:linear-gradient(135deg,var(--cyan),var(--blue));
+color:#03111d;
+border:none;
+}
+
+.secondary{
+background:#12253a;
+}
+
+.btn:hover{
+transform:translateY(-1px);
+}
+
+/* INFO */
+
+.info-grid{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:14px;
+margin-bottom:55px;
+}
+
+.info{
+padding:18px;
+border:1px solid var(--line);
+border-radius:13px;
+background:#0b192b;
+}
+
+.info strong{
+display:block;
+margin-bottom:4px;
+}
+
+.info span{
+color:var(--muted);
+font-size:13px;
+}
+
+/* SECTIONS */
+
+.section{
+padding:45px 0;
+border-top:1px solid var(--line);
+}
+
+.section h2{
+font-size:32px;
+margin-bottom:15px;
+letter-spacing:-1px;
+}
+
+.section p{
+color:var(--muted);
+max-width:800px;
+}
+
+.learn-grid{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:12px;
+margin-top:25px;
+}
+
+.learn{
+padding:15px;
+background:#0b192b;
+border:1px solid var(--line);
+border-radius:11px;
+font-size:14px;
+}
+
+.learn:before{
+content:"✓";
+color:var(--green);
+font-weight:900;
+margin-right:9px;
+}
+
+.chapters{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:12px;
+margin-top:25px;
+}
+
+.chapter{
+padding:18px;
+border:1px solid var(--line);
+background:#0b192b;
+border-radius:12px;
+}
+
+.chapter b{
+color:#67e8f9;
+font-size:13px;
+}
+
+.chapter p{
+font-size:13px;
+margin-top:4px;
+}
+
+/* FOOTER */
+
+footer{
+border-top:1px solid var(--line);
+padding:35px 0;
+color:#72869d;
+font-size:13px;
+}
+
+.footer{
+display:flex;
+justify-content:space-between;
+gap:20px;
+}
+
+/* MOBILE */
+
+@media(max-width:800px){
+
+.product{
+padding:45px 0;
+}
+
+.product-grid{
+grid-template-columns:1fr;
+gap:55px;
+}
+
+.book-area{
+position:static;
+}
+
+.book{
+width:250px;
+height:340px;
+}
+
+.info-grid,
+.learn-grid,
+.chapters{
+grid-template-columns:1fr;
+}
+
+h1{
+letter-spacing:-1.5px;
+}
+
+.footer{
+display:block;
+text-align:center;
+}
+
+.footer div+div{
+margin-top:7px;
+}
+
+}
+</style>
+</head>
+
+<body>
+
+<nav>
+<div class="container nav">
+
+<a class="logo" href="index.html">
+Learn<span>Forge</span>
+</a>
+
+<a class="back" href="index.html">
+← Back to eBooks
+</a>
+
+</div>
+</nav>
+
+<main class="product">
+
+<div class="container product-grid">
+
+<!-- BOOK COVER -->
+
+<div class="book-area">
+
+<div class="book">
+
+<div>
+<small>LEARNFORGE • 2026</small>
+</div>
+
+<div>
+
+<div class="book-line"></div>
+
+<h2>
+SYSTEM<br>
+ARCHITECTURE<br>
+& CLEAN CODE
+</h2>
+
+<p style="margin-top:18px">
+A PRACTICAL SOFTWARE ENGINEERING GUIDE
+</p>
+
+</div>
+
+<div class="book-footer">
+EXPANDED EDITION 2026
+</div>
+
+</div>
+
+</div>
+
+
+<!-- PRODUCT INFORMATION -->
+
+<div>
+
+<div class="eyebrow">
+SOFTWARE ENGINEERING • EBOOK
+</div>
+
+<h1>
+System Architecture
+<span class="gradient">& Clean Code</span>
+</h1>
+
+<p class="lead">
+A practical guide to software architecture, clean code,
+design principles, architecture patterns and scalable
+system design.
+</p>
+
+<div class="rating">
+<span class="stars">★★★★★</span>
+<span>Expanded Edition • 2026</span>
+</div>
+
+
+<div class="buy-box">
+
+<div class="price">$9.99</div>
+
+<div class="price-note">
+Digital PDF • Instant access after purchase
+</div>
+
+<div class="buy">
+
+<!-- PAYMENT BUTTON WILL BE CONNECTED LATER -->
+
+<a class="btn primary" href="#purchase">
+Buy the eBook → 
+</a>
+
+<a class="btn secondary" href="#contents">
+View contents
+</a>
+
+</div>
+
+</div>
+
+
+<div class="info-grid">
+
+<div class="info">
+<strong>📄 Format</strong>
+<span>PDF eBook</span>
+</div>
+
+<div class="info">
+<strong>📚 Edition</strong>
+<span>Expanded Edition 2026</span>
+</div>
+
+<div class="info">
+<strong>🎯 Level</strong>
+<span>Beginner → Advanced</span>
+</div>
+
+<div class="info">
+<strong>💻 Topic</strong>
+<span>Software Engineering</span>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- DESCRIPTION -->
+
+<section class="section">
+
+<h2>About this eBook</h2>
+
+<p>
+System Architecture & Clean Code is a practical software
+engineering guide designed to help readers understand how
+modern software systems are structured and how maintainable,
+scalable and reliable code is created.
+
+The book combines architecture concepts, clean-code
+principles, design patterns and practical system-design
+thinking into one focused learning resource.
+</p>
+
+</section>
+
+
+<!-- LEARN -->
+
+<section class="section">
+
+<h2>What you'll learn</h2>
+
+<div class="learn-grid">
+
+<div class="learn">Core software architecture concepts</div>
+
+<div class="learn">Clean code principles and practices</div>
+
+<div class="learn">System design fundamentals</div>
+
+<div class="learn">Architecture patterns</div>
+
+<div class="learn">Scalability and maintainability</div>
+
+<div class="learn">Practical engineering decision-making</div>
+
+<div class="learn">API and service architecture concepts</div>
+
+<div class="learn">How to design better software systems</div>
+
+</div>
+
+</section>
+
+
+<!-- CONTENTS -->
+
+<section class="section" id="contents">
+
+<h2>Inside the book</h2>
+
+<p>
+A structured learning path covering the most important
+ideas needed to understand modern software architecture
+and clean engineering practices.
+</p>
+
+<div class="chapters">
+
+<div class="chapter">
+<b>01</b>
+<p>Software Architecture Fundamentals</p>
+</div>
+
+<div class="chapter">
+<b>02</b>
+<p>Clean Code Principles</p>
+</div>
+
+<div class="chapter">
+<b>03</b>
+<p>Object-Oriented Design</p>
+</div>
+
+<div class="chapter">
+<b>04</b>
+<p>Design Principles & SOLID</p>
+</div>
+
+<div class="chapter">
+<b>05</b>
+<p>Architecture Patterns</p>
+</div>
+
+<div class="chapter">
+<b>06</b>
+<p>System Design Fundamentals</p>
+</div>
+
+<div class="chapter">
+<b>07</b>
+<p>APIs & Service Architecture</p>
+</div>
+
+<div class="chapter">
+<b>08</b>
+<p>Scalability & Reliability</p>
+</div>
+
+<div class="chapter">
+<b>09</b>
+<p>Practical System Architecture</p>
+</div>
+
+<div class="chapter">
+<b>10</b>
+<p>Engineering Best Practices</p>
+</div>
+
+</div>
+
+</section>
+
+
+<!-- PURCHASE -->
+
+<section class="section" id="purchase">
+
+<h2>Ready to learn?</h2>
+
+<p style="margin-bottom:22px">
+Get the expanded 2026 edition and start building a stronger
+foundation in software architecture and clean code.
+</p>
+
+<div class="buy-box">
+
+<div class="price">$9.99</div>
+
+<div class="price-note">
+Secure payment integration will be connected here.
+</div>
+
+<a class="btn primary" href="#">
+Buy System Architecture & Clean Code →
+</a>
+
+</div>
+
+</section>
+
+</div>
+
+</main>
+
+
+<footer>
+
+<div class="container footer">
+
+<div>
+© 2026 LearnForge. All rights reserved.
+</div>
+
+<div>
+Learn. Build. Master.
+</div>
+
+</div>
+
+</footer>
+
+</body>
+</html>
