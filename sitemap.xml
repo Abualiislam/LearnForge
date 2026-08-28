@@ -1,16 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-
   <url>
     <loc>https://abualiislam.github.io/LearnForge/</loc>
   </url>
-
   <url>
     <loc>https://abualiislam.github.io/LearnForge/blog/</loc>
   </url>
-
+  <url>
+    <loc>https://abualiislam.github.io/LearnForge/blog/articles/ai-software-development.html</loc>
+  </url>
+  <url>
+    <loc>https://abualiislam.github.io/LearnForge/blog/articles/better-study-system.html</loc>
+  </url>
+  <url>
+    <loc>https://abualiislam.github.io/LearnForge/blog/articles/brachial-plexus-made-easy.html</loc>
+  </url>
+  <url>
+    <loc>https://abualiislam.github.io/LearnForge/blog/articles/clean-code-why-it-matters.html</loc>
+  </url>
   <url>
     <loc>https://abualiislam.github.io/LearnForge/blog/articles/how-to-start-usmle-step-1.html</loc>
   </url>
-
 </urlset>
