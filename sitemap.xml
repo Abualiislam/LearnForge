@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
-<url>
-<loc>https://YOUR-DOMAIN.com/</loc>
-</url>
+  <url>
+    <loc>https://abualiislam.github.io/LearnForge/</loc>
+  </url>
 
-<url>
-<loc>https://YOUR-DOMAIN.com/blog/</loc>
-</url>
+  <url>
+    <loc>https://abualiislam.github.io/LearnForge/blog/</loc>
+  </url>
 
-<url>
-<loc>https://YOUR-DOMAIN.com/book.html</loc>
-</url>
+  <url>
+    <loc>https://abualiislam.github.io/LearnForge/blog/articles/how-to-start-usmle-step-1.html</loc>
+  </url>
 
 </urlset>
