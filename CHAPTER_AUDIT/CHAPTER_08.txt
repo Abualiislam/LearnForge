@@ -1,0 +1,622 @@
+Chapter 08
+
+Distributed Systems
+A distributed system is not simply a collection of computers. It is a system in which
+independent components communicate across boundaries where delay, failure, concurrency,
+and incomplete information are unavoidable.
+
+
+
+LearnForge • Engineering Handbook • 2026                                                               29
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+What You Will Learn
+
+   • Why distributed systems behave differently from single-process applications.
+
+   • How latency, partial failure, and unreliable communication affect architecture.
+
+   • The practical meaning of consistency, availability, and partition tolerance.
+
+   • Why idempotency, timeouts, retries, and deduplication are essential.
+
+   • How to design distributed workflows that remain understandable during failure.
+
+
+
+
+   1. What Makes a System Distributed?
+A system becomes distributed when important parts of its computation or state exist in
+separate processes or machines and must communicate over a network. The boundary may
+exist between two services, between an application and a database cluster, or between
+geographically separated infrastructure.
+
+The most important architectural consequence is that communication is no longer a simple in-
+memory operation. The network introduces delay, interruption, duplication, reordering, and
+uncertainty.
+
+Architect's Rule
+Treat every remote dependency as a failure boundary. A remote call can be slow, unavailable,
+duplicated, rejected, or successful even when its response never reaches the caller.
+
+
+
+
+   2. The Network Is Not Reliable
+Developers often design distributed systems as if communication were deterministic.
+Production systems demonstrate the opposite. Packets may be delayed, connections may
+reset, DNS may fail, a dependency may become overloaded, or a response may arrive after
+the caller has already timed out.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           30
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Failure                   Possible Effect                        Architectural Response
+
+
+                            Caller cannot determine whether work
+  Timeout                                                          Idempotency and status checking
+                            completed
+
+
+  Connection failure        Request may never reach dependency     Bounded retry where safe
+
+
+                                                                   Deduplication or idempotent
+  Duplicate message         Operation may execute twice
+                                                                   processing
+
+
+  Delayed response          Stale result may arrive later          Deadlines and request correlation
+
+
+  Dependency
+                            Latency and error rate increase        Backpressure and load shedding
+  overload
+
+
+
+
+   3. Partial Failure
+In a local application, a serious process failure often stops the entire operation. In a
+distributed system, one component can fail while other components continue operating.
+
+This condition is called partial failure. It is one of the defining challenges of distributed
+architecture because the system may remain alive while an important part of the workflow is
+unavailable.
+
+Figure 8.1 — Partial failure: one dependency can fail while other components remain
+operational.
+
+
+
+
+   4. Timeouts and Deadlines
+Every remote request should have a bounded time budget. Without a timeout, a slow
+dependency can consume threads, connections, memory, and other resources until the caller
+itself becomes unhealthy.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                               31
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    async function getPayment(paymentId: string) {
+      const response = await fetch(
+        `https://payment.internal/payments/${paymentId}`,
+        {
+          signal: AbortSignal.timeout(1500)
+        }
+      );
+
+        if (!response.ok) {
+          throw new Error(`Payment service returned ${response.status}`);
+        }
+
+        return response.json();
+    }
+
+
+
+
+A deadline is even more useful when a request crosses several services. The remaining time
+budget can be propagated so downstream services do not continue expensive work after the
+original request has already expired.
+
+Production Tip
+Set timeouts based on measured service-level objectives rather than arbitrary large values.
+Monitor timeout rates and latency distributions in production.
+
+
+
+
+   5. Retries and Backoff
+Temporary failures can sometimes be recovered by retrying. A retry strategy should normally
+include a maximum attempt count and exponential backoff.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                             32
+LEARNFORGE                                                                  SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    async function retryWithBackoff(
+      operation: () => Promise<unknown>,
+      attempts = 3
+    ) {
+      for (let i = 0; i < attempts; i++) {
+        try {
+          return await operation();
+        } catch (error) {
+          if (i === attempts - 1) {
+            throw error;
+          }
+
+                const delay = 200 * 2 ** i;
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+    }
+
+
+
+
+Retries should not be applied blindly. If many clients retry simultaneously against an
+overloaded service, the additional traffic can make the outage worse. This effect is commonly
+called a retry storm.
+
+Common Mistake
+Retrying every error. Permanent failures such as invalid input or authorization failures
+generally should not be retried.
+
+
+
+
+   6. Idempotency
+An operation is idempotent when repeating the same request produces the same intended
+state rather than creating additional unintended effects.
+
+Idempotency is especially important when a client cannot determine whether a previous
+request succeeded.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                 33
+LEARNFORGE                                                                SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    interface PaymentRequest {
+      amount: number;
+      currency: string;
+      idempotencyKey: string;
+    }
+
+    async function createPayment(request: PaymentRequest) {
+      return paymentClient.create({
+        amount: request.amount,
+        currency: request.currency,
+        headers: {
+          "Idempotency-Key": request.idempotencyKey
+        }
+      });
+    }
+
+
+
+
+If the client sends the same idempotency key again, the payment system can recognize that
+the operation has already been processed and avoid creating a duplicate transaction.
+
+
+
+
+   7. Consistency and Availability
+Distributed systems frequently require trade-offs between consistency, availability, latency,
+and partition tolerance.
+
+
+
+  Requirement              Typical Strategy                   Cost
+
+
+  Strong                                                      Higher latency and reduced availability
+                           Synchronous coordination
+  consistency                                                 during failures
+
+
+  Eventual
+                           Asynchronous replication           Temporary stale data
+  consistency
+
+
+  High availability        Replication and failover           More infrastructure and coordination
+
+
+                           Continue operating despite
+  Partition tolerance                                         Consistency trade-offs may be required
+                           communication failure
+
+
+
+
+Architect's Rule
+Do not discuss consistency as an abstract preference. Define which business operations
+require immediate correctness and which operations can tolerate temporary divergence.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                34
+LEARNFORGE                                                                      SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   8. CAP in Practical Terms
+The CAP theorem describes a fundamental limitation of distributed data systems during a
+network partition: a system cannot simultaneously guarantee both strong consistency and full
+availability for every operation while also tolerating the partition.
+
+CAP is frequently oversimplified. It does not mean that every system must choose exactly two
+permanent properties. Instead, it explains the trade-off that becomes unavoidable when
+communication between distributed components fails.
+
+Figure 8.2 — CAP highlights the consistency/availability trade-off when network partitions
+occur.
+
+
+
+
+   9. Message Delivery Semantics
+Distributed messaging systems commonly provide delivery models such as at-most-once, at-
+least-once, and effectively-once processing patterns. Understanding these semantics is
+important because message delivery and business effects are separate concerns.
+
+
+
+  Model                Meaning                                            Typical Risk
+
+
+  At-most-once          Message is delivered zero or one time             Messages may be lost
+
+
+  At-least-once         Message is delivered one or more times            Duplicates must be handled
+
+
+  Effectively-once      Business effect is made safe against duplicates   Requires careful application design
+
+
+
+
+In practice, at-least-once delivery combined with idempotent consumers is often easier to
+reason about than pretending that a distributed transport can guarantee perfect exactly-once
+business behavior.
+
+
+
+
+   10. Deduplication
+When duplicate events are possible, consumers can maintain a processed-event record or use
+an idempotency key to prevent repeated business effects.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                     35
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    async function handleEvent(event: {
+      eventId: string;
+      type: string;
+    }) {
+      if (await eventStore.wasProcessed(event.eventId)) {
+        return;
+      }
+
+        await processBusinessEffect(event);
+
+        await eventStore.markProcessed(event.eventId);
+    }
+
+
+
+
+Common Mistake
+Assuming that a message queue automatically prevents duplicate business effects. Transport-
+level delivery guarantees do not replace application-level idempotency.
+
+
+
+
+   11. Backpressure and Load Shedding
+When a downstream system cannot process work as quickly as requests arrive, the upstream
+system must avoid creating an unlimited backlog. Backpressure is the mechanism by which a
+system limits or slows incoming work when capacity is constrained.
+
+Without backpressure, queues can grow until memory, connections, storage, or worker
+capacity are exhausted. The result can be a cascading failure in which one overloaded
+component causes neighboring components to become unhealthy.
+
+Architect's Rule
+A resilient system does not attempt to accept unlimited work. It protects critical resources by
+controlling concurrency, queue depth, and request admission.
+
+
+
+
+   12. Circuit Breakers
+A circuit breaker prevents repeated calls to a dependency that is already known to be
+unhealthy. Instead of continuously sending traffic to the failed service, the caller temporarily
+stops requests and returns a controlled fallback or error.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           36
+LEARNFORGE                                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  State            Behavior                                      Purpose
+
+
+  Closed           Requests flow normally                        Normal operation
+
+
+  Open             Requests fail fast                            Protect caller and dependency
+
+
+  Half-open        Limited test requests are allowed             Determine whether recovery occurred
+
+
+
+
+Circuit breakers should be combined with meaningful timeouts, monitoring, and carefully
+designed fallback behavior. A fallback that returns incorrect business information can be
+worse than an explicit error.
+
+
+
+
+   13. Cascading Failure
+Cascading failure occurs when the failure of one component increases load or resource
+consumption in other components, causing additional failures.
+
+Figure 8.3 — Cascading failures can propagate through synchronous dependency chains.
+
+
+
+
+   14. Designing for Graceful Degradation
+A resilient system does not always need every feature to remain available. Graceful
+degradation means preserving the most important user and business functions while
+temporarily reducing secondary functionality.
+
+
+
+  Dependency                          Failure          Possible Degradation
+
+
+  Recommendation engine               Unavailable      Show popular items instead
+
+
+  Analytics service                   Unavailable      Queue events for later processing
+
+
+  Notification provider               Unavailable      Store notification for retry
+
+
+  Search index                        Unavailable      Use database-backed fallback where acceptable
+
+
+
+
+Production Tip
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                           37
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Define degraded modes before production incidents occur. During an outage, engineers
+should know which features can be disabled and which business operations must remain
+available.
+
+
+
+
+   15. Distributed Transactions
+Traditional database transactions are powerful because they provide atomic operations within
+a controlled transactional boundary. Once a business operation crosses multiple independent
+services, maintaining one global transaction becomes significantly more difficult.
+
+Instead of forcing every service into one distributed transaction, many systems use patterns
+such as sagas, compensating actions, and event-driven workflows.
+
+Figure 8.4 — A saga coordinates a multi-step business workflow using individual local
+transactions and explicit recovery actions.
+
+
+
+
+   16. Observability in Distributed Systems
+A distributed system cannot be operated effectively through logs from one application alone.
+Engineers need correlated telemetry across service boundaries.
+
+   • Logs: detailed records of application events.
+
+   • Metrics: numerical measurements such as latency and error rate.
+
+   • Traces: a view of one request as it crosses multiple services.
+
+   • Correlation IDs: identifiers that connect related operations.
+
+
+
+    {
+        "traceId": "7f31c2a9",
+        "service": "payment-service",
+        "operation": "charge",
+        "durationMs": 184,
+        "status": "success"
+    }
+
+
+
+
+The goal is not to collect telemetry for its own sake. The goal is to answer operational
+questions quickly: What failed? Where did latency increase? Which dependency caused the
+failure? How many users are affected?
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           38
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   17. Practical Distributed-System Checklist
+   •
+       Does every remote dependency have a bounded timeout?
+
+   •
+       Are retries limited and protected by backoff?
+
+   •
+       Are state-changing operations idempotent where necessary?
+
+   •
+       Can duplicate messages be processed safely?
+
+   •
+       Is backpressure applied to overloaded components?
+
+   •
+       Are critical dependencies protected from cascading failures?
+
+   •
+       Are degraded modes explicitly designed?
+
+   •
+       Is distributed tracing available for important workflows?
+
+   •
+       Are service-level objectives defined for critical operations?
+
+   •
+       Can the team determine whether a failed request actually completed?
+
+
+
+
+   18. Key Takeaways
+   • Distributed systems introduce uncertainty that does not exist in simple in-process calls.
+
+   • Partial failure must be treated as a normal architectural condition.
+
+   • Timeouts, retries, backoff, and idempotency are fundamental reliability tools.
+
+   • At-least-once delivery requires consumers that can safely handle duplicates.
+
+   • Backpressure and load shedding protect systems from resource exhaustion.
+
+   • Graceful degradation allows critical business capabilities to survive dependency failures.
+
+   • Distributed workflows often require explicit compensation rather than one global
+       transaction.
+
+   • Observability must cross service boundaries.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                            39
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   19. Quick Review
+  1. Why is a remote function call fundamentally different from an in-process function call?
+
+  2. What is partial failure?
+
+  3. Why can unrestricted retries make an outage worse?
+
+  4. What problem does idempotency solve?
+
+  5. What is the purpose of a circuit breaker?
+
+  6. Why is backpressure important?
+
+  7. When might eventual consistency be acceptable?
+
+  8. Why are distributed transactions difficult?
+
+
+
+
+   20. Architect's Checklist
+   •
+       Have all remote dependencies been identified?
+
+   •
+       Does each critical dependency have a timeout and failure policy?
+
+   •
+       Are retryable and non-retryable failures clearly distinguished?
+
+   •
+       Are idempotency and deduplication mechanisms documented?
+
+   •
+       Have cascading-failure scenarios been tested?
+
+   •
+       Is there a defined degraded mode for critical dependencies?
+
+   •
+       Are distributed workflows observable end-to-end?
+
+   •
+       Are recovery and compensation procedures documented?
+
+
+Production Tip
+The best distributed architecture is not the one with the most services. It is the one whose
+failure behavior is understandable, measurable, and recoverable.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                              40
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODE

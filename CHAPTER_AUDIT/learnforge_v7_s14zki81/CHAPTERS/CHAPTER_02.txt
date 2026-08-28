@@ -1,0 +1,79 @@
+CHAPTER 02
+The Foundations of Good Architecture
+
+The Foundations of Good Architecture Good architecture minimizes the lifetime cost of
+building, maintaining, operating, and extending a software system. WHAT YOU WILL LEARN •
+The core architectural quality attributes (Ilities). • How to balance competing quality
+requirements. • How structural simplicity protects software lifespan.
+
+What It Means System architecture consists of structural patterns chosen to satisfy system
+non-functional properties (quality attributes). A sound architecture respects the core
+attributes: Maintainability, Reliability, Scalability, and Security.
+
+Why It Matters Software development costs are heavily skewed toward maintenance (often
+70-80% of total lifecycle expenditure). Systems constructed without sound structural
+foundations experience structural entropy—where every new feature addition exponentially
+increases defect probability and cycle times.
+
+Maintainability
+
+Reliability
+
+Scalability
+
+Security
+
+Trade-offs Quality Attribute
+
+Optimizing For
+
+Extreme
+
+Sub-millisecond low latency, aggressive
+
+Performance
+
+caching
+
+High Extensibility
+
+LearnForge • Engineering Handbook • 2026                                                             7
+
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+Plugin frameworks, strict interfaces
+
+Strict Consistency
+
+Distributed ACID transactions
+
+Trade-off / Cost
+
+Higher operational complexity, stale data risk
+
+Higher initial abstraction cost, steeper learning curve Lower system availability, increased
+latency
+
+ARCHITECT'S RULE
+
+Simplicity is a prerequisite for reliability. Complex systems fail in complex, unforecastable
+ways.
+
+KEY TAKEAWAYS
+
+• Architecture quality is evaluated by system maintainability over time, not initial launch
+speed. • Optimizing one quality attribute usually degrades another; explicitly manage these
+trade-offs. QUICK REVIEW
+
+1. Why does optimizing for maximum extensibility often harm code readability? 2. What is
+structural entropy in long-lived software systems? ARCHITECT'S CHECKLIST
+
+☐ Are all foundational non-functional properties identified and prioritized? ☐ Has the
+architecture chosen simplicity over complex abstractions where possible?
+
+LearnForge • Engineering Handbook • 2026                                                            8
+
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODECHAPTER 03
+
+Requirements Before
+Architecture

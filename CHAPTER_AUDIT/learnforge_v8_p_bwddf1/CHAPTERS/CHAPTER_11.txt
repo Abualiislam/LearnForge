@@ -1,0 +1,45 @@
+CHAPTER 11
+SOLID Principles
+
+SOLID principles provide practical guidelines for organizing object-oriented code so that
+systems remain understandable, extensible, testable, and resistant to unnecessary change.
+
+What You Will Learn
+
+   • What each SOLID principle means in practical engineering.
+
+   • How SOLID reduces coupling and improves maintainability.
+
+   • How to recognize common violations in real code.
+
+   • When abstraction helps and when it becomes unnecessary complexity.
+
+   • How SOLID principles connect with clean architecture and testing.
+
+   1. What SOLID Really Means
+SOLID is a collection of five object-oriented design principles associated with maintainable
+software design. The principles are not rigid laws and they do not require every class to have
+an interface or every application to use complex inheritance.
+
+Their real purpose is to help engineers control dependencies, isolate change, keep
+responsibilities understandable, and make software easier to test and extend.
+
+  Principle       Core Idea                                            Main Benefit
+
+  SRP             One reason to change                                 Focused responsibilities
+
+  OCP             Extend behavior without unnecessary modification     Safer evolution
+
+  LSP             Subtypes must remain substitutable                   Predictable polymorphism
+
+  ISP             Prefer focused interfaces                            Lower dependency burden
+
+  DIP             Depend on abstractions at architectural boundaries   Reduced coupling
+
+Architect's Rule
+SOLID is valuable when it reduces the cost of change. Applying SOLID mechanically can
+create unnecessary abstractions and make simple systems harder to understand.
+
+LearnForge • Engineering Handbook • 2026                                                             66
+
+LEARNFORGE                                                          SYSTEM ARCHITECTURE &

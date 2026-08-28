@@ -1,0 +1,7 @@
+CHAPTER 06
+Monolith, Modular Monolith and Microservices
+
+Monolith, Modular Monolith
+     and Microservices
+     Architecture should evolve from business and operational constraints, not from the
+     assumption that

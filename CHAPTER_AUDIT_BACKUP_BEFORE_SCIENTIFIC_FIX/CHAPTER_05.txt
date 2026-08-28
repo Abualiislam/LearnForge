@@ -1,0 +1,71 @@
+CHAPTER 05
+
+
+
+
+Performance, Latency and
+Throughput
+CHAPTER 05
+
+Performance, Latency and Throughput Optimizing performance requires accurate
+measurement of response time distributions rather than arithmetic averages. WHAT YOU WILL
+LEARN • Differentiating Latency, Throughput, and Response Time. • Why averages lie:
+Understanding Percentiles (p95, p99, p99.9). • Eliminating blocking I/O operations in high-
+throughput systems.
+
+What It Means Latency is the time taken for an individual operation to complete.
+Throughput is the volume of operations completed within a specific window (e.g., requests
+per second).
+
+
+
+    The Flaw of Averages
+    Measuring average latency masks severe tail latency issues. If 99 requests take 10ms and 1
+    request takes
+    10,000ms, the average response time is ~109ms. However, 1% of your user base experiences
+    an intolerable 10second delay. Architects evaluate systems using percentiles: p50
+    (median), p95, and p99.
+    // NON-BLOCKING CONCURRENCY PATTERN (Node.js)
+    // Bad: Sequential async processing creates accumulative tail latency
+    async function processOrdersSequential(orderIds: string[]) {
+    const results = [];
+    for (const id of orderIds) {
+    // Total time = sum of all individual latencies
+    const res = await processOrder(id);
+    results.push(res);
+    }
+    return results;
+    }
+    // Good: Concurrent processing caps total time near max single request latency
+    async function processOrdersConcurrent(orderIds: string[]) {
+    // Executes requests in parallel across Event Loop cycles
+    return Promise.all(orderIds.map(id => processOrder(id)));
+    }
+
+
+
+
+PRODUCTION TIP
+
+Configure client timeouts and circuit breakers on all external HTTP or database calls to
+prevent tail latency cascades.
+
+
+LearnForge • Engineering Handbook • 2026                                                           13
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+KEY TAKEAWAYS
+
+• Never monitor performance using arithmetic average latency; track p95 and p99
+percentiles. • Concurrency allows bounding execution times to the slowest single operation
+instead of summing latencies. QUICK REVIEW
+
+1. Why are latency percentiles more informative than mean response times? 2. What is the
+impact of unbounded tail latencies in microservice dependency chains? ARCHITECT'S
+CHECKLIST
+
+☐ Are dashboards tracking p95 and p99 response time percentiles explicitly? ☐ Do all
+downstream network calls enforce strict timeout configurations?

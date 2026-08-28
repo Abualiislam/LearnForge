@@ -1,0 +1,781 @@
+class Eagle implements FlyingBird {
+      eat() {
+        console.log("Eating");
+      }
+
+fly() {
+          console.log("Flying");
+        }
+    }
+
+LearnForge • Engineering Handbook • 2026                                                           71
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+Common Mistake
+Using inheritance merely because two concepts are related in the real world. Software
+abstractions should model the behavior required by the application, not just taxonomy.
+
+5. Interface Segregation Principle
+The Interface Segregation Principle states that clients should not be forced to depend on
+methods they do not use.
+
+Large interfaces often create unnecessary coupling. When one method changes, many
+unrelated implementations may need to change simply because they depend on the same
+oversized contract.
+
+Large Interface                           Focused Interfaces
+
+Printer, scanner, fax, storage            Printable, Scannable, Faxable, Storable
+
+Many unused methods                       Only required capabilities
+
+Higher implementation burden              Lower implementation burden
+
+LearnForge • Engineering Handbook • 2026                                                              72
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+interface Printable {
+      print(document: Document): void;
+    }
+
+interface Scannable {
+      scan(): Document;
+    }
+
+class SimplePrinter implements Printable {
+      print(document: Document) {
+        console.log("Printing");
+      }
+    }
+
+class MultiFunctionPrinter
+      implements Printable, Scannable {
+
+print(document: Document) {
+          console.log("Printing");
+        }
+
+scan() {
+          return new Document();
+        }
+    }
+
+Architect's Rule
+Prefer interfaces that represent meaningful capabilities. A small interface is not automatically
+better, but a focused contract usually reduces unnecessary dependency.
+
+6. Dependency Inversion Principle
+The Dependency Inversion Principle states that high-level policy should not depend directly on
+low-level implementation details. Both should depend on stable abstractions.
+
+This principle is especially important at architectural boundaries such as databases, external
+APIs, message brokers, payment providers, and file systems.
+
+LearnForge • Engineering Handbook • 2026                                                          73
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+6.1 Tight Coupling
+
+class OrderService {
+      private database = new MySqlDatabase();
+
+save(order: Order) {
+          this.database.insert(order);
+        }
+    }
+
+The high-level order logic is directly coupled to a specific database implementation.
+
+6.2 Dependency Inversion
+
+interface OrderRepository {
+      save(order: Order): Promise;
+    }
+
+class OrderService {
+      constructor(
+        private readonly repository: OrderRepository
+      ) {}
+
+save(order: Order) {
+          return this.repository.save(order);
+        }
+    }
+
+class MySqlOrderRepository implements OrderRepository {
+      async save(order: Order) {
+        // MySQL implementation
+      }
+    }
+
+Figure 11.2 — Dependency inversion places a stable abstraction between high-level business
+policy and infrastructure details.
+
+7. SOLID and Testability
+Well-designed dependencies make unit testing easier because external systems can be
+replaced with controlled test implementations.
+
+LearnForge • Engineering Handbook • 2026                                                          74
+LEARNFORGE                                                                       SYSTEM ARCHITECTURE & CLEAN CODE
+
+class FakeOrderRepository implements OrderRepository {
+      public orders: Order[] = [];
+
+async save(order: Order) {
+          this.orders.push(order);
+        }
+    }
+
+test("saves an order", async () => {
+      const repository = new FakeOrderRepository();
+      const service = new OrderService(repository);
+
+await service.save({
+          id: "order-1",
+          total: 100
+        });
+
+expect(repository.orders).toHaveLength(1);
+    });
+
+The test does not require a real database. This makes the test faster, deterministic, and easier
+to reason about.
+
+8. SOLID and Clean Architecture
+SOLID principles and clean architecture complement each other. SOLID helps organize
+dependencies inside components, while architectural boundaries determine which
+components should depend on which others.
+
+Concept                       Relationship to SOLID
+
+Entities                      Focused business responsibilities
+
+Use cases                     Stable high-level policies
+
+Repositories                  Dependency inversion at persistence boundaries
+
+Controllers                   Focused delivery responsibilities
+
+Infrastructure                Low-level implementations behind abstractions
+
+LearnForge • Engineering Handbook • 2026                                                                      75
+LEARNFORGE                                                                SYSTEM ARCHITECTURE & CLEAN CODE
+
+9. Composition Over Inheritance
+SOLID design frequently leads toward composition rather than deep inheritance hierarchies.
+Composition allows behavior to be assembled from smaller components without forcing every
+variation into a rigid class hierarchy.
+
+interface PaymentGateway {
+      charge(amount: number): Promise;
+    }
+
+class CheckoutService {
+      constructor(
+        private readonly payment: PaymentGateway
+      ) {}
+
+async checkout(amount: number) {
+          await this.payment.charge(amount);
+        }
+    }
+
+The checkout service does not need to know whether the payment implementation uses
+Stripe, another provider, a local simulator, or a test double.
+
+10. Avoiding Abstraction Overload
+SOLID principles can be misused. Creating an interface, factory, adapter, repository, and
+strategy for every small function can make a codebase harder to understand than the original
+implementation.
+
+Useful Abstraction                                Suspicious Abstraction
+
+Protects a real architectural boundary            Exists only because "SOLID says so"
+
+Encapsulates meaningful variation                 Hides a trivial function
+
+Improves testing or replacement                   Adds layers without benefit
+
+Clarifies ownership                               Makes navigation harder
+
+Common Mistake
+
+LearnForge • Engineering Handbook • 2026                                                               76
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+Confusing more abstractions with better architecture. Good architecture minimizes
+unnecessary complexity while protecting important boundaries.
+
+11. A Practical SOLID Refactoring Process
+  1. Identify the code that changes frequently.
+
+2. Find responsibilities that are unrelated to one another.
+
+3. Identify dependencies on unstable infrastructure.
+
+4. Extract focused responsibilities where the boundary is meaningful.
+
+5. Introduce abstractions only where they provide real flexibility.
+
+6. Write tests around the behavior being preserved.
+
+7. Refactor incrementally rather than rewriting the entire system.
+
+12. SOLID Smell Detection
+
+Possible
+  Code Smell                                                       Potential Response
+                                                   Principle
+
+Huge class with unrelated responsibilities       SRP              Split by responsibility
+
+Consider strategy or
+  Growing conditional branches                     OCP
+                                                                    polymorphism
+
+Subtype throws unsupported-operation errors      LSP              Redesign the abstraction
+
+Implementations depend on unused methods         ISP              Split interfaces
+
+Business logic directly creates infrastructure
+                                                   DIP              Invert the dependency
+  objects
+
+13. SOLID in a Real Application
+Consider an e-commerce checkout system. The checkout use case should coordinate business
+decisions without being responsible for SQL queries, HTTP transport, email delivery, or
+payment-provider-specific details.
+
+LearnForge • Engineering Handbook • 2026                                                             77
+LEARNFORGE                                                                    SYSTEM ARCHITECTURE & CLEAN CODE
+
+class CheckoutUseCase {
+      constructor(
+        private readonly orders: OrderRepository,
+        private readonly payments: PaymentGateway,
+        private readonly notifications: NotificationService
+      ) {}
+
+async execute(input: CheckoutInput) {
+          const order = await this.orders.create(input);
+
+await this.payments.charge(
+              order.total,
+              order.paymentReference
+            );
+
+await this.notifications.sendConfirmation(order);
+
+return order;
+        }
+    }
+
+Each dependency has a clear responsibility. The use case coordinates the business workflow
+while infrastructure implementations remain replaceable.
+
+14. SOLID Trade-offs
+
+Benefit                                        Possible Cost
+
+Lower coupling                                 More interfaces
+
+Better testing                                 More dependency configuration
+
+Easier extension                               More indirection
+
+Clearer responsibilities                       More classes or modules
+
+Replaceable infrastructure                     Additional architectural discipline
+
+The goal is not maximum abstraction. The goal is an appropriate balance between flexibility
+and simplicity.
+
+LearnForge • Engineering Handbook • 2026                                                                   78
+LEARNFORGE                                                         SYSTEM ARCHITECTURE & CLEAN CODE
+
+15. SOLID Design Heuristics
+Production Heuristics
+
+• Prefer small, coherent responsibilities.
+
+• Keep business rules independent from infrastructure where practical.
+
+• Use interfaces at meaningful boundaries rather than everywhere.
+
+• Prefer composition when inheritance creates behavioral constraints.
+
+• Test behavior before and after significant refactoring.
+
+• Remove abstractions that no longer provide value.
+
+16. SOLID Architecture Diagram
+Figure 11.2 — SOLID principles work together to improve responsibility boundaries,
+dependency direction, substitutability, and maintainability.
+
+17. Review Questions
+  1. What does "one reason to change" mean in SRP?
+
+2. Why can large conditional structures violate OCP?
+
+3. What does LSP require from a subtype?
+
+4. Why can large interfaces violate ISP?
+
+5. What problem does dependency inversion solve?
+
+6. Why can composition be safer than deep inheritance?
+
+7. When can an abstraction become unnecessary complexity?
+
+8. How does SOLID improve testability?
+
+18. Practical Checklist
+   •
+       Does each major component have a clear responsibility?
+
+•
+       Are frequently changing concerns isolated?
+
+•
+
+LearnForge • Engineering Handbook • 2026                                                        79
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+Can new behavior be added without repeatedly modifying stable logic?
+
+•
+       Are subtype contracts behaviorally safe?
+
+•
+       Are interfaces focused on meaningful capabilities?
+
+•
+       Does business logic avoid unnecessary infrastructure coupling?
+
+•
+       Are important dependencies replaceable in tests?
+
+•
+       Are abstractions justified by real requirements?
+
+•
+       Is composition preferred where inheritance would create constraints?
+
+•
+       Has unnecessary abstraction been removed?
+
+19. Key Takeaways
+   • SRP keeps responsibilities focused and limits unrelated reasons for change.
+
+• OCP encourages safe extension around stable behavior.
+
+• LSP protects the behavioral correctness of polymorphism.
+
+• ISP reduces unnecessary dependency on large contracts.
+
+• DIP separates high-level policy from low-level implementation details.
+
+• SOLID principles are tools for controlling change, not rules for maximizing abstraction.
+
+• Composition often provides safer flexibility than deep inheritance.
+
+• Good SOLID design improves testability, maintainability, and architectural clarity.
+
+20. Architect's Final Checklist
+   •
+       Are responsibilities clearly separated?
+
+•
+       Are unstable implementation details isolated behind useful boundaries?
+
+•
+       Can important components be tested without unnecessary infrastructure?
+
+•
+       Are interfaces small enough to represent meaningful capabilities?
+
+LearnForge • Engineering Handbook • 2026                                                             80
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+•
+       Do abstractions represent actual variation rather than imagined futures?
+
+•
+       Can implementations be replaced without changing business policy?
+
+•
+       Are inheritance relationships behaviorally valid?
+
+•
+       Does the architecture remain understandable to a new engineer?
+
+LearnForge • Engineering Handbook • 2026                                                           81
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODEChapter 12
+
+DRY, KISS, YAGNI, Cohesion and
+Coupling
+Maintainable software is not created by adding more abstractions. It is created by controlling
+duplication, unnecessary complexity, premature features, and unhealthy dependencies while
+keeping related behavior together.
+
+What You Will Learn
+
+• What DRY actually means beyond simple code duplication.
+
+• How KISS helps engineers control accidental complexity.
+
+• Why YAGNI protects systems from speculative features.
+
+• How cohesion and coupling affect maintainability.
+
+• How to recognize harmful duplication and harmful abstraction.
+
+• How these principles work together during practical refactoring.
+
+1. Why Simple Code Is Difficult
+Software becomes difficult to maintain when every change requires engineers to understand
+too many unrelated concepts. Complexity accumulates through duplicated rules, unnecessary
+abstractions, speculative features, unclear responsibilities, and excessive dependencies.
+
+DRY, KISS, and YAGNI are lightweight design principles that help control this complexity.
+Cohesion and coupling provide a deeper architectural vocabulary for understanding why some
+designs remain easy to change while others become fragile.
+
+Architect's Rule
+Prefer the simplest design that correctly represents the current business requirements while
+keeping important boundaries clear.
+
+2. DRY — Don't Repeat Yourself
+DRY is commonly interpreted as “never write the same code twice.” That is too narrow. The
+deeper idea is that important knowledge should have a single authoritative representation
+when duplication would allow those representations to diverge.
+
+LearnForge • Engineering Handbook • 2026                                                          82
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+Two pieces of code can look similar while representing different business rules. In that
+situation, forcing them into one abstraction may create coupling rather than eliminate
+meaningful duplication.
+
+2.1 Obvious Duplication
+
+function calculateRegularPrice(price: number) {
+      return price * 1.2;
+    }
+
+function calculatePremiumPrice(price: number) {
+      return price * 1.2;
+    }
+
+If the 20 percent calculation represents the same business rule, maintaining it twice creates a
+risk that one implementation will eventually change while the other remains unchanged.
+
+2.2 Extracting Shared Knowledge
+
+function addTax(price: number, taxRate = 0.2) {
+      return price * (1 + taxRate);
+    }
+
+function calculateRegularPrice(price: number) {
+      return addTax(price);
+    }
+
+function calculatePremiumPrice(price: number) {
+      return addTax(price);
+    }
+
+The shared tax rule now has one implementation. A change to the tax calculation can be
+made in one place.
+
+3. Accidental Duplication vs Coincidental
+   Similarity
+Not every repeated-looking structure should be abstracted. Two functions may currently
+contain similar code because they happen to perform similar work, while their business rules
+are expected to evolve independently.
+
+LearnForge • Engineering Handbook • 2026                                                          83
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+Situation                                             Recommended Approach
+
+Same business rule repeated                           Consider extracting shared logic
+
+Same algorithm but different business meaning         Keep boundaries separate
+
+Similar code with different future evolution          Avoid premature abstraction
+
+Shared validation rule                                Centralize when consistency matters
+
+Common Mistake
+Treating every repeated line as a DRY violation. Removing textual duplication can create
+conceptual duplication elsewhere if the abstraction does not represent the same underlying
+knowledge.
+
+4. DRY at the Architectural Level
+DRY can also apply to configuration, schemas, business policies, and operational knowledge.
+For example, maintaining multiple independent definitions of the same API contract can cause
+clients and servers to drift apart.
+
+type UserStatus =
+      | "active"
+      | "suspended"
+      | "deleted";
+
+interface User {
+      id: string;
+      status: UserStatus;
+    }
+
+The important principle is not simply “one file.” It is that the authoritative meaning of a
+concept should be clear and unnecessary competing definitions should be avoided.
+
+5. KISS — Keep It Simple
+KISS encourages engineers to prefer understandable solutions over unnecessarily complicated
+ones. Simplicity does not mean ignoring real requirements. It means avoiding complexity that
+does not produce useful business or technical value.
+
+LearnForge • Engineering Handbook • 2026                                                            84
+LEARNFORGE                                                                      SYSTEM ARCHITECTURE & CLEAN CODE
+
+Simple Design                            Overengineered Design
+
+Direct function call                     Multiple unnecessary abstraction layers
+
+One clear data structure                 Several wrappers with little value
+
+Simple validation                        Generic framework for one use case
+
+Explicit control flow                    Metaprogramming without clear need
+
+5.1 Example
+
+function isAdult(age: number): boolean {
+      return age >= 18;
+    }
+
+For a simple rule, a direct function is often clearer than introducing a policy engine, factory,
+registry, and configuration framework.
+
+Architect's Rule
+Complexity should have a reason. If an abstraction cannot be explained in terms of a real
+requirement, architectural boundary, or recurring variation, question whether it belongs in the
+system.
+
+6. Essential vs Accidental Complexity
+Essential complexity comes from the problem itself. If a payment system must support
+refunds, fraud checks, currency conversion, and regulatory rules, those requirements create
+unavoidable complexity.
+
+Accidental complexity comes from the way the solution is implemented. Unnecessary
+frameworks, duplicated transformations, excessive indirection, and unclear dependencies can
+make a system harder than the underlying business problem requires.
+
+Figure 12.1 — Good engineering cannot remove essential complexity, but it can reduce
+accidental complexity.
+
+LearnForge • Engineering Handbook • 2026                                                                     85
+LEARNFORGE                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+7. YAGNI — You Aren't Gonna Need It
+YAGNI advises developers not to implement functionality simply because it might be needed
+in the future. Future requirements are uncertain, and premature features consume
+development time while increasing maintenance cost.
+
+7.1 Speculative Design
+
+class UserService {
+      createUser(user: User) {
+        // current requirement
+      }
+
+// Future features that have no current requirement:
+        // importFromLegacySystem()
+        // exportToTwentyDifferentFormats()
+        // syncWithUnknownPartner()
+    }
+
+Building unused functionality creates code that must be tested, documented, secured, and
+maintained even though it provides no current value.
+
+7.2 Better Approach
+
+class UserService {
+      createUser(user: User) {
+        // Implement the requirement that exists today.
+      }
+    }
+
+When a real requirement appears, the system can be extended based on actual constraints
+rather than assumptions.
+
+Production Tip
+Design for change, but do not implement imaginary requirements. Stable boundaries are
+useful; speculative features are usually not.
+
+LearnForge • Engineering Handbook • 2026                                                       86
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+8. The Relationship Between KISS and YAGNI
+KISS and YAGNI reinforce each other. KISS asks whether the current solution is more
+complicated than necessary. YAGNI asks whether functionality exists only because someone
+predicts that it may be needed later.
+
+Question                                                                                  Principle
+
+Is the implementation more complicated than necessary?                                    KISS
+
+Are we building a feature without a current requirement?                                  YAGNI
+
+Are we maintaining the same knowledge in multiple places?                                 DRY
+
+9. Cohesion
+Cohesion describes how strongly the responsibilities within a module belong together. High
+cohesion generally means that the elements of a module contribute to one focused purpose.
+
+A highly cohesive module is easier to understand because engineers can reason about related
+behavior without navigating through unrelated functionality.
+
+High Cohesion                                  Low Cohesion
+
+Payment module owns payment rules               Payment module also generates reports
+
+User module manages identity behavior           User module sends unrelated marketing campaigns
+
+Notification module manages delivery            Notification module modifies billing records
+
+10. Coupling
+Coupling describes the degree to which one component depends on another. Some coupling is
+unavoidable, but excessive or unstable coupling makes changes more expensive.
+
+The goal is not zero coupling. A useful system requires components to communicate. The goal
+is controlled coupling with clear ownership and stable contracts.
+
+LearnForge • Engineering Handbook • 2026                                                                    87
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+Figure 12.2 — High cohesion groups related responsibilities; excessive coupling allows
+changes to propagate unnecessarily.
+
+11. Cohesion and Coupling Work Together
+A common design goal is high cohesion with appropriately low coupling. Related
+responsibilities should live together, while unrelated modules should communicate through
+explicit and stable boundaries.
+
+interface PaymentGateway {
+      charge(amount: number): Promise;
+    }
+
+class CheckoutService {
+      constructor(
+        private readonly payment: PaymentGateway
+      ) {}
+
+async execute(amount: number) {
+          await this.payment.charge(amount);
+        }
+    }
+
+Checkout behavior is cohesive, while the concrete payment implementation is kept behind a
+narrow dependency.
+
+12. The Cost of High Coupling
+When components are tightly coupled, a small change can create a large testing and
+deployment surface.
+
+LearnForge • Engineering Handbook • 2026                                                         88
+LEARNFORGE                                                                SYSTEM ARCHITECTURE & CLEAN CODE
+
+Coupling Problem                              Typical Consequence
+
+Shared mutable state                          Unexpected side effects
+
+Shared database assumptions                   Hard-to-coordinate changes
+
+Large interfaces                              Unnecessary implementation changes
+
+Direct infrastructure dependencies            Difficult testing
+
+Circular dependencies                         Hard-to-understand architecture
+
+13. Circular Dependencies
+Circular dependencies occur when modules depend on one another in a cycle. They can make
+initialization, testing, deployment, and reasoning about ownership significantly harder.
+
+class OrderService {
+      constructor(
+        private readonly paymentService: PaymentService
+      ) {}
+    }
+
+class PaymentService {
+      constructor(
+        private readonly orderService: OrderService
+      ) {}
+    }
+
+A better design often introduces a higher-level workflow or event boundary so that neither
+module must directly own the other.
+
+14. Refactoring Toward Better Boundaries
+  1. Identify modules that change together frequently.
+
+2. Identify modules that should change independently.
+
+3. Move strongly related behavior closer together.
+
+4. Remove dependencies that cross unrelated responsibilities.
+
+5. Replace direct infrastructure dependencies with stable contracts where justified.
+
+LearnForge • Engineering Handbook • 2026                                                               89
+LEARNFORGE                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+6. Break cycles before introducing more abstractions.
+
+7. Verify behavior with automated tests.
+
+15. Practical Refactoring Example
+
+class OrderManager {
+      createOrder(order: Order) {
+        // database logic
+        // payment logic
+        // email logic
+        // invoice generation
+        // analytics logic
+      }
+    }
+
+This design has low cohesion because many responsibilities are concentrated in one
+component.
+
+class OrderService {
+      constructor(
+        private readonly orders: OrderRepository,
+        private readonly payments: PaymentGateway,
+        private readonly notifications: NotificationService
+      ) {}
+
+async createOrder(input: CreateOrderInput) {
+          const order = await this.orders.create(input);
+
+await this.payments.charge(
+              order.total,
+              order.paymentReference
+            );
+
+await this.notifications.sendConfirmation(order);
+
+return order;
+        }
+    }
+
+The second design gives the workflow explicit dependencies and allows each infrastructure
+concern to evolve independently.
+
+LearnForge • Engineering Handbook • 2026                                                       90
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+16. DRY Does Not Mean Centralize Everything
+Over-centralization can create a single module that becomes a dependency for large parts of
+the application. Such a module may technically remove duplication while increasing coupling.

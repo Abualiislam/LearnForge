@@ -1,0 +1,98 @@
+CHAPTER 01
+From Coder to Architect
+
+From Coder to Architect Software engineering is about writing code that works. Software
+architecture is about deciding what code to write, why, and managing the long-term cost of
+change. WHAT YOU WILL LEARN • The conceptual shift from local implementation to holistic
+design. • How to balance immediate delivery velocity against structural decay. • Strategies
+for evaluating architectural trade-offs explicitly.
+
+What It Means Moving from a software developer to a software architect requires shifting your
+primary frame of reference. A developer focuses on algorithm efficiency, framework
+mechanics, and clean class interfaces within a module. An architect views systems as
+interconnected units governed by business realities, operational costs, network boundaries,
+and organizational team structures.
+
+Why It Matters Local optimizations can create global catastrophes. Writing ultra-performant
+code inside a service is useless if that service creates a synchronous network bottleneck
+across three other sub-systems. Architecture ensures that team efforts scale horizontally
+without incurring exponential complexity overhead.
+
+ARCHITECT'S RULE
+
+Architecture is the decisions that are hard to change later. If a choice can be refactored in an
+afternoon, it is an implementation detail, not an architectural decision.
+
+Practical Example: Managing System Boundaries Consider a developer tasked with integrating
+a payment gateway. The developer writes code that calls the external Stripe API directly
+inside the core HTTP controller layer.
+
+LearnForge • Engineering Handbook • 2026                                                            4
+
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+    // POOR IMPLEMENTATION: Mixed concerns in Controller
+    import { Request, Response } from 'express';
+    import Stripe from 'stripe';
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2023-10-16' });
+    export async function handleCheckout(req: Request, res: Response) {
+    const { amount, currency } = req.body;
+    // Direct tightly-coupled call to third-party SDK
+    const paymentIntent = await stripe.paymentIntents.create({
+    amount,
+    currency,
+    });
+    // Directly writing payment status inside user controller context
+    await db.query('INSERT INTO payments VALUES ($1, $2)', [paymentIntent.id, amount]);
+    res.json({ success: true, clientSecret: paymentIntent.client_secret });
+    }
+
+    An architect abstracts this integration behind an internal domain boundary interface,
+    insulating the application core
+    from external SDK vendor changes or multi-provider requirements.
+    // ARCHITECTURAL APPROACH: Decoupled Gateway Interface
+    export interface IPaymentProcessor {
+    processPayment(amount: number, currency: string): Promise<PaymentResult>;
+    }
+    export class StripePaymentAdapter implements IPaymentProcessor {
+    constructor(private client: Stripe) {}
+    async processPayment(amount: number, currency: string): Promise<PaymentResult> {
+    const response = await this.client.paymentIntents.create({ amount, currency });
+    return { transactionId: response.id, status: response.status === 'succeeded' ? 'SUCCESS' :
+    'PENDING' };
+    }
+    }
+
+COMMON MISTAKE
+
+Confusing structural abstraction with over-engineering. Abstraction must serve clear failure
+isolation or change control boundaries, not theoretical future requirements.
+
+PRODUCTION TIP
+
+Document architectural trade-offs using Architecture Decision Records (ADRs) immediately
+when decisions are made. Do not rely solely on team memory; document important decisions and verify them against authoritative sources.
+
+KEY TAKEAWAYS
+
+• Seniority is marked by thinking in systems, failure modes, and operational costs. • Every
+architecture is a trade-off; there are no silver bullets, only costs and consequences. • Isolate
+core business domain code from volatile external infrastructure dependencies. QUICK REVIEW
+
+LearnForge • Engineering Handbook • 2026                                                            5
+
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+1. What differentiates an implementation detail from an architectural decision? 2. Why does
+direct third-party SDK leakage across controller layers increase long-term maintenance cost?
+ARCHITECT'S CHECKLIST
+
+☐ Have I isolated external vendor API calls behind explicit domain interfaces? ☐ Are all core
+architecture choices documented in explicit ADR files?
+
+LearnForge • Engineering Handbook • 2026                                                           6
+
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODECHAPTER 02
+
+The Foundations of Good
+Architecture

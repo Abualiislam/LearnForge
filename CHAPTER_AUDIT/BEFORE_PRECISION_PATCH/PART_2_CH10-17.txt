@@ -1,0 +1,6269 @@
+Chapter 10
+
+Clean Architecture
+Clean Architecture is a way of organizing software so that business rules remain independent
+from frameworks, databases, user interfaces, and other volatile implementation details. Its
+central goal is not a particular folder structure, but controlled dependency direction and long-
+term maintainability.
+
+What You Will Learn
+
+   • What Clean Architecture actually solves.
+
+   • How entities, use cases, interface adapters, and infrastructure relate to one another.
+
+   • Why the Dependency Rule is the foundation of the architecture.
+
+   • How dependency inversion protects business logic from technical details.
+
+   • How to apply Clean Architecture without creating unnecessary abstraction.
+
+   • How to structure a practical application around use cases and boundaries.
+
+
+
+
+   1. What Clean Architecture Means
+Clean Architecture is an architectural approach that attempts to keep the core business rules
+of an application independent from external technologies. The business logic should not need
+to know whether the application uses PostgreSQL, MongoDB, REST, GraphQL, React, Android,
+a particular web framework, or a specific cloud provider.
+
+The purpose is to make important parts of the system easier to understand, test, change, and
+protect from infrastructure churn.
+
+Architect's Rule
+Business rules should not depend directly on technical details. Technical details should adapt
+themselves to the business rules.
+
+
+
+
+   2. The Core Problem: Dependency Direction
+The most important idea in Clean Architecture is not the number of folders or the names of
+layers. It is the direction in which dependencies point.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           54
+LEARNFORGE                                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+If business logic directly imports a database library, HTTP framework, or external SDK, a
+technical decision has become part of the business core. Replacing that technology then
+becomes more expensive.
+
+
+
+  Design                                       Dependency Direction                            Typical Result
+
+
+  Business → Database                          Core depends on infrastructure                  Higher coupling
+
+
+  Business → HTTP framework                    Core depends on delivery mechanism              Harder testing
+
+
+  Infrastructure → Business abstraction        Implementation depends inward                   Lower coupling
+
+
+  UI → Use Case                                Presentation depends on application logic       Clear boundary
+
+
+
+
+   3. The Dependency Rule
+The Dependency Rule states that source-code dependencies should point toward the
+architectural center. Inner layers should not know about the details of outer layers.
+
+Figure 10.1 — Clean Architecture organizes dependencies toward the business core rather
+than allowing infrastructure to control the core.
+
+
+
+
+   4. The Four Major Areas
+A practical Clean Architecture implementation is commonly described using four broad areas:
+entities, use cases, interface adapters, and frameworks or infrastructure.
+
+
+
+  Area                   Responsibility                                         Examples
+
+
+  Entities               Core business rules                                    Order, Account, Course
+
+
+  Use Cases              Application-specific business workflows                CreateOrder, PublishCourse
+
+
+  Interface              Convert data between external and internal             Controllers, presenters,
+  Adapters               representations                                        gateways
+
+
+                                                                                Database, HTTP, queues, cloud
+  Infrastructure         Technical implementation details
+                                                                                SDKs
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                         55
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   5. Entities
+Entities represent important business concepts and rules that are expected to remain
+meaningful even if the application's delivery mechanism changes. An entity should not need
+to know how it is stored or how a request reached the application.
+
+
+
+    class Course {
+      constructor(
+        readonly id: string,
+        private title: string,
+        private published: boolean = false
+      ) {}
+
+        publish(): void {
+          if (this.title.trim().length < 3) {
+            throw new Error("A course requires a valid title");
+          }
+
+            this.published = true;
+        }
+
+        isPublished(): boolean {
+          return this.published;
+        }
+    }
+
+
+
+
+The entity contains a business rule: a course cannot be published unless it has a meaningful
+title. Notice that there is no database query, HTTP request, or framework-specific code inside
+the entity.
+
+Production Tip
+Keep domain objects focused on business behavior. Avoid turning entities into passive data
+containers when meaningful invariants belong inside them.
+
+
+
+
+   6. Use Cases
+Use cases describe application-specific actions. They coordinate business objects and
+required dependencies to accomplish a meaningful goal.
+
+Examples include registering a user, publishing a course, creating an order, processing a
+refund, or generating an invoice.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          56
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    interface CourseRepository {
+      findById(id: string): Promise<Course | null>;
+      save(course: Course): Promise<void>;
+    }
+
+    class PublishCourse {
+      constructor(
+        private readonly courses: CourseRepository
+      ) {}
+
+        async execute(courseId: string): Promise<void> {
+          const course = await this.courses.findById(courseId);
+
+            if (!course) {
+              throw new Error("Course not found");
+            }
+
+            course.publish();
+            await this.courses.save(course);
+        }
+    }
+
+
+
+
+The use case depends on a repository abstraction rather than a concrete database
+implementation. This allows the business workflow to remain independent from the storage
+technology.
+
+
+
+
+   7. Dependency Inversion
+Dependency inversion is one of the most powerful techniques used to achieve the
+Dependency Rule. Instead of making the business layer depend directly on an infrastructure
+implementation, both sides communicate through an abstraction owned by the appropriate
+inner layer.
+
+Figure 10.2 — Dependency inversion keeps infrastructure replaceable behind a stable
+application-owned boundary.
+
+
+
+
+   8. Interface Adapters
+Interface adapters translate between the outside world and the application's internal model.
+They prevent external representations from spreading throughout the business core.
+
+For example, an HTTP controller can translate a JSON request into a use-case input object. A
+presenter can transform the use-case result into an HTTP response.
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          57
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    type PublishCourseRequest = {
+      courseId: string;
+    };
+
+    class CourseController {
+      constructor(
+        private readonly publishCourse: PublishCourse
+      ) {}
+
+        async handle(request: PublishCourseRequest) {
+          await this.publishCourse.execute(request.courseId);
+
+            return {
+              status: 204
+            };
+        }
+    }
+
+
+
+
+The controller knows about HTTP-oriented concerns, but the use case does not need to know
+that the request came from HTTP.
+
+
+
+
+   9. Frameworks Are Details
+Frameworks are useful, but they should not automatically become the center of the
+architecture. A framework can change, be replaced, or become obsolete while the business
+problem remains.
+
+
+
+  Technical Detail               Possible Change                     Protected Core
+
+
+  Database                       PostgreSQL → another database       Business rules
+
+
+  Web framework                  Express → another framework         Use cases
+
+
+  Transport                      REST → gRPC                         Application behavior
+
+
+  Queue provider                 One broker → another broker         Domain events
+
+
+
+
+Common Mistake
+Building business logic directly inside controllers, ORM models, request handlers, or
+framework callbacks. This makes the business rules harder to test and harder to reuse.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          58
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   10. Repository Abstractions
+A repository abstraction represents the storage operations required by the application. The
+abstraction should express what the business needs rather than exposing every capability of
+a particular database.
+
+
+
+    interface UserRepository {
+      findById(id: string): Promise<User | null>;
+      findByEmail(email: string): Promise<User | null>;
+      save(user: User): Promise<void>;
+    }
+
+
+
+
+A PostgreSQL implementation can satisfy this contract without forcing the application layer to
+know SQL details.
+
+
+
+    class PostgresUserRepository implements UserRepository {
+      constructor(private readonly db: Database) {}
+
+        async findById(id: string): Promise<User | null> {
+          const row = await this.db.queryOne(
+             "SELECT * FROM users WHERE id = $1",
+            [id]
+          );
+
+            return row ? User.fromPersistence(row) : null;
+        }
+
+        async save(user: User): Promise<void> {
+          await this.db.execute(
+             "UPDATE users SET name = $1 WHERE id = $2",
+            [user.name, user.id]
+          );
+        }
+    }
+
+
+
+
+   11. Testing the Architecture
+Clean Architecture can make testing easier because important business behavior can be
+tested without starting the entire infrastructure stack.
+
+A use case can receive a fake repository and execute entirely in memory. This makes tests
+faster and helps isolate business behavior from database configuration.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                         59
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    class InMemoryCourseRepository
+      implements CourseRepository {
+
+        private items = new Map<string, Course>();
+
+        async findById(id: string) {
+          return this.items.get(id) ?? null;
+        }
+
+        async save(course: Course) {
+          this.items.set(course.id, course);
+        }
+    }
+
+
+
+
+  Test Type                       Primary Target                           Typical Speed
+
+
+  Unit test                        Entity or isolated use case             Very fast
+
+
+  Integration test                 Adapter + real infrastructure           Moderate
+
+
+  End-to-end test                  Complete user workflow                  Slower
+
+
+
+
+   12. Clean Architecture Is Not a Folder
+   Structure
+A common misunderstanding is to believe that Clean Architecture means creating directories
+named entities, usecases, controllers, repositories, and infrastructure.
+
+Folders can help communicate boundaries, but they do not create architectural quality by
+themselves. An application can have perfectly named folders while its business logic still
+depends directly on frameworks and databases.
+
+Architect's Rule
+Architecture is defined by dependency relationships and boundaries, not by directory names.
+
+
+
+
+   13. Avoiding Over-Engineering
+Clean Architecture can be misapplied. Adding interfaces, factories, repositories, mappers, and
+abstractions for every small operation can create more complexity than it removes.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           60
+LEARNFORGE                                                                SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+The goal is not maximum abstraction. The goal is useful separation around areas that are
+likely to change or that contain important business rules.
+
+
+
+  Situation                                    Practical Approach
+
+
+  Simple CRUD application                      Prefer straightforward design
+
+
+  Complex business rules                       Protect the domain carefully
+
+
+  Frequently changing infrastructure           Use stable abstractions at boundaries
+
+
+  Highly regulated business logic              Prioritize explicit rules and testability
+
+
+
+
+   14. Practical Project Structure
+A possible structure for a medium-sized TypeScript application is:
+
+
+
+    src/
+      domain/
+        entities/
+        value-objects/
+
+       application/
+         use-cases/
+         ports/
+
+       adapters/
+         http/
+         persistence/
+
+       infrastructure/
+         database/
+         messaging/
+         config/
+
+       main.ts
+
+
+
+
+The exact directory names are not mandatory. What matters is that the dependency direction
+remains intentional and the core business logic is protected from external details.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                               61
+LEARNFORGE                                                                SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   15. Dependency Injection
+Dependency injection means providing a component with the dependencies it needs rather
+than forcing it to construct those dependencies internally.
+
+
+
+    const repository = new PostgresCourseRepository(db);
+
+    const publishCourse = new PublishCourse(repository);
+
+    const controller = new CourseController(publishCourse);
+
+
+
+
+This composition root is an appropriate place to connect concrete infrastructure
+implementations to application abstractions.
+
+Production Tip
+Keep object composition near the application's entry point. Business components should
+receive their dependencies rather than discovering infrastructure globally.
+
+
+
+
+   16. Boundaries and Change
+Good architecture makes expensive changes local whenever possible. If changing the
+database requires rewriting business rules, the boundary is weak. If changing an HTTP
+transport only requires replacing an adapter, the boundary is stronger.
+
+
+
+  Change                          Weak Boundary                       Strong Boundary
+
+
+  Database replacement            Business code changes extensively   Replace adapter
+
+
+  API transport change            Use cases change                    Replace controller/adapter
+
+
+  UI replacement                  Business logic rewritten            Use cases remain stable
+
+
+  Queue provider change           Domain code changes                 Replace infrastructure adapter
+
+
+
+
+   17. Clean Architecture in a Real Workflow
+Consider an online learning platform where an administrator publishes a course.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                               62
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Figure 10.3 — A practical request flow through adapters, application logic, and infrastructure.
+
+
+
+
+   18. Common Failure Modes
+
+  Failure Mode                        Why It Hurts                Better Approach
+
+
+                                      Rules become tied to
+  Business logic in controllers                                   Move workflow into use cases
+                                      transport
+
+
+  ORM models used as domain           Persistence concerns leak   Separate domain and persistence models
+  entities                            inward                      when justified
+
+
+  Interface for every class           Abstraction becomes noise   Abstract meaningful boundaries
+
+
+                                      Dependencies become
+  Global service locator                                          Prefer explicit dependency injection
+                                      hidden
+
+
+                                      Business intent becomes
+  Overly generic repositories                                     Use capability-focused interfaces
+                                      unclear
+
+
+
+
+Common Mistake
+Assuming that more layers automatically mean better architecture. Excessive indirection can
+make a simple system harder to understand. Architecture should reduce complexity, not
+merely relocate it.
+
+
+
+
+   19. Practical Design Rules
+   •
+       Keep important business rules independent from infrastructure.
+
+   •
+       Make dependency direction explicit.
+
+   •
+       Put application workflows inside use cases.
+
+   •
+       Keep controllers thin.
+
+   •
+       Use abstractions where they protect meaningful boundaries.
+
+   •
+       Keep infrastructure implementations outside the business core.
+
+   •
+
+
+LearnForge • Engineering Handbook • 2026                                                                    63
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+       Prefer explicit dependency injection.
+
+   •
+       Test business rules without requiring the full infrastructure stack.
+
+   •
+       Avoid abstraction whose only purpose is satisfying a pattern.
+
+   •
+       Design boundaries around change and business responsibility.
+
+
+
+
+   20. Key Takeaways
+   • Clean Architecture is fundamentally about dependency direction.
+
+   • The business core should remain independent from technical details.
+
+   • Entities contain important business rules and invariants.
+
+   • Use cases coordinate application-specific workflows.
+
+   • Adapters translate between external systems and internal models.
+
+   • Dependency inversion makes infrastructure replaceable.
+
+   • Architecture should make important changes cheaper and more localized.
+
+   • Clean Architecture is not synonymous with a particular folder structure.
+
+   • Too much abstraction can be as harmful as too little.
+
+
+
+
+   21. Quick Review
+  1. What is the Dependency Rule?
+
+  2. Why should business logic avoid direct database dependencies?
+
+  3. What is the difference between an entity and a use case?
+
+  4. What role does an interface adapter play?
+
+  5. How does dependency inversion reduce coupling?
+
+  6. Why should controllers generally remain thin?
+
+  7. When can Clean Architecture become over-engineering?
+
+  8. How does architecture reduce the cost of change?
+
+
+
+
+   22. Architect's Checklist
+   •
+
+
+LearnForge • Engineering Handbook • 2026                                                              64
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+       Can the core business rules be tested without the database?
+
+   •
+       Can the transport mechanism be changed without rewriting use cases?
+
+   •
+       Are infrastructure dependencies pointing toward stable abstractions?
+
+   •
+       Are application workflows represented explicitly?
+
+   •
+       Are business invariants protected by the domain model?
+
+   •
+       Are external data formats prevented from leaking into the domain?
+
+   •
+       Is dependency injection used where it improves testability and control?
+
+   •
+       Have unnecessary abstractions been removed?
+
+   •
+       Can the team explain the dependency direction in one diagram?
+
+
+
+
+   23. Final Principle
+Architecture Principle
+The purpose of Clean Architecture is not to make code look sophisticated. Its purpose is to
+protect the decisions that matter most: business rules, use cases, and system behavior.
+Frameworks, databases, transports, and vendors are important implementation details, but
+they should not own the architecture.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           65
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODEChapter 11
+
+SOLID Principles
+SOLID principles provide practical guidelines for organizing object-oriented code so that
+systems remain understandable, extensible, testable, and resistant to unnecessary change.
+
+What You Will Learn
+
+   • What each SOLID principle means in practical engineering.
+
+   • How SOLID reduces coupling and improves maintainability.
+
+   • How to recognize common violations in real code.
+
+   • When abstraction helps and when it becomes unnecessary complexity.
+
+   • How SOLID principles connect with clean architecture and testing.
+
+
+
+
+   1. What SOLID Really Means
+SOLID is a collection of five object-oriented design principles associated with maintainable
+software design. The principles are not rigid laws and they do not require every class to have
+an interface or every application to use complex inheritance.
+
+Their real purpose is to help engineers control dependencies, isolate change, keep
+responsibilities understandable, and make software easier to test and extend.
+
+
+
+  Principle       Core Idea                                            Main Benefit
+
+
+  SRP             One reason to change                                 Focused responsibilities
+
+
+  OCP             Extend behavior without unnecessary modification     Safer evolution
+
+
+  LSP             Subtypes must remain substitutable                   Predictable polymorphism
+
+
+  ISP             Prefer focused interfaces                            Lower dependency burden
+
+
+  DIP             Depend on abstractions at architectural boundaries   Reduced coupling
+
+
+
+
+Architect's Rule
+SOLID is valuable when it reduces the cost of change. Applying SOLID mechanically can
+create unnecessary abstractions and make simple systems harder to understand.
+
+
+LearnForge • Engineering Handbook • 2026                                                             66
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   2. Single Responsibility Principle
+The Single Responsibility Principle, or SRP, states that a module should have one clear
+responsibility and one primary reason to change.
+
+A common misunderstanding is that SRP means a class must contain only one method. That is
+not the intention. A class may contain many related operations while still representing one
+coherent responsibility.
+
+
+2.1 A Typical Violation
+
+
+    class UserService {
+      createUser(data: UserData) {
+        // create database record
+      }
+
+        sendWelcomeEmail(user: User) {
+          // send email
+        }
+
+        generatePdfReport(user: User) {
+          // create PDF
+        }
+
+        writeAuditLog(user: User) {
+          // write audit record
+        }
+    }
+
+
+
+
+This class has accumulated several unrelated responsibilities. Changes to email delivery, PDF
+generation, persistence, or auditing can all force changes to the same class.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                         67
+LEARNFORGE                                                         SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+2.2 A More Focused Design
+
+
+    class UserService {
+      constructor(
+        private readonly repository: UserRepository
+      ) {}
+
+        createUser(data: UserData) {
+          return this.repository.save(data);
+        }
+    }
+
+    class EmailService {
+      sendWelcomeEmail(user: User) {
+        // email responsibility
+      }
+    }
+
+    class AuditService {
+      recordUserCreated(user: User) {
+        // audit responsibility
+      }
+    }
+
+
+
+
+Figure 11.1 — SRP encourages focused responsibilities instead of one class becoming the
+owner of unrelated concerns.
+
+
+
+
+   3. Open/Closed Principle
+The Open/Closed Principle states that software entities should generally be open for extension
+but closed for unnecessary modification.
+
+The practical idea is to design stable code so that new behavior can often be introduced
+through new implementations rather than repeatedly modifying a large conditional structure.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                        68
+LEARNFORGE                                                       SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+3.1 Conditional Explosion
+
+
+    function calculateDiscount(
+      customerType: string,
+      amount: number
+    ) {
+      if (customerType === "regular") {
+        return amount * 0.05;
+      }
+
+        if (customerType === "premium") {
+          return amount * 0.15;
+        }
+
+        if (customerType === "enterprise") {
+          return amount * 0.25;
+        }
+
+        return 0;
+    }
+
+
+
+
+Adding more customer types requires modifying the same function repeatedly. A strategy-
+based design can isolate each pricing rule.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                      69
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    interface DiscountPolicy {
+      calculate(amount: number): number;
+    }
+
+    class RegularDiscount implements DiscountPolicy {
+      calculate(amount: number) {
+        return amount * 0.05;
+      }
+    }
+
+    class PremiumDiscount implements DiscountPolicy {
+      calculate(amount: number) {
+        return amount * 0.15;
+      }
+    }
+
+    class EnterpriseDiscount implements DiscountPolicy {
+      calculate(amount: number) {
+        return amount * 0.25;
+      }
+    }
+
+    function calculateDiscount(
+      policy: DiscountPolicy,
+      amount: number
+    ) {
+      return policy.calculate(amount);
+    }
+
+
+
+
+Production Tip
+Do not create abstractions for every possible future requirement. Use OCP where variation is
+already visible or likely enough to justify the added design complexity.
+
+
+
+
+   4. Liskov Substitution Principle
+The Liskov Substitution Principle, or LSP, states that objects of a subtype should be usable
+wherever objects of the parent abstraction are expected without breaking the correctness
+assumptions of the program.
+
+Inheritance is not automatically safe merely because two classes appear related. A subtype
+must preserve the behavioral expectations established by the abstraction.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          70
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+4.1 The Classic Problem
+
+
+    interface Bird {
+      fly(): void;
+    }
+
+    class Eagle implements Bird {
+      fly() {
+        console.log("Flying");
+      }
+    }
+
+    class Penguin implements Bird {
+      fly() {
+        throw new Error("Penguins cannot fly");
+      }
+    }
+
+
+
+
+The abstraction incorrectly assumes that every Bird can fly. Penguin is biologically a bird, but
+the chosen software abstraction does not represent the behavior safely.
+
+
+4.2 Better Abstraction
+
+
+    interface Bird {
+      eat(): void;
+    }
+
+    interface FlyingBird extends Bird {
+      fly(): void;
+    }
+
+    class Penguin implements Bird {
+      eat() {
+        console.log("Eating");
+      }
+    }
+
+    class Eagle implements FlyingBird {
+      eat() {
+        console.log("Eating");
+      }
+
+        fly() {
+          console.log("Flying");
+        }
+    }
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           71
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Common Mistake
+Using inheritance merely because two concepts are related in the real world. Software
+abstractions should model the behavior required by the application, not just taxonomy.
+
+
+
+
+   5. Interface Segregation Principle
+The Interface Segregation Principle states that clients should not be forced to depend on
+methods they do not use.
+
+Large interfaces often create unnecessary coupling. When one method changes, many
+unrelated implementations may need to change simply because they depend on the same
+oversized contract.
+
+
+
+  Large Interface                           Focused Interfaces
+
+
+  Printer, scanner, fax, storage            Printable, Scannable, Faxable, Storable
+
+
+  Many unused methods                       Only required capabilities
+
+
+  Higher implementation burden              Lower implementation burden
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                              72
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    interface Printable {
+      print(document: Document): void;
+    }
+
+    interface Scannable {
+      scan(): Document;
+    }
+
+    class SimplePrinter implements Printable {
+      print(document: Document) {
+        console.log("Printing");
+      }
+    }
+
+    class MultiFunctionPrinter
+      implements Printable, Scannable {
+
+        print(document: Document) {
+          console.log("Printing");
+        }
+
+        scan() {
+          return new Document();
+        }
+    }
+
+
+
+
+Architect's Rule
+Prefer interfaces that represent meaningful capabilities. A small interface is not automatically
+better, but a focused contract usually reduces unnecessary dependency.
+
+
+
+
+   6. Dependency Inversion Principle
+The Dependency Inversion Principle states that high-level policy should not depend directly on
+low-level implementation details. Both should depend on stable abstractions.
+
+This principle is especially important at architectural boundaries such as databases, external
+APIs, message brokers, payment providers, and file systems.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          73
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+6.1 Tight Coupling
+
+
+    class OrderService {
+      private database = new MySqlDatabase();
+
+        save(order: Order) {
+          this.database.insert(order);
+        }
+    }
+
+
+
+
+The high-level order logic is directly coupled to a specific database implementation.
+
+
+6.2 Dependency Inversion
+
+
+    interface OrderRepository {
+      save(order: Order): Promise;
+    }
+
+    class OrderService {
+      constructor(
+        private readonly repository: OrderRepository
+      ) {}
+
+        save(order: Order) {
+          return this.repository.save(order);
+        }
+    }
+
+    class MySqlOrderRepository implements OrderRepository {
+      async save(order: Order) {
+        // MySQL implementation
+      }
+    }
+
+
+
+
+Figure 11.2 — Dependency inversion places a stable abstraction between high-level business
+policy and infrastructure details.
+
+
+
+
+   7. SOLID and Testability
+Well-designed dependencies make unit testing easier because external systems can be
+replaced with controlled test implementations.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          74
+LEARNFORGE                                                                       SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    class FakeOrderRepository implements OrderRepository {
+      public orders: Order[] = [];
+
+        async save(order: Order) {
+          this.orders.push(order);
+        }
+    }
+
+    test("saves an order", async () => {
+      const repository = new FakeOrderRepository();
+      const service = new OrderService(repository);
+
+        await service.save({
+          id: "order-1",
+          total: 100
+        });
+
+      expect(repository.orders).toHaveLength(1);
+    });
+
+
+
+
+The test does not require a real database. This makes the test faster, deterministic, and easier
+to reason about.
+
+
+
+
+   8. SOLID and Clean Architecture
+SOLID principles and clean architecture complement each other. SOLID helps organize
+dependencies inside components, while architectural boundaries determine which
+components should depend on which others.
+
+
+
+  Concept                       Relationship to SOLID
+
+
+  Entities                      Focused business responsibilities
+
+
+  Use cases                     Stable high-level policies
+
+
+  Repositories                  Dependency inversion at persistence boundaries
+
+
+  Controllers                   Focused delivery responsibilities
+
+
+  Infrastructure                Low-level implementations behind abstractions
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                      75
+LEARNFORGE                                                                SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   9. Composition Over Inheritance
+SOLID design frequently leads toward composition rather than deep inheritance hierarchies.
+Composition allows behavior to be assembled from smaller components without forcing every
+variation into a rigid class hierarchy.
+
+
+
+    interface PaymentGateway {
+      charge(amount: number): Promise;
+    }
+
+    class CheckoutService {
+      constructor(
+        private readonly payment: PaymentGateway
+      ) {}
+
+        async checkout(amount: number) {
+          await this.payment.charge(amount);
+        }
+    }
+
+
+
+
+The checkout service does not need to know whether the payment implementation uses
+Stripe, another provider, a local simulator, or a test double.
+
+
+
+
+   10. Avoiding Abstraction Overload
+SOLID principles can be misused. Creating an interface, factory, adapter, repository, and
+strategy for every small function can make a codebase harder to understand than the original
+implementation.
+
+
+
+  Useful Abstraction                                Suspicious Abstraction
+
+
+  Protects a real architectural boundary            Exists only because "SOLID says so"
+
+
+  Encapsulates meaningful variation                 Hides a trivial function
+
+
+  Improves testing or replacement                   Adds layers without benefit
+
+
+  Clarifies ownership                               Makes navigation harder
+
+
+
+
+Common Mistake
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                               76
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Confusing more abstractions with better architecture. Good architecture minimizes
+unnecessary complexity while protecting important boundaries.
+
+
+
+
+   11. A Practical SOLID Refactoring Process
+  1. Identify the code that changes frequently.
+
+  2. Find responsibilities that are unrelated to one another.
+
+  3. Identify dependencies on unstable infrastructure.
+
+  4. Extract focused responsibilities where the boundary is meaningful.
+
+  5. Introduce abstractions only where they provide real flexibility.
+
+  6. Write tests around the behavior being preserved.
+
+  7. Refactor incrementally rather than rewriting the entire system.
+
+
+
+
+   12. SOLID Smell Detection
+
+                                                   Possible
+  Code Smell                                                       Potential Response
+                                                   Principle
+
+
+  Huge class with unrelated responsibilities       SRP              Split by responsibility
+
+
+                                                                    Consider strategy or
+  Growing conditional branches                     OCP
+                                                                    polymorphism
+
+
+  Subtype throws unsupported-operation errors      LSP              Redesign the abstraction
+
+
+  Implementations depend on unused methods         ISP              Split interfaces
+
+
+  Business logic directly creates infrastructure
+                                                   DIP              Invert the dependency
+  objects
+
+
+
+
+   13. SOLID in a Real Application
+Consider an e-commerce checkout system. The checkout use case should coordinate business
+decisions without being responsible for SQL queries, HTTP transport, email delivery, or
+payment-provider-specific details.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                             77
+LEARNFORGE                                                                    SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    class CheckoutUseCase {
+      constructor(
+        private readonly orders: OrderRepository,
+        private readonly payments: PaymentGateway,
+        private readonly notifications: NotificationService
+      ) {}
+
+        async execute(input: CheckoutInput) {
+          const order = await this.orders.create(input);
+
+            await this.payments.charge(
+              order.total,
+              order.paymentReference
+            );
+
+            await this.notifications.sendConfirmation(order);
+
+            return order;
+        }
+    }
+
+
+
+
+Each dependency has a clear responsibility. The use case coordinates the business workflow
+while infrastructure implementations remain replaceable.
+
+
+
+
+   14. SOLID Trade-offs
+
+  Benefit                                        Possible Cost
+
+
+  Lower coupling                                 More interfaces
+
+
+  Better testing                                 More dependency configuration
+
+
+  Easier extension                               More indirection
+
+
+  Clearer responsibilities                       More classes or modules
+
+
+  Replaceable infrastructure                     Additional architectural discipline
+
+
+
+
+The goal is not maximum abstraction. The goal is an appropriate balance between flexibility
+and simplicity.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                   78
+LEARNFORGE                                                         SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   15. SOLID Design Heuristics
+Production Heuristics
+
+   • Prefer small, coherent responsibilities.
+
+   • Keep business rules independent from infrastructure where practical.
+
+   • Use interfaces at meaningful boundaries rather than everywhere.
+
+   • Prefer composition when inheritance creates behavioral constraints.
+
+   • Test behavior before and after significant refactoring.
+
+   • Remove abstractions that no longer provide value.
+
+
+
+
+   16. SOLID Architecture Diagram
+Figure 11.2 — SOLID principles work together to improve responsibility boundaries,
+dependency direction, substitutability, and maintainability.
+
+
+
+
+   17. Review Questions
+  1. What does "one reason to change" mean in SRP?
+
+  2. Why can large conditional structures violate OCP?
+
+  3. What does LSP require from a subtype?
+
+  4. Why can large interfaces violate ISP?
+
+  5. What problem does dependency inversion solve?
+
+  6. Why can composition be safer than deep inheritance?
+
+  7. When can an abstraction become unnecessary complexity?
+
+  8. How does SOLID improve testability?
+
+
+
+
+   18. Practical Checklist
+   •
+       Does each major component have a clear responsibility?
+
+   •
+       Are frequently changing concerns isolated?
+
+   •
+
+
+
+LearnForge • Engineering Handbook • 2026                                                        79
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+       Can new behavior be added without repeatedly modifying stable logic?
+
+   •
+       Are subtype contracts behaviorally safe?
+
+   •
+       Are interfaces focused on meaningful capabilities?
+
+   •
+       Does business logic avoid unnecessary infrastructure coupling?
+
+   •
+       Are important dependencies replaceable in tests?
+
+   •
+       Are abstractions justified by real requirements?
+
+   •
+       Is composition preferred where inheritance would create constraints?
+
+   •
+       Has unnecessary abstraction been removed?
+
+
+
+
+   19. Key Takeaways
+   • SRP keeps responsibilities focused and limits unrelated reasons for change.
+
+   • OCP encourages safe extension around stable behavior.
+
+   • LSP protects the behavioral correctness of polymorphism.
+
+   • ISP reduces unnecessary dependency on large contracts.
+
+   • DIP separates high-level policy from low-level implementation details.
+
+   • SOLID principles are tools for controlling change, not rules for maximizing abstraction.
+
+   • Composition often provides safer flexibility than deep inheritance.
+
+   • Good SOLID design improves testability, maintainability, and architectural clarity.
+
+
+
+
+   20. Architect's Final Checklist
+   •
+       Are responsibilities clearly separated?
+
+   •
+       Are unstable implementation details isolated behind useful boundaries?
+
+   •
+       Can important components be tested without unnecessary infrastructure?
+
+   •
+       Are interfaces small enough to represent meaningful capabilities?
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                             80
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   •
+       Do abstractions represent actual variation rather than imagined futures?
+
+   •
+       Can implementations be replaced without changing business policy?
+
+   •
+       Are inheritance relationships behaviorally valid?
+
+   •
+       Does the architecture remain understandable to a new engineer?
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           81
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODEChapter 12
+
+DRY, KISS, YAGNI, Cohesion and
+Coupling
+Maintainable software is not created by adding more abstractions. It is created by controlling
+duplication, unnecessary complexity, premature features, and unhealthy dependencies while
+keeping related behavior together.
+
+What You Will Learn
+
+   • What DRY actually means beyond simple code duplication.
+
+   • How KISS helps engineers control accidental complexity.
+
+   • Why YAGNI protects systems from speculative features.
+
+   • How cohesion and coupling affect maintainability.
+
+   • How to recognize harmful duplication and harmful abstraction.
+
+   • How these principles work together during practical refactoring.
+
+
+
+
+   1. Why Simple Code Is Difficult
+Software becomes difficult to maintain when every change requires engineers to understand
+too many unrelated concepts. Complexity accumulates through duplicated rules, unnecessary
+abstractions, speculative features, unclear responsibilities, and excessive dependencies.
+
+DRY, KISS, and YAGNI are lightweight design principles that help control this complexity.
+Cohesion and coupling provide a deeper architectural vocabulary for understanding why some
+designs remain easy to change while others become fragile.
+
+Architect's Rule
+Prefer the simplest design that correctly represents the current business requirements while
+keeping important boundaries clear.
+
+
+
+
+   2. DRY — Don't Repeat Yourself
+DRY is commonly interpreted as “never write the same code twice.” That is too narrow. The
+deeper idea is that important knowledge should have a single authoritative representation
+when duplication would allow those representations to diverge.
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          82
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Two pieces of code can look similar while representing different business rules. In that
+situation, forcing them into one abstraction may create coupling rather than eliminate
+meaningful duplication.
+
+
+2.1 Obvious Duplication
+
+
+    function calculateRegularPrice(price: number) {
+      return price * 1.2;
+    }
+
+    function calculatePremiumPrice(price: number) {
+      return price * 1.2;
+    }
+
+
+
+
+If the 20 percent calculation represents the same business rule, maintaining it twice creates a
+risk that one implementation will eventually change while the other remains unchanged.
+
+
+2.2 Extracting Shared Knowledge
+
+
+    function addTax(price: number, taxRate = 0.2) {
+      return price * (1 + taxRate);
+    }
+
+    function calculateRegularPrice(price: number) {
+      return addTax(price);
+    }
+
+    function calculatePremiumPrice(price: number) {
+      return addTax(price);
+    }
+
+
+
+
+The shared tax rule now has one implementation. A change to the tax calculation can be
+made in one place.
+
+
+
+
+   3. Accidental Duplication vs Coincidental
+   Similarity
+Not every repeated-looking structure should be abstracted. Two functions may currently
+contain similar code because they happen to perform similar work, while their business rules
+are expected to evolve independently.
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          83
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Situation                                             Recommended Approach
+
+
+  Same business rule repeated                           Consider extracting shared logic
+
+
+  Same algorithm but different business meaning         Keep boundaries separate
+
+
+  Similar code with different future evolution          Avoid premature abstraction
+
+
+  Shared validation rule                                Centralize when consistency matters
+
+
+
+
+Common Mistake
+Treating every repeated line as a DRY violation. Removing textual duplication can create
+conceptual duplication elsewhere if the abstraction does not represent the same underlying
+knowledge.
+
+
+
+
+   4. DRY at the Architectural Level
+DRY can also apply to configuration, schemas, business policies, and operational knowledge.
+For example, maintaining multiple independent definitions of the same API contract can cause
+clients and servers to drift apart.
+
+
+
+    type UserStatus =
+      | "active"
+      | "suspended"
+      | "deleted";
+
+    interface User {
+      id: string;
+      status: UserStatus;
+    }
+
+
+
+
+The important principle is not simply “one file.” It is that the authoritative meaning of a
+concept should be clear and unnecessary competing definitions should be avoided.
+
+
+
+
+   5. KISS — Keep It Simple
+KISS encourages engineers to prefer understandable solutions over unnecessarily complicated
+ones. Simplicity does not mean ignoring real requirements. It means avoiding complexity that
+does not produce useful business or technical value.
+
+
+
+LearnForge • Engineering Handbook • 2026                                                            84
+LEARNFORGE                                                                      SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Simple Design                            Overengineered Design
+
+
+  Direct function call                     Multiple unnecessary abstraction layers
+
+
+  One clear data structure                 Several wrappers with little value
+
+
+  Simple validation                        Generic framework for one use case
+
+
+  Explicit control flow                    Metaprogramming without clear need
+
+
+
+
+5.1 Example
+
+
+    function isAdult(age: number): boolean {
+      return age >= 18;
+    }
+
+
+
+
+For a simple rule, a direct function is often clearer than introducing a policy engine, factory,
+registry, and configuration framework.
+
+Architect's Rule
+Complexity should have a reason. If an abstraction cannot be explained in terms of a real
+requirement, architectural boundary, or recurring variation, question whether it belongs in the
+system.
+
+
+
+
+   6. Essential vs Accidental Complexity
+Essential complexity comes from the problem itself. If a payment system must support
+refunds, fraud checks, currency conversion, and regulatory rules, those requirements create
+unavoidable complexity.
+
+Accidental complexity comes from the way the solution is implemented. Unnecessary
+frameworks, duplicated transformations, excessive indirection, and unclear dependencies can
+make a system harder than the underlying business problem requires.
+
+Figure 12.1 — Good engineering cannot remove essential complexity, but it can reduce
+accidental complexity.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                     85
+LEARNFORGE                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   7. YAGNI — You Aren't Gonna Need It
+YAGNI advises developers not to implement functionality simply because it might be needed
+in the future. Future requirements are uncertain, and premature features consume
+development time while increasing maintenance cost.
+
+
+7.1 Speculative Design
+
+
+    class UserService {
+      createUser(user: User) {
+        // current requirement
+      }
+
+        // Future features that have no current requirement:
+        // importFromLegacySystem()
+        // exportToTwentyDifferentFormats()
+        // syncWithUnknownPartner()
+    }
+
+
+
+
+Building unused functionality creates code that must be tested, documented, secured, and
+maintained even though it provides no current value.
+
+
+7.2 Better Approach
+
+
+    class UserService {
+      createUser(user: User) {
+        // Implement the requirement that exists today.
+      }
+    }
+
+
+
+
+When a real requirement appears, the system can be extended based on actual constraints
+rather than assumptions.
+
+Production Tip
+Design for change, but do not implement imaginary requirements. Stable boundaries are
+useful; speculative features are usually not.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                       86
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   8. The Relationship Between KISS and YAGNI
+KISS and YAGNI reinforce each other. KISS asks whether the current solution is more
+complicated than necessary. YAGNI asks whether functionality exists only because someone
+predicts that it may be needed later.
+
+
+
+  Question                                                                                  Principle
+
+
+  Is the implementation more complicated than necessary?                                    KISS
+
+
+  Are we building a feature without a current requirement?                                  YAGNI
+
+
+  Are we maintaining the same knowledge in multiple places?                                 DRY
+
+
+
+
+   9. Cohesion
+Cohesion describes how strongly the responsibilities within a module belong together. High
+cohesion generally means that the elements of a module contribute to one focused purpose.
+
+A highly cohesive module is easier to understand because engineers can reason about related
+behavior without navigating through unrelated functionality.
+
+
+
+  High Cohesion                                  Low Cohesion
+
+
+  Payment module owns payment rules               Payment module also generates reports
+
+
+  User module manages identity behavior           User module sends unrelated marketing campaigns
+
+
+  Notification module manages delivery            Notification module modifies billing records
+
+
+
+
+   10. Coupling
+Coupling describes the degree to which one component depends on another. Some coupling is
+unavoidable, but excessive or unstable coupling makes changes more expensive.
+
+The goal is not zero coupling. A useful system requires components to communicate. The goal
+is controlled coupling with clear ownership and stable contracts.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                    87
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Figure 12.2 — High cohesion groups related responsibilities; excessive coupling allows
+changes to propagate unnecessarily.
+
+
+
+
+   11. Cohesion and Coupling Work Together
+A common design goal is high cohesion with appropriately low coupling. Related
+responsibilities should live together, while unrelated modules should communicate through
+explicit and stable boundaries.
+
+
+
+    interface PaymentGateway {
+      charge(amount: number): Promise;
+    }
+
+    class CheckoutService {
+      constructor(
+        private readonly payment: PaymentGateway
+      ) {}
+
+        async execute(amount: number) {
+          await this.payment.charge(amount);
+        }
+    }
+
+
+
+
+Checkout behavior is cohesive, while the concrete payment implementation is kept behind a
+narrow dependency.
+
+
+
+
+   12. The Cost of High Coupling
+When components are tightly coupled, a small change can create a large testing and
+deployment surface.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                         88
+LEARNFORGE                                                                SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Coupling Problem                              Typical Consequence
+
+
+  Shared mutable state                          Unexpected side effects
+
+
+  Shared database assumptions                   Hard-to-coordinate changes
+
+
+  Large interfaces                              Unnecessary implementation changes
+
+
+  Direct infrastructure dependencies            Difficult testing
+
+
+  Circular dependencies                         Hard-to-understand architecture
+
+
+
+
+   13. Circular Dependencies
+Circular dependencies occur when modules depend on one another in a cycle. They can make
+initialization, testing, deployment, and reasoning about ownership significantly harder.
+
+
+
+    class OrderService {
+      constructor(
+        private readonly paymentService: PaymentService
+      ) {}
+    }
+
+    class PaymentService {
+      constructor(
+        private readonly orderService: OrderService
+      ) {}
+    }
+
+
+
+
+A better design often introduces a higher-level workflow or event boundary so that neither
+module must directly own the other.
+
+
+
+
+   14. Refactoring Toward Better Boundaries
+  1. Identify modules that change together frequently.
+
+  2. Identify modules that should change independently.
+
+  3. Move strongly related behavior closer together.
+
+  4. Remove dependencies that cross unrelated responsibilities.
+
+  5. Replace direct infrastructure dependencies with stable contracts where justified.
+
+
+LearnForge • Engineering Handbook • 2026                                                               89
+LEARNFORGE                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  6. Break cycles before introducing more abstractions.
+
+  7. Verify behavior with automated tests.
+
+
+
+
+   15. Practical Refactoring Example
+
+    class OrderManager {
+      createOrder(order: Order) {
+        // database logic
+        // payment logic
+        // email logic
+        // invoice generation
+        // analytics logic
+      }
+    }
+
+
+
+
+This design has low cohesion because many responsibilities are concentrated in one
+component.
+
+
+
+    class OrderService {
+      constructor(
+        private readonly orders: OrderRepository,
+        private readonly payments: PaymentGateway,
+        private readonly notifications: NotificationService
+      ) {}
+
+        async createOrder(input: CreateOrderInput) {
+          const order = await this.orders.create(input);
+
+            await this.payments.charge(
+              order.total,
+              order.paymentReference
+            );
+
+            await this.notifications.sendConfirmation(order);
+
+            return order;
+        }
+    }
+
+
+
+
+The second design gives the workflow explicit dependencies and allows each infrastructure
+concern to evolve independently.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                       90
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   16. DRY Does Not Mean Centralize Everything
+Over-centralization can create a single module that becomes a dependency for large parts of
+the application. Such a module may technically remove duplication while increasing coupling.
+
+Common Mistake
+Creating a universal utility module that contains unrelated business rules, formatters,
+validators, database helpers, and API functions. This often becomes a hidden dependency
+hub.
+
+
+
+
+   17. KISS Does Not Mean Ignoring Architecture
+Simple code does not mean putting the entire application into one file or removing every
+abstraction. A sufficiently large system needs boundaries. The KISS principle asks whether
+those boundaries are justified and understandable.
+
+A modular architecture can therefore be simple even when the system itself is large.
+
+
+
+
+   18. YAGNI and Future-Proofing
+There is an important distinction between future-proofing and speculative implementation.
+
+
+
+  Future-Proofing                                         Speculative Implementation
+
+
+  Clear interface at a real boundary                      Framework for hypothetical features
+
+
+  Configuration instead of hard-coded deployment values   Dozens of unused configuration options
+
+
+  Modular structure                                       Unused plugin architecture
+
+
+  Automated tests                                         Unused feature implementations
+
+
+
+
+   19. A Unified Design Model
+Figure 12.3 — DRY, KISS, and YAGNI help guide implementation choices while cohesion and
+coupling describe the resulting structural quality.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                            91
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   20. Practical Decision Framework
+
+  Question                                                      Preferred Direction
+
+
+  Is the same business knowledge duplicated?                    Consider DRY refactoring
+
+
+  Is the solution harder than the requirement?                  Apply KISS
+
+
+  Is functionality unsupported by a real requirement?           Apply YAGNI
+
+
+  Are unrelated responsibilities mixed together?                Increase cohesion
+
+
+  Do changes propagate unnecessarily?                           Reduce coupling
+
+
+
+
+   21. Practical Checklist
+   •
+       Is important business knowledge represented in one authoritative place?
+
+   •
+       Have accidental duplication and conceptual duplication been distinguished?
+
+   •
+       Is the implementation as simple as the requirements allow?
+
+   •
+       Are speculative features being avoided?
+
+   •
+       Are related responsibilities grouped together?
+
+   •
+       Are unrelated responsibilities separated?
+
+   •
+       Are dependencies explicit and understandable?
+
+   •
+       Are circular dependencies avoided?
+
+   •
+       Can modules evolve independently where appropriate?
+
+   •
+       Have abstractions been justified by real value?
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          92
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   22. Review Questions
+  1. What does DRY mean beyond avoiding repeated lines of code?
+
+  2. When can removing duplication increase coupling?
+
+  3. What is accidental complexity?
+
+  4. How does KISS differ from simply writing less code?
+
+  5. What problem does YAGNI address?
+
+  6. What is high cohesion?
+
+  7. Why is zero coupling not a realistic goal?
+
+  8. What problems can circular dependencies create?
+
+  9. How can excessive abstraction violate KISS?
+
+10. How should an engineer decide whether to extract shared logic?
+
+
+
+
+   23. Key Takeaways
+   • DRY is about avoiding duplicated knowledge, not eliminating every similar line of code.
+
+   • KISS encourages solutions whose complexity is justified by real requirements.
+
+   • YAGNI protects teams from implementing uncertain future features prematurely.
+
+   • High cohesion keeps related responsibilities together.
+
+   • Controlled coupling prevents unnecessary change propagation.
+
+   • Good design balances reuse with independence.
+
+   • Abstractions should solve real problems rather than satisfy principles mechanically.
+
+   • Simple, focused modules are easier to test, understand, and evolve.
+
+
+
+
+   24. Architect's Final Checklist
+   •
+       Does every shared abstraction represent shared knowledge?
+
+   •
+       Could this abstraction create more coupling than it removes?
+
+   •
+       Is every major feature supported by a real requirement?
+
+   •
+       Is accidental complexity being actively reduced?
+
+   •
+
+LearnForge • Engineering Handbook • 2026                                                           93
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+       Are module responsibilities coherent?
+
+   •
+       Are dependencies crossing boundaries for a clear reason?
+
+   •
+       Can a new engineer understand the structure without excessive explanation?
+
+   •
+       Does the design remain simple without sacrificing necessary architecture?
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          94
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODEChapter 13
+
+API Architecture
+A well-designed API is a stable contract between software components. Good API architecture
+makes systems easier to integrate, evolve, secure, test, observe, and operate without forcing
+clients to understand internal implementation details.
+
+What You Will Learn
+
+   • How to design APIs around business resources and capabilities.
+
+   • How HTTP methods and status codes communicate API behavior.
+
+   • How to design consistent request, response, and error contracts.
+
+   • How versioning protects clients while APIs evolve.
+
+   • How pagination, filtering, sorting, and rate limiting improve API usability.
+
+   • How authentication, authorization, validation, and idempotency fit into API architecture.
+
+   • How observability and documentation make APIs production-ready.
+
+
+
+
+   1. What Is an API?
+An Application Programming Interface (API) is a defined contract through which one software
+component communicates with another. The contract describes what can be requested, what
+data must be supplied, what response will be returned, and how errors are represented.
+
+An API should hide unnecessary implementation details. A client should not need to know how
+a service stores its data internally or which framework implements the server.
+
+Architect's Rule
+Design the API around the consumer's required business capabilities, not around the internal
+structure of your database or classes.
+
+
+
+
+   2. API as a Contract
+The most important property of a production API is predictability. Clients should be able to rely
+on stable names, data types, semantics, error formats, and documented behavior.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                            95
+LEARNFORGE                                                                         SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Contract Element            Example                                Why It Matters
+
+
+  Endpoint                    GET /courses/123                       Defines how a resource is addressed
+
+
+  Request                     JSON body or query parameters          Defines required input
+
+
+  Response                    JSON representation                    Defines returned data
+
+
+  Status code                 200, 404, 422                          Communicates operation result
+
+
+  Error contract              Structured error object                Allows predictable failure handling
+
+
+
+
+   3. Resource-Oriented API Design
+A common approach for HTTP APIs is to model important business entities as resources. URLs
+identify resources while HTTP methods communicate the intended operation.
+
+
+
+  Method              Example                  Typical Meaning
+
+
+  GET                 /courses/123             Read a resource
+
+
+  POST                /courses                 Create a resource or initiate an operation
+
+
+  PUT                 /courses/123             Replace a resource representation
+
+
+  PATCH               /courses/123             Partially modify a resource
+
+
+  DELETE              /courses/123             Remove or deactivate a resource
+
+
+
+
+Figure 13.1 — A well-designed API separates the external contract from internal business and
+data implementation.
+
+
+
+
+   4. Naming Endpoints
+Endpoint naming should be consistent and understandable. Resource names normally use
+nouns rather than verbs because the HTTP method already communicates the action.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                        96
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Avoid                                              Prefer
+
+
+  POST /getCourses                                   GET /courses
+
+
+  POST /createCourse                                 POST /courses
+
+
+  POST /deleteCourse/123                             DELETE /courses/123
+
+
+  POST /updateCourse/123                             PATCH /courses/123
+
+
+
+
+Common Mistake
+Mixing multiple naming styles in the same API. Inconsistent endpoint conventions increase
+cognitive load and make client integrations harder to maintain.
+
+
+
+
+   5. HTTP Status Codes
+Status codes are part of the API contract. They allow clients to distinguish successful
+operations from different classes of failure without parsing human-readable messages.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           97
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Status         Meaning                    Typical Example
+
+
+  200            OK                         Successful read or update
+
+
+  201            Created                    New resource created
+
+
+  204            No Content                 Successful deletion with no response body
+
+
+  400            Bad Request                Malformed request
+
+
+  401            Unauthorized               Authentication required or invalid
+
+
+  403            Forbidden                  Authenticated but not permitted
+
+
+  404            Not Found                  Resource does not exist
+
+
+  409            Conflict                   State conflict or duplicate operation
+
+
+  422            Unprocessable Content      Validation failure
+
+
+  429            Too Many Requests          Rate limit exceeded
+
+
+  500            Internal Server Error      Unexpected server failure
+
+
+  503            Service Unavailable        Temporary service or dependency failure
+
+
+
+
+   6. Request Validation
+Validation should happen at the API boundary before invalid data reaches business logic. This
+protects internal components and provides clients with clear feedback.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                             98
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    interface CreateCourseRequest {
+      title: string;
+      description: string;
+      instructorId: string;
+    }
+
+    function validateCourseRequest(
+      input: CreateCourseRequest
+    ) {
+      if (!input.title.trim()) {
+        throw new Error("title is required");
+      }
+
+         if (!input.instructorId.trim()) {
+           throw new Error("instructorId is required");
+         }
+
+         if (input.title.length > 200) {
+           throw new Error("title is too long");
+         }
+    }
+
+
+
+
+Production applications should normally use a dedicated validation library or framework
+mechanism rather than relying only on manually written checks. The important architectural
+principle is that untrusted external input must be validated before entering trusted application
+logic.
+
+
+
+
+   7. Consistent Error Responses
+An API should use a predictable error structure. Clients should not need to parse arbitrary text
+messages to determine what went wrong.
+
+
+
+    {
+         "error": {
+           "code": "COURSE_NOT_FOUND",
+           "message": "The requested course does not exist.",
+           "requestId": "req_8f31a2"
+         }
+    }
+
+
+
+
+The internal error details shown to developers may be much more detailed than the
+information returned to clients. Sensitive stack traces, database details, credentials, and
+infrastructure information should never be exposed through public API responses.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           99
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Production Tip
+Give every request a correlation or request identifier. When a client reports a failure, the
+identifier should allow engineers to locate the corresponding server-side logs and traces.
+
+
+
+
+   8. API Evolution
+APIs rarely remain unchanged. New fields, new behaviors, new validation rules, and new
+business capabilities are introduced over time. A good API strategy allows evolution without
+unnecessarily breaking existing consumers.
+
+Backward compatibility should be treated as an architectural concern rather than something
+discovered only after a client breaks.
+
+Architect's Rule
+Prefer additive, backward-compatible changes whenever possible. Removing or changing the
+meaning of an existing field can be more dangerous than adding a new capability.
+
+
+
+
+   9. API Versioning
+Versioning provides a mechanism for managing incompatible changes. Common strategies
+include URL versioning, header-based versioning, and media-type versioning.
+
+
+
+  Strategy           Example                                Consideration
+
+
+  URL                /api/v1/courses                        Simple and highly visible
+
+
+  Header             API-Version: 2                         Keeps URLs stable
+
+
+  Media Type         Accept: application/vnd.api.v2+json    Explicit representation versioning
+
+
+
+
+   10. API Design Principle
+   • APIs are contracts, not merely URLs.
+
+   • Consistency is more valuable than cleverness.
+
+   • Validate external input at the boundary.
+
+   • Use status codes and structured errors consistently.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                            100
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   • Design for evolution instead of assuming the first version will never change.
+
+
+
+
+   11. API Versioning
+APIs evolve as business requirements change. A well-designed API must allow the server to
+improve without unexpectedly breaking existing consumers. Versioning provides a controlled
+way to introduce incompatible changes.
+
+
+
+  Strategy             Example                      Advantage                  Trade-off
+
+
+                                                                               Multiple URLs must be
+  URL Versioning        /api/v1/users               Simple and visible
+                                                                               maintained
+
+
+  Header                Accept: application/                                   Less obvious to
+                                                    Keeps URL stable
+  Versioning            vnd.api.v2+json                                        developers
+
+
+  Query                                                                        Can become
+                        /users?version=2            Easy to implement
+  Versioning                                                                   inconsistent
+
+
+                                                    Explicit
+  Media-Type            application/
+                                                    representation             More complex tooling
+  Versioning            vnd.company.resource+json
+                                                    control
+
+
+
+
+Architect's Rule
+Do not create a new API version merely because an implementation changed. Version when
+the public contract changes in a way that existing consumers cannot safely tolerate.
+
+
+
+
+   12. Backward Compatibility
+Backward compatibility means existing clients continue to work after the server evolves.
+Additive changes are usually safer than destructive changes. For example, adding an optional
+response field is generally safer than renaming or removing an existing field.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                             101
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Change                                                     Compatibility
+
+
+  Add optional response field                                Usually safe
+
+
+  Add optional request field                                 Usually safe
+
+
+  Remove response field                                      Potentially breaking
+
+
+  Rename a field                                             Breaking
+
+
+  Change field type                                          Breaking
+
+
+  Make an optional field required                            Breaking
+
+
+
+
+   13. Authentication and Authorization
+Authentication answers the question "Who are you?" Authorization answers "What are you
+allowed to do?" These concerns should be explicitly separated in API design.
+
+
+
+    type UserContext = {
+      userId: string;
+      roles: string[];
+    };
+
+    function canUpdateCourse(user: UserContext): boolean {
+      return user.roles.includes("course_admin");
+    }
+
+
+
+
+Authentication mechanisms may include sessions, OAuth 2.0, OpenID Connect, or signed
+tokens depending on the system. Authorization should be enforced at the server boundary
+rather than relying on client-side controls.
+
+Common Mistake
+Hiding an administrative button in the frontend and assuming the operation is protected. A
+malicious client can call the API directly. Authorization must be validated by the server.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                            102
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   14. Input Validation
+An API should validate untrusted input before it reaches business logic or persistence layers.
+Validation should check required fields, types, ranges, formats, and business constraints
+where appropriate.
+
+
+
+    function validateCreateUser(input: unknown) {
+      if (!input || typeof input !== "object") {
+        throw new Error("Invalid request body");
+      }
+
+        const body = input as Record<string, unknown>;
+
+        if (typeof body.email !== "string") {
+          throw new Error("Email is required");
+        }
+
+        if (typeof body.name !== "string" || body.name.length > 100) {
+          throw new Error("Invalid name");
+        }
+    }
+
+
+
+
+Validation should produce predictable errors. Clients should be able to understand what was
+rejected without exposing internal implementation details.
+
+
+
+
+   15. Error Handling
+Consistent error responses make APIs easier to integrate and operate. An error should
+communicate the category of failure while avoiding sensitive internal information.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                             103
+LEARNFORGE                                                                 SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Status           Meaning                       Typical Use
+
+
+  400              Bad Request                   Malformed or invalid input
+
+
+  401              Unauthorized                  Missing or invalid authentication
+
+
+  403              Forbidden                     Authenticated but not permitted
+
+
+  404              Not Found                     Requested resource does not exist
+
+
+  409              Conflict                      State conflict or duplicate operation
+
+
+  429              Too Many Requests             Rate limit exceeded
+
+
+  500              Internal Server Error         Unexpected server failure
+
+
+
+
+    {
+        "error": {
+          "code": "COURSE_NOT_FOUND",
+          "message": "The requested course does not exist",
+          "requestId": "req_7f31c2a9"
+        }
+    }
+
+
+
+
+   16. Pagination, Filtering and Sorting
+Collection endpoints should impose appropriate pagination or bounded-result mechanisms rather than returning unbounded datasets. Pagination protects
+server resources and gives clients predictable response sizes.
+
+Figure 13.2 — Pagination prevents large collections from consuming unbounded API and
+database resources.
+
+
+
+
+   17. Rate Limiting
+Rate limiting controls how much traffic a client can generate within a defined period. It
+protects APIs from accidental overload, abusive traffic, and poorly behaved clients.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                               104
+LEARNFORGE                                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Strategy                         Concept
+
+
+  Fixed Window                     Count requests within fixed time intervals
+
+
+  Sliding Window                   Measure requests across a moving time range
+
+
+  Token Bucket                     Allow bursts while controlling average rate
+
+
+  Leaky Bucket                     Process requests at a controlled output rate
+
+
+
+
+Production Tip
+Rate limits should be designed around business importance. Login, payment, search, and
+public endpoints may require different limits and protection strategies.
+
+
+
+
+   18. API Idempotency
+Some API operations may be repeated because clients retry after network timeouts. For
+operations such as payments, order creation, or provisioning, the API should provide an
+idempotency mechanism.
+
+
+
+    POST /api/v1/payments
+    Idempotency-Key: 7f31c2a9-82a4-4a12-bb31-91f0a8c2e101
+    Content-Type: application/json
+
+    {
+        "amount": 5000,
+        "currency": "USD"
+    }
+
+
+
+
+The server stores the result associated with the idempotency key for an appropriate retention
+period. A repeated request using the same key can return the original result rather than
+creating another transaction.
+
+
+
+
+   19. API Documentation
+An API contract is only useful when consumers can understand how to use it. Documentation
+should describe endpoints, authentication, request schemas, responses, errors, limits,
+examples, and compatibility expectations.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                      105
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+OpenAPI is commonly used to describe HTTP APIs in a machine-readable format. The
+specification can support documentation generation, validation, client generation, and
+contract testing.
+
+
+
+    openapi: 3.0.3
+    info:
+      title: Course API
+      version: 1.0.0
+
+    paths:
+      /courses/{id}:
+        get:
+           summary: Get a course
+           parameters:
+             - name: id
+               in: path
+               required: true
+               schema:
+                 type: string
+           responses:
+             "200":
+               description: Course returned
+             "404":
+               description: Course not found
+
+
+
+
+   20. API Observability
+A production API should expose enough telemetry to answer operational questions. At
+minimum, teams should monitor request volume, latency, error rates, saturation, and
+important business outcomes.
+
+
+
+  Signal                    Example                    Why It Matters
+
+
+  Latency                   p50, p95, p99              Shows user-facing performance
+
+
+  Errors                    4xx and 5xx rates          Shows failures and client misuse
+
+
+  Traffic                   Requests per second        Shows demand
+
+
+  Saturation                CPU, memory, connections   Shows resource pressure
+
+
+  Business metrics          Successful payments        Connects technical health to outcomes
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                            106
+LEARNFORGE                                                                SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   21. API Security Checklist
+   •
+       Authenticate requests where required.
+
+   •
+       Authorize every sensitive operation on the server.
+
+   •
+       Validate and constrain untrusted input.
+
+   •
+       Use HTTPS for network communication.
+
+   •
+       Avoid exposing secrets or internal stack traces.
+
+   •
+       Apply appropriate rate limits.
+
+   •
+       Protect sensitive endpoints from abuse.
+
+   •
+       Log security-relevant events without logging secrets.
+
+
+
+
+   22. API Design Decision Framework
+
+  Question                                           Recommended Direction
+
+
+  Is the resource clearly defined?                   Use a stable resource-oriented contract
+
+
+  Does the operation change state?                   Define idempotency and retry behavior
+
+
+  Can the collection become large?                   Add pagination and filtering
+
+
+  Will clients have different release cycles?        Design for backward compatibility
+
+
+  Is the endpoint public or high traffic?            Add rate limiting and abuse protection
+
+
+  Is the operation security-sensitive?               Require explicit authorization
+
+
+
+
+   23. Key Takeaways
+   • APIs are contracts between independently evolving components.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                              107
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   • Resource boundaries should reflect meaningful business concepts.
+
+   • Backward compatibility is a core API design concern.
+
+   • Authentication and authorization are separate responsibilities.
+
+   • Input validation must happen at trust boundaries.
+
+   • Errors should be consistent, useful, and safe.
+
+   • Pagination and rate limiting protect system resources.
+
+   • Idempotency makes retries safer for state-changing operations.
+
+   • Documentation and observability are part of production API design.
+
+
+
+
+   24. Quick Review
+  1. What makes an API a contract?
+
+  2. When should an API be versioned?
+
+  3. Why are additive changes usually safer than destructive changes?
+
+  4. What is the difference between authentication and authorization?
+
+  5. Why should validation occur at the API boundary?
+
+  6. Why are pagination and rate limiting important?
+
+  7. How does idempotency protect state-changing operations?
+
+  8. What telemetry should a production API expose?
+
+
+
+
+   25. Architect's Checklist
+   •
+       Are API resources and responsibilities clearly defined?
+
+   •
+       Is the public contract documented?
+
+   •
+       Are breaking and non-breaking changes understood?
+
+   •
+       Is backward compatibility tested?
+
+   •
+       Are authentication and authorization enforced server-side?
+
+   •
+       Are inputs validated at trust boundaries?
+
+   •
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           108
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+       Are collection endpoints paginated where necessary?
+
+   •
+       Are rate limits appropriate for traffic patterns?
+
+   •
+       Are retry and idempotency semantics documented?
+
+   •
+       Can engineers monitor latency, errors, traffic, and saturation?
+
+
+
+
+   26. Final Architecture Principle
+Architect's Rule
+A good API is not merely an endpoint that works. It is a stable, explicit, secure, observable
+contract that remains understandable as clients, services, teams, and business requirements
+evolve.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                             109
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODEChapter 14
+
+Database Architecture & Data
+Modeling
+Database architecture is not simply about choosing a database engine. It is about designing
+data ownership, consistency, access patterns, transactions, performance, resilience, and
+evolution so that the data layer remains reliable as the system grows.
+
+What You Will Learn
+
+   • How to choose between relational and non-relational databases.
+
+   • How data ownership and access patterns influence schema design.
+
+   • How normalization, denormalization, and indexing affect performance.
+
+   • How transactions and isolation protect data correctness.
+
+   • How replication, sharding, caching, and connection pooling improve scalability.
+
+   • How migrations and operational practices keep databases maintainable.
+
+
+
+
+   1. Why Database Architecture Matters
+The database is often one of the most important stateful components in a production system.
+Application code can frequently be replaced or scaled horizontally, but business data must
+remain correct, durable, and accessible. A poor database design can therefore become a long-
+term constraint on the entire architecture.
+
+Database decisions should begin with business requirements and access patterns rather than
+popularity. The correct question is not simply "Which database is best?" but "Which data
+model and operational behavior best fit this system?"
+
+Architect's Rule
+Choose a database according to data characteristics, consistency requirements, query
+patterns, scale, and operational capability—not because a particular database is fashionable.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                        110
+LEARNFORGE                                                                  SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   2. Relational vs Non-Relational Databases
+Relational databases organize information into tables with defined relationships. They are
+particularly strong when the system requires structured data, joins, constraints, and
+transactional consistency.
+
+Non-relational databases include document, key-value, wide-column, and graph models. They
+can be useful when the application's data access patterns or scale characteristics do not fit
+naturally into a relational model.
+
+
+
+  Characteristic         Relational                   Non-Relational
+
+
+  Data structure         Tables and relationships     Documents, keys, graphs, or columns
+
+
+  Schema                 Usually explicit             Often more flexible
+
+
+  Joins                  Strong native support        Often limited or avoided
+
+
+  Transactions           Strong transactional model   Varies by product
+
+
+  Best fit               Structured business data     Specific high-scale or flexible access patterns
+
+
+
+
+   3. Data Ownership
+In a well-designed architecture, ownership of data should be explicit. A component or service
+should have clear responsibility for creating, changing, validating, and protecting the data
+within its boundary.
+
+
+
+  Domain                   Owner                      Example Data
+
+
+  Identity                 Identity service            Users, roles, credentials
+
+
+  Catalog                  Catalog service             Products, categories, prices
+
+
+  Orders                   Order service               Orders, line items, status
+
+
+  Payments                 Payment service             Transactions, payment state
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                111
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Clear ownership reduces accidental coupling. Other components should normally interact with
+owned data through a stable contract instead of directly modifying another component's
+tables.
+
+
+
+
+   4. Schema Design
+A schema defines the structure and constraints of stored data. Good schema design makes
+invalid states difficult to create and common queries efficient.
+
+
+
+    CREATE TABLE courses (
+        id UUID PRIMARY KEY,
+        title VARCHAR(200) NOT NULL,
+        description TEXT,
+        status VARCHAR(30) NOT NULL,
+        created_at TIMESTAMP NOT NULL,
+        updated_at TIMESTAMP NOT NULL
+    );
+
+
+
+
+The schema should communicate important business rules. Required fields, unique
+constraints, foreign keys, and appropriate data types move correctness closer to the data
+boundary.
+
+
+
+
+   5. Primary Keys
+Every important entity should have a stable identity. Primary keys provide that identity and
+allow other records to reference the entity.
+
+
+
+  Key Type                     Strength                  Trade-off
+
+
+  Integer sequence              Compact and efficient    Can expose ordering information
+
+
+  UUID                          Globally unique          Larger storage and index footprint
+
+
+  Natural key                   Meaningful to business   May change over time
+
+
+
+
+Common Mistake
+Using a business attribute as the permanent identity of an entity without considering whether
+that attribute can change. Email addresses, usernames, and product codes may have
+business meaning but are not always stable identifiers.
+
+
+LearnForge • Engineering Handbook • 2026                                                            112
+LEARNFORGE                                                                   SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   6. Normalization
+Normalization reduces unnecessary duplication by separating data into logical structures and
+representing relationships explicitly.
+
+For example, storing customer information repeatedly inside every order can create update
+anomalies. A normalized design can keep customer data in one table and reference it from
+orders.
+
+
+
+  Problem                Effect                                               Normalization Benefit
+
+
+  Duplicate data         Higher storage and inconsistency risk                Centralized representation
+
+
+  Update anomaly         One fact must be changed in many places              Single source of truth
+
+
+  Insert anomaly         Cannot store a fact independently                    Independent entities
+
+
+  Delete anomaly         Deleting one record removes unrelated information    Separated responsibilities
+
+
+
+
+   7. Denormalization
+Denormalization intentionally duplicates or precomputes information to make important read
+operations faster or simpler. It should be driven by measured access patterns rather than
+speculation.
+
+Architect's Rule
+Normalize for correctness first. Denormalize when a demonstrated performance or operational
+requirement justifies the additional consistency burden.
+
+
+
+
+   8. Indexing
+An index provides a data structure that helps the database locate matching rows without
+scanning the entire table.
+
+
+
+    CREATE INDEX idx_courses_status_created
+    ON courses (status, created_at DESC);
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                   113
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Indexes can dramatically improve reads, but they are not free. Every index requires storage
+and can increase the cost of inserts, updates, and deletes.
+
+
+
+  Index                    Useful For                  Cost
+
+
+  Single-column            Simple filters              Additional storage and write work
+
+
+  Composite                Multi-column queries        More complex maintenance
+
+
+  Unique                   Enforcing uniqueness        Write validation overhead
+
+
+  Partial                  Frequently queried subset   Database-specific behavior
+
+
+
+
+   9. Query Performance
+Database performance should be investigated using real query behavior. Developers should
+inspect query plans, identify expensive scans, measure latency, and understand how indexes
+are being used.
+
+
+
+    EXPLAIN ANALYZE
+    SELECT id, title
+    FROM courses
+    WHERE status = 'published'
+    ORDER BY created_at DESC
+    LIMIT 20;
+
+
+
+
+A query that appears simple at the application level can still become expensive when
+executed against millions of rows. Performance testing should therefore use realistic data
+volumes.
+
+
+
+
+   10. Transactions
+A transaction groups related database operations into a controlled unit. The classic ACID
+properties describe important transactional guarantees: atomicity, consistency, isolation, and
+durability.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          114
+LEARNFORGE                                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Property              Meaning
+
+
+  Atomicity             All required operations succeed or the transaction is rolled back
+
+
+  Consistency           Rules and constraints remain satisfied
+
+
+  Isolation             Concurrent transactions do not produce unacceptable interference
+
+
+  Durability            Committed data survives expected failures
+
+
+
+
+   11. Transaction Example
+
+    await db.transaction(async (tx) => {
+      const order = await tx.orders.create({
+        userId,
+        status: "pending"
+      });
+
+       await tx.orderItems.createMany({
+         orderId: order.id,
+         items
+       });
+
+      await tx.inventory.reserve({
+        items
+      });
+    });
+
+
+
+
+The exact transaction API varies by database library, but the architectural principle remains
+the same: operations that must preserve one business invariant should share an appropriate
+transactional boundary.
+
+
+
+
+   12. Isolation Levels
+Isolation controls how concurrent transactions can observe each other's changes. Stronger
+isolation can improve correctness but may increase contention and reduce concurrency.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                      115
+LEARNFORGE                                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Level                              General Idea
+
+
+  Read Uncommitted                   Allows the weakest visibility guarantees
+
+
+  Read Committed                     Reads committed data
+
+
+  Repeatable Read                    Provides stronger repeatability within a transaction
+
+
+  Serializable                       Provides the strongest ordering guarantees
+
+
+
+
+Production Tip
+Do not select the strongest isolation level automatically. Choose the weakest level that safely
+preserves the business invariants required by the operation, then verify the behavior with
+concurrency tests.
+
+
+
+
+   13. Concurrency Control
+Concurrent requests can attempt to modify the same business state at the same time.
+Without appropriate controls, lost updates and inconsistent state can occur.
+
+Optimistic concurrency uses a version or timestamp to detect whether another process
+changed a record before an update was applied.
+
+
+
+    UPDATE courses
+    SET title = 'Advanced Architecture',
+        version = version + 1
+    WHERE id = :id
+      AND version = :expectedVersion;
+
+
+
+
+If zero rows are updated, the application can detect that the record changed and require the
+caller to reload or resolve the conflict.
+
+
+
+
+   14. Replication
+Replication maintains copies of data on multiple database instances. Replication can improve
+availability, read scalability, and disaster recovery capabilities.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                      116
+LEARNFORGE                                                                  SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Figure 14.1 — Replication can distribute read traffic and provide additional availability and
+recovery options.
+A critical consequence is that replicas may lag behind the primary. Applications must
+understand whether a workflow requires the latest data or can tolerate eventual consistency.
+
+
+
+
+   15. Read Replicas and Consistency
+Read replicas are useful for workloads dominated by queries. However, a request that writes
+data and immediately reads from a lagging replica may observe stale information.
+
+
+
+  Requirement                              Possible Strategy
+
+
+  Immediately read own write               Read from primary or use session consistency
+
+
+  Analytics can be stale                   Read from replicas
+
+
+  Critical financial state                 Prefer stronger consistency
+
+
+  High-volume dashboards                   Use replicas or derived data
+
+
+
+
+   16. Sharding
+Sharding partitions data across multiple database nodes. It can allow a system to scale
+beyond the capacity of a single database instance, but it also introduces significant
+complexity.
+
+Figure 14.2 — Sharding distributes data across partitions but introduces routing, rebalancing,
+and cross-shard query complexity.
+
+
+
+
+   17. Choosing a Shard Key
+A shard key determines how records are distributed. A poor key can create hot partitions
+where one node receives disproportionately high traffic.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                117
+LEARNFORGE                                                                SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Shard-Key Property                         Why It Matters
+
+
+  High cardinality                           Provides many possible partitions
+
+
+  Even distribution                          Prevents hot shards
+
+
+  Common query alignment                     Reduces cross-shard operations
+
+
+  Stable value                               Avoids expensive record movement
+
+
+
+
+   18. Caching
+Caching stores frequently accessed data closer to the application so that repeated reads do
+not always reach the primary database.
+
+
+
+    async function getCourse(id: string) {
+      const cached = await cache.get(`course:${id}`);
+
+        if (cached) {
+          return JSON.parse(cached);
+        }
+
+        const course = await db.courses.findById(id);
+
+        await cache.set(
+           `course:${id}`,
+           JSON.stringify(course),
+          { ttl: 60 }
+        );
+
+        return course;
+    }
+
+
+
+
+Caching introduces a new problem: stale data. The architecture must define when cached
+values expire, when they are invalidated, and whether stale responses are acceptable.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                              118
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   19. Cache Strategies
+
+  Strategy           Description                                 Common Use
+
+
+                     Application reads and writes the cache
+  Cache-aside                                                    General read-heavy workloads
+                     explicitly
+
+
+  Read-through       Cache loads missing values automatically    Frequently accessed data
+
+
+  Write-                                                         Strong cache freshness
+                     Writes update cache and persistent store
+  through                                                        requirements
+
+
+  Write-behind       Cache writes are persisted asynchronously   Specific high-throughput workloads
+
+
+
+
+   20. Connection Pooling
+Opening a new database connection for every request can be expensive and can exhaust
+database resources. Connection pools maintain a controlled number of reusable connections.
+
+
+
+    const pool = createPool({
+      max: 20,
+      min: 5,
+      idleTimeoutMillis: 30000
+    });
+
+    const result = await pool.query(
+       "SELECT id, title FROM courses WHERE status = $1",
+      ["published"]
+    );
+
+
+
+
+Pool sizing should consider application concurrency, database capacity, query duration, and
+the number of application instances. More connections do not automatically mean better
+performance.
+
+
+
+
+   21. Database Migrations
+Database schemas evolve as software evolves. Migrations provide a controlled history of
+schema changes and allow environments to move from one known schema state to another.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                            119
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    ALTER TABLE courses
+    ADD COLUMN published_at TIMESTAMP NULL;
+
+    CREATE INDEX idx_courses_published_at
+    ON courses (published_at);
+
+
+
+
+Production migrations should be designed carefully. Large table rewrites, long locks, and
+incompatible schema changes can cause significant downtime.
+
+Production Tip
+Prefer expand-and-contract migrations for risky changes: introduce the new schema, deploy
+compatible application code, migrate or backfill data, and only then remove the old structure.
+
+
+
+
+   22. Soft Deletes
+A soft delete marks a record as deleted instead of physically removing it. This can support
+recovery, auditing, and historical reporting.
+
+
+
+    ALTER TABLE users
+    ADD COLUMN deleted_at TIMESTAMP NULL;
+
+    SELECT *
+    FROM users
+    WHERE deleted_at IS NULL;
+
+
+
+
+Soft deletes are not automatically appropriate. They can complicate unique constraints,
+queries, storage, and data retention. The system should define whether deleted data must
+eventually be permanently removed.
+
+
+
+
+   23. Audit Trails
+Important business systems often need to answer who changed what and when. An audit trail
+records significant state transitions or administrative actions.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                        120
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Field                                    Purpose
+
+
+  actor_id                                 Who performed the action
+
+
+  action                                   What happened
+
+
+  entity_id                                Which object changed
+
+
+  timestamp                                When it occurred
+
+
+  metadata                                 Additional context
+
+
+
+
+   24. Database Failure Handling
+A production application must assume that the database can become slow, unavailable,
+overloaded, or temporarily unreachable.
+
+Figure 14.3 — Database failure handling should use bounded timeouts, controlled retries, and
+explicit degraded behavior.
+
+
+
+
+   25. Database Architecture Checklist
+   •
+       Is the database model appropriate for the data and access patterns?
+
+   •
+       Is data ownership clearly defined?
+
+   •
+       Are primary keys stable and appropriate?
+
+   •
+       Are important business constraints enforced?
+
+   •
+       Are indexes based on real query patterns?
+
+   •
+       Are transactions used around critical invariants?
+
+   •
+       Are concurrency conflicts handled explicitly?
+
+   •
+       Is replication consistency understood?
+
+   •
+       Are caches allowed to become stale where appropriate?
+
+
+LearnForge • Engineering Handbook • 2026                                                          121
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   •
+       Are migrations tested before production deployment?
+
+   •
+       Are database failures and overload scenarios tested?
+
+
+
+
+   26. Key Takeaways
+   • Database architecture should begin with business data and access patterns.
+
+   • Clear data ownership reduces coupling and accidental corruption.
+
+   • Normalization improves correctness; denormalization should have a measured reason.
+
+   • Indexes improve reads but increase storage and write costs.
+
+   • Transactions protect business invariants within appropriate boundaries.
+
+   • Replication and sharding improve scale but introduce consistency and operational
+       complexity.
+
+   • Caching improves performance but creates freshness and invalidation problems.
+
+   • Connection pools protect database resources under application concurrency.
+
+   • Migrations are part of application architecture, not merely deployment scripts.
+
+   • Database failure must be treated as a normal production scenario.
+
+
+
+
+   27. Quick Review
+  1. What factors should influence database selection?
+
+  2. Why is clear data ownership important?
+
+  3. What problem does normalization solve?
+
+  4. When is denormalization justified?
+
+  5. Why can too many indexes hurt performance?
+
+  6. What do the ACID properties represent?
+
+  7. Why are isolation levels important?
+
+  8. What problem does replication solve, and what new issue can it introduce?
+
+  9. Why is choosing a shard key difficult?
+
+10. What consistency problems can caching create?
+
+11. Why should production migrations be designed carefully?
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                         122
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   28. Architect's Checklist
+   •
+       Are database requirements documented before selecting technology?
+
+   •
+       Are schema constraints aligned with business invariants?
+
+   •
+       Have high-value queries been identified and measured?
+
+   •
+       Are transaction boundaries explicit?
+
+   •
+       Are concurrency scenarios tested?
+
+   •
+       Is replica lag monitored where replicas are used?
+
+   •
+       Is sharding avoided until single-node or simpler scaling options are insufficient?
+
+   •
+       Are cache invalidation and TTL policies documented?
+
+   •
+       Is connection-pool capacity appropriate for the database?
+
+   •
+       Are rollback and recovery strategies defined for schema changes?
+
+   •
+       Are backup and restore procedures regularly tested?
+
+
+
+
+   29. Final Architecture Principle
+Architect's Rule
+A database is not merely a storage component. It is a correctness boundary, a performance
+boundary, and an operational dependency. Good architecture makes its guarantees,
+limitations, ownership, and failure behavior explicit.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                            123
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODEChapter 15
+
+Database Architecture
+Database architecture is not simply about choosing SQL or NoSQL. It is about designing data
+ownership, consistency, transactions, indexing, scalability, availability, and recovery around
+the actual requirements of the business.
+
+What You Will Learn
+
+   • How to choose between relational and non-relational databases.
+
+   • Why data modeling is an architectural decision.
+
+   • How indexes improve reads while creating write and storage costs.
+
+   • How transactions and isolation protect business correctness.
+
+   • How replication, partitioning, caching, and read replicas scale systems.
+
+   • How database ownership and migrations reduce architectural risk.
+
+
+
+
+   1. Why Database Architecture Matters
+The database is often the most durable component of an application. Application code can be
+replaced or redeployed quickly, but business data may need to survive for years. A poor
+database design can therefore become a long-term architectural constraint.
+
+Database architecture determines how information is represented, protected, queried,
+replicated, migrated, backed up, and recovered. These decisions affect performance and
+correctness as well as the ability of teams to evolve the system.
+
+Architect's Rule
+Choose database technology according to workload, consistency requirements, access
+patterns, and operational capability—not because a technology is currently fashionable.
+
+
+
+
+   2. Relational Databases
+Relational databases organize information into tables connected through well-defined
+relationships. SQL provides expressive querying, transactions, constraints, and mature
+tooling.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                         124
+LEARNFORGE                                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Strength               Why It Matters
+
+
+  Transactions           Multiple related changes can succeed or fail together.
+
+
+  Constraints            The database can enforce important integrity rules.
+
+
+  SQL                    Complex relationships and analytical queries are well supported.
+
+
+  Mature tooling         Monitoring, backups, migrations, and administration are widely supported.
+
+
+
+
+   3. NoSQL Databases
+NoSQL is a broad category rather than one specific database model. Document, key-value,
+wide-column, and graph databases optimize for different access patterns and workloads.
+
+
+
+  Model                Typical Use                                Important Consideration
+
+
+  Document             Flexible application records               Data duplication may be intentional.
+
+
+  Key-value            Fast lookup by key                         Access patterns should be predictable.
+
+
+  Wide-column          Large-scale distributed workloads          Data modeling is often query-driven.
+
+
+  Graph                Highly connected relationships             Traversal patterns drive the design.
+
+
+
+
+   4. Choosing SQL or NoSQL
+
+  Requirement                                                   Often Favors
+
+
+  Strong relational integrity                                   Relational database
+
+
+  Complex joins                                                 Relational database
+
+
+  Flexible document structure                                   Document database
+
+
+  Extremely high key-based throughput                           Key-value systems may fit well
+
+
+  Highly connected graph traversal                              Graph database
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                      125
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+The important question is not which category is universally better. The important question is
+which data model naturally represents the application's business rules and dominant access
+patterns.
+
+
+
+
+   5. Data Modeling
+Data modeling describes the entities, attributes, relationships, constraints, and lifecycle of
+business information. Good modeling starts from business concepts and expected queries
+rather than from arbitrary tables.
+
+Figure 15.1 — A simple relational model expresses ownership and relationships between
+business entities.
+
+
+
+
+   6. Normalization
+Normalization reduces unnecessary duplication by separating data into related structures. It
+can improve consistency because one fact has a controlled location.
+
+However, normalization is not an absolute rule. Read-heavy workloads may benefit from
+carefully controlled denormalization when the performance gain justifies the additional
+complexity.
+
+Common Mistake
+Denormalizing prematurely. First understand the workload and measure the actual bottleneck.
+Duplication creates synchronization responsibilities.
+
+
+
+
+   7. Transactions
+A transaction groups related database operations into a logical unit. The classic ACID
+properties describe important transactional guarantees: atomicity, consistency, isolation, and
+durability.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          126
+LEARNFORGE                                                                         SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Property             Meaning
+
+
+  Atomicity            All required changes succeed together or are rolled back.
+
+
+  Consistency          Transactions preserve defined integrity rules.
+
+
+  Isolation            Concurrent operations are controlled according to the isolation model.
+
+
+  Durability           Committed data survives appropriate failures.
+
+
+
+
+   8. Transaction Example
+
+    async function createOrder(db: Database, order: Order) {
+      return db.transaction(async tx => {
+        await tx.insert("orders", order);
+
+         await tx.insert("order_items", {
+           order_id: order.id,
+           product_id: order.productId,
+           quantity: order.quantity
+         });
+
+          return order;
+        });
+    }
+
+
+
+
+The transaction boundary should match the business operation being protected. It should not
+be made unnecessarily large because long transactions can hold locks and consume database
+resources.
+
+
+
+
+   9. Isolation Levels
+Concurrent transactions can observe or interfere with each other in different ways. Database
+systems therefore provide isolation levels that balance correctness, concurrency, and
+performance.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                       127
+LEARNFORGE                                                                         SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Isolation Level                General Idea
+
+
+  Read Uncommitted               Allows the weakest visibility guarantees.
+
+
+  Read Committed                 Prevents reading data that has not been committed.
+
+
+  Repeatable Read                Provides stronger repeatability for reads within a transaction.
+
+
+  Serializable                   Provides the strongest isolation at higher concurrency cost.
+
+
+
+
+The exact behavior varies between database engines. Architects should consult the
+documentation of the selected database rather than assuming that names alone imply
+identical behavior.
+
+
+
+
+   10. Indexes
+Indexes allow databases to locate rows more efficiently for supported query patterns. They
+can dramatically improve read performance but consume storage and add work to inserts,
+updates, and deletes.
+
+
+
+    CREATE INDEX idx_orders_customer_created
+    ON orders(customer_id, created_at);
+
+
+
+
+A composite index should reflect actual query patterns. The order of indexed columns matters
+because the database optimizer may only be able to efficiently use certain prefixes of the
+index.
+
+
+
+
+   11. Query Performance
+Performance tuning should begin with evidence. Slow-query logs, execution plans, latency
+metrics, and production workload measurements are more useful than guessing.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                       128
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Signal                         Possible Cause                     Investigation
+
+
+  High query latency             Missing or ineffective index       Inspect execution plan
+
+
+  High CPU                       Expensive queries                  Profile query workload
+
+
+  Lock contention                Long or conflicting transactions   Inspect locks and transaction duration
+
+
+  Connection exhaustion          Too many concurrent clients        Review pooling and concurrency
+
+
+
+
+   12. Connection Pooling
+Opening a new database connection for every request can create unnecessary overhead.
+Connection pools maintain a controlled number of reusable connections.
+
+
+
+    const pool = new Pool({
+      max: 20,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 2_000
+    });
+
+
+
+
+Pool size should be based on database capacity, workload, query duration, application
+concurrency, and the number of application instances. More connections do not automatically
+produce more throughput.
+
+
+
+
+   13. Read Replicas
+Read replicas allow some read workloads to be served from copies of the primary database.
+This can reduce pressure on the primary and improve read scalability.
+
+Figure 15.2 — Replication can distribute read workloads while preserving a designated write
+authority.
+
+
+
+
+   14. Replication Lag
+Read replicas may not contain the newest committed data immediately. This creates
+replication lag and therefore possible stale reads.
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                     129
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Production Tip
+Do not send every read to replicas automatically. User flows that require read-after-write
+consistency may need to read from the primary or use another consistency mechanism.
+
+
+
+
+   15. Caching
+Caching stores frequently accessed data closer to the application or user. A cache can reduce
+database load and latency, but introduces another copy of data that must eventually become
+invalid or expire.
+
+
+
+    async function getProduct(id: string) {
+      const cached = await cache.get(`product:${id}`);
+
+        if (cached) {
+          return JSON.parse(cached);
+        }
+
+        const product = await db.query(
+           "SELECT * FROM products WHERE id = $1",
+          [id]
+        );
+
+        await cache.set(
+           `product:${id}`,
+           JSON.stringify(product),
+          { ttl: 300 }
+        );
+
+        return product;
+    }
+
+
+
+
+The central cache question is not only how to store data. It is how and when cached data
+becomes invalid.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                         130
+LEARNFORGE                                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   16. Cache Invalidation
+
+  Strategy                      Advantage                               Risk
+
+
+  TTL                           Simple automatic expiration             Data may remain stale
+
+
+  Explicit invalidation         Faster freshness after changes          More application complexity
+
+
+  Write-through                 Cache updated with writes               Additional write path complexity
+
+
+  Cache-aside                   Simple and widely applicable            Requires careful invalidation
+
+
+
+
+   17. Partitioning
+Partitioning divides a large dataset into smaller logical or physical partitions. The goal may be
+improved scalability, maintenance, or query performance.
+
+A partition key should distribute workload effectively. A poor key can create hot partitions
+where a disproportionate amount of traffic reaches one partition.
+
+Architect's Rule
+Choose partition keys using real access patterns. A technically valid key that concentrates
+traffic can become a scalability bottleneck.
+
+
+
+
+   18. Sharding
+Sharding distributes data across independent database nodes. It can provide horizontal
+capacity beyond a single database instance, but it also makes operations, queries,
+transactions, and migrations more complicated.
+
+
+
+  Benefit                                           Trade-off
+
+
+  Horizontal capacity                                More operational complexity
+
+
+  Distributed storage                                Cross-shard queries become harder
+
+
+  Potential workload isolation                       Rebalancing can be difficult
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                        131
+LEARNFORGE                                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   19. Database per Service
+In a microservice architecture, database ownership should normally follow service ownership.
+This does not necessarily mean every service needs a different database technology. It means
+that one service should not casually modify another service's internal tables.
+
+Common Mistake
+Sharing database tables across independent services. This creates hidden coupling because
+schema changes become coordination requirements across teams.
+
+
+
+
+   20. Schema Migrations
+Database schemas evolve continuously. Production migrations should be backward-
+compatible whenever old and new application versions may coexist.
+
+
+
+    ALTER TABLE users
+    ADD COLUMN display_name VARCHAR(120);
+
+    UPDATE users
+    SET display_name = name
+    WHERE display_name IS NULL;
+
+
+
+
+A safer deployment may add the new field first, deploy code that can work with both
+schemas, backfill data, and only later remove obsolete structures.
+
+
+
+
+   21. Expand and Contract
+
+  Phase               Action
+
+
+  Expand              Add new schema structures without breaking old code.
+
+
+  Migrate             Move or backfill existing data.
+
+
+  Switch              Deploy application code using the new structure.
+
+
+  Contract            Remove obsolete structures after they are no longer used.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                      132
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   22. Backups and Recovery
+A backup strategy is incomplete if restoration has never been tested. Organizations need to
+understand how much data they can afford to lose and how quickly service must be restored.
+
+
+
+  Concept                         Question
+
+
+  RPO                             How much recent data loss is acceptable?
+
+
+  RTO                             How quickly must service be restored?
+
+
+  Backup retention                How long must recoverable copies remain available?
+
+
+  Restore testing                 Can the team actually recover the system?
+
+
+
+
+   23. Database Security
+Database security begins with least privilege. Applications should receive only the
+permissions they require. Credentials should be managed through appropriate secret-
+management mechanisms rather than embedded in source code.
+
+
+
+    const databaseConfig = {
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME
+    };
+
+
+
+
+Encryption in transit, encryption at rest, auditing, access controls, credential rotation, and
+network isolation should be evaluated according to the sensitivity and regulatory
+requirements of the data.
+
+
+
+
+   24. Database Observability
+   • Latency: how long queries and transactions take.
+
+   • Throughput: how much work the database processes.
+
+   • Error rate: how frequently operations fail.
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                   133
+LEARNFORGE                                                                       SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   • Connections: whether connection pools are exhausted.
+
+   • Locks: whether transactions are blocking one another.
+
+   • Storage: whether capacity is approaching limits.
+
+
+
+
+   25. Practical Database Decision Framework
+
+  Question                                          Architectural Direction
+
+
+  Are strong relationships and transactions
+                                                    Prefer a relational model.
+  central?
+
+
+  Are access patterns primarily key-based?          Evaluate key-value storage.
+
+
+  Is flexible document structure important?         Evaluate document storage.
+
+
+  Is read traffic much larger than write traffic?   Consider replicas and caching.
+
+
+  Is one database reaching capacity?                Measure first, then evaluate partitioning or sharding.
+
+
+                                                    Invest in automated migrations and compatibility
+  Are schema changes frequent?
+                                                    practices.
+
+
+
+
+   26. Database Architecture Checklist
+   •
+       Is the data model aligned with business concepts?
+
+   •
+       Are integrity constraints enforced appropriately?
+
+   •
+       Are transaction boundaries clearly defined?
+
+   •
+       Are important queries supported by appropriate indexes?
+
+   •
+       Is connection pooling configured according to measured capacity?
+
+   •
+       Are replica consistency characteristics understood?
+
+   •
+       Is cache invalidation behavior documented?
+
+   •
+
+
+LearnForge • Engineering Handbook • 2026                                                                     134
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+       Are partition keys based on actual access patterns?
+
+   •
+       Is database ownership clear between services?
+
+   •
+       Are migrations backward-compatible where required?
+
+   •
+       Are backups regularly tested through restoration?
+
+   •
+       Are RPO and RTO requirements defined?
+
+   •
+       Is database access protected by least privilege?
+
+   •
+       Are database latency, errors, locks, and capacity monitored?
+
+
+
+
+   27. Key Takeaways
+   • Database architecture is a business and systems-design decision, not merely a
+       technology choice.
+
+   • Relational databases remain powerful when relationships, integrity, and transactions
+       matter.
+
+   • NoSQL databases are useful when their data models match the workload.
+
+   • Indexes improve reads but add storage and write costs.
+
+   • Replication improves scalability but can introduce stale reads.
+
+   • Caching reduces latency and database load but creates invalidation complexity.
+
+   • Partitioning and sharding can increase capacity while increasing operational complexity.
+
+   • Database ownership should be explicit in service-oriented architectures.
+
+   • Backups are valuable only when restoration is reliable and tested.
+
+   • Security, observability, migrations, and recovery are part of database architecture.
+
+
+
+
+   28. Quick Review
+  1. When is a relational database usually a strong architectural choice?
+
+  2. What trade-offs are introduced by indexes?
+
+  3. Why are transaction boundaries important?
+
+  4. What problem does connection pooling solve?
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           135
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  5. Why can read replicas produce stale data?
+
+  6. What makes cache invalidation difficult?
+
+  7. When should partitioning or sharding be considered?
+
+  8. Why should services avoid directly modifying another service's tables?
+
+  9. What are RPO and RTO?
+
+10. Why must database restoration be tested?
+
+
+
+
+   29. Architect's Final Checklist
+   •
+       Have database requirements been derived from actual business workflows?
+
+   •
+       Are consistency requirements explicitly documented?
+
+   •
+       Are critical queries measured under realistic workload?
+
+   •
+       Are indexes reviewed using execution plans?
+
+   •
+       Are transactions bounded and observable?
+
+   •
+       Are replication and failover behaviors understood?
+
+   •
+       Are cache failure and invalidation scenarios designed?
+
+   •
+       Are migrations tested before production deployment?
+
+   •
+       Are backup restoration procedures automated or regularly rehearsed?
+
+   •
+       Can the team explain how the database behaves during partial failure?
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                        136
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODEChapter 16
+
+Security Architecture
+Secure architecture is not a collection of isolated security features. It is a system-wide
+discipline that reduces attack surface, protects identities and data, limits the impact of
+compromise, and makes security behavior explicit across every architectural boundary.
+
+What You Will Learn
+
+   • How to design security as an architectural concern rather than an afterthought.
+
+   • The difference between authentication, authorization, and accountability.
+
+   • How sessions, tokens, OAuth, and service identities work together.
+
+   • How to protect APIs, secrets, data, and service-to-service communication.
+
+   • How threat modeling and defense-in-depth reduce architectural risk.
+
+   • How to design security controls that remain practical in production.
+
+
+
+
+   1. Security Is an Architectural Concern
+Security cannot be added successfully at the end of a system's development. Architectural
+decisions determine where trust exists, how data moves, which components can access
+sensitive resources, and how much damage can occur after a compromise.
+
+A secure architecture therefore considers security at the same level as performance,
+reliability, maintainability, and scalability. Every boundary between users, applications,
+services, databases, networks, and external providers should have an explicit security model.
+
+Architect's Rule
+Never define a security boundary implicitly. Every important boundary should clearly define
+who is trusted, what is allowed, what is protected, and what happens when authorization fails.
+
+
+
+
+   2. The Security Objectives
+A useful starting point is to identify what the architecture is trying to protect. Traditional
+security design commonly focuses on confidentiality, integrity, and availability.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                            137
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Objective           Meaning                             Example
+
+
+                      Prevent unauthorized access to      Protect user records from unauthorized
+  Confidentiality
+                      information                         users
+
+
+  Integrity           Prevent unauthorized modification   Prevent alteration of payment records
+
+
+  Availability        Keep important systems usable       Protect APIs against resource exhaustion
+
+
+  Accountability      Determine who performed an action   Audit administrative changes
+
+
+
+
+   3. Authentication vs Authorization
+Authentication answers the question: "Who are you?" Authorization answers a different
+question: "What are you allowed to do?"
+
+Confusing these responsibilities creates security vulnerabilities. A valid identity does not
+automatically have permission to access every resource.
+
+Figure 16.1 — Authentication establishes identity; authorization determines what that identity
+is permitted to access.
+
+
+
+
+   4. Least Privilege
+Least privilege means granting an identity only the permissions required to perform its
+legitimate responsibilities.
+
+A database account used by a reporting service should not automatically have permission to
+delete production data. Likewise, an API endpoint should not return administrative information
+merely because the caller is authenticated.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                             138
+LEARNFORGE                                                                  SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Identity                    Required Permission               Unnecessary Permission
+
+
+  Read-only analyst           Read reports                      Modify production data
+
+
+  Payment service             Create and query payments         Manage user credentials
+
+
+  Notification worker         Read notification jobs            Delete customer accounts
+
+
+  Administrator               Explicit administrative actions   Unrestricted access without auditing
+
+
+
+
+Production Tip
+Review permissions periodically. Permissions that were appropriate six months ago may no
+longer be necessary after the system evolves.
+
+
+
+
+   5. Password Security
+Passwords should never be stored as plaintext. Applications should use a password hashing
+algorithm designed specifically for password storage, with appropriate work factors and
+unique salts.
+
+The application should also avoid exposing password-related information in logs, error
+messages, analytics, or monitoring systems.
+
+
+
+    import argon2 from "argon2";
+
+    async function hashPassword(password: string) {
+      return argon2.hash(password);
+    }
+
+    async function verifyPassword(
+      password: string,
+      storedHash: string
+    ) {
+      return argon2.verify(storedHash, password);
+    }
+
+
+
+
+Common Mistake
+Using a fast general-purpose hash such as a basic SHA-256 digest directly for password
+storage. Password hashing should be intentionally expensive and should use a dedicated
+password-hashing algorithm.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                139
+LEARNFORGE                                                                       SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   6. Session-Based Authentication
+In session-based authentication, the server maintains authentication state and gives the
+client a session identifier. The identifier should be protected using secure cookie settings.
+
+
+
+  Cookie Attribute                     Purpose
+
+
+  Secure                               Send the cookie only over HTTPS
+
+
+  HttpOnly                             Reduce direct JavaScript access to the cookie
+
+
+  SameSite                             Reduce cross-site request risks
+
+
+
+
+    res.cookie("session", sessionId, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      maxAge: 1000 * 60 * 60
+    });
+
+
+
+
+   7. Token-Based Authentication
+Token-based authentication allows a client to present a signed credential with subsequent
+requests. JSON Web Tokens are one common implementation, although tokens are not
+automatically more secure than server-side sessions.
+
+The architecture should define token lifetime, issuer, audience, signing algorithm, revocation
+behavior, and the permissions represented by the token.
+
+
+
+    interface AccessTokenClaims {
+      sub: string;
+      aud: string;
+      iss: string;
+      exp: number;
+      scope: string[];
+    }
+
+
+
+
+Architect's Rule
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                     140
+LEARNFORGE                                                                    SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Treat access tokens as credentials. Do not place secrets or unnecessary sensitive information
+inside them, and keep their lifetime appropriate for the risk of the operation.
+
+
+
+
+   8. OAuth and Delegated Authorization
+OAuth allows an application to obtain delegated access to resources without requiring the
+application to receive the user's primary credentials.
+
+The important architectural idea is separation of identity, authorization, and resource
+ownership. Modern deployments should use well-defined flows appropriate to the client type
+rather than inventing custom authentication protocols.
+
+
+
+  Component                                Responsibility
+
+
+  Resource Owner                           Controls the protected resource
+
+
+  Client                                   Requests delegated access
+
+
+  Authorization Server                     Issues authorization credentials
+
+
+  Resource Server                          Protects the requested resource
+
+
+
+
+   9. Role-Based Access Control
+Role-Based Access Control, or RBAC, assigns permissions through roles. Instead of granting
+every user individual permissions, the architecture defines roles such as administrator,
+instructor, analyst, or student.
+
+
+
+    type Role =
+      | "student"
+      | "instructor"
+      | "admin";
+
+    const permissions: Record<Role, string[]> = {
+      student: ["course:read"],
+      instructor: ["course:read", "course:write"],
+      admin: ["course:read", "course:write", "user:manage"]
+    };
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                  141
+LEARNFORGE                                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   10. Attribute-Based Authorization
+RBAC can become difficult when authorization depends on resource ownership, organization
+membership, location, risk level, or other attributes. Attribute-Based Access Control evaluates
+these properties directly.
+
+
+
+  Attribute                  Example Rule
+
+
+  User identity              User may access their own profile
+
+
+  Organization               Employee may access resources belonging to their organization
+
+
+  Resource owner             Owner may edit the resource
+
+
+  Risk level                 Sensitive operation requires stronger verification
+
+
+
+
+   11. API Security
+APIs should assume that every request may be malicious or malformed. Authentication,
+authorization, validation, rate limiting, logging, and safe error handling should be
+implemented at appropriate boundaries.
+
+
+
+  Control                                  Purpose
+
+
+  Authentication                           Identify the caller
+
+
+  Authorization                            Enforce permissions
+
+
+  Validation                               Reject malformed input
+
+
+  Rate limiting                            Control abusive traffic
+
+
+  Audit logging                            Record important security events
+
+
+  Safe errors                              Avoid leaking internal information
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                      142
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   12. Input Validation
+Input validation should happen at trust boundaries. Never assume that data from browsers,
+mobile applications, external APIs, message queues, or other services is automatically
+trustworthy.
+
+
+
+    interface CreateUserInput {
+      email: string;
+      displayName: string;
+    }
+
+    function validateCreateUser(input: unknown): CreateUserInput {
+      if (
+        typeof input !== "object" ||
+        input === null ||
+        typeof (input as any).email !== "string" ||
+        typeof (input as any).displayName !== "string"
+      ) {
+        throw new Error("Invalid request");
+      }
+
+        return input as CreateUserInput;
+    }
+
+
+
+
+Validation should also enforce business constraints such as maximum lengths, allowed values,
+numeric ranges, and required relationships between fields.
+
+
+
+
+   13. SQL Injection and Parameterized Queries
+Applications should never construct SQL queries by directly concatenating untrusted input.
+Parameterized queries separate SQL structure from values.
+
+
+
+    const result = await db.query(
+       "SELECT id, email FROM users WHERE email = $1",
+      [email]
+    );
+
+
+
+
+Common Mistake
+Assuming that frontend validation is sufficient. Client-side validation improves user
+experience but cannot replace server-side validation.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                         143
+LEARNFORGE                                                                 SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   14. Secrets Management
+API keys, database passwords, signing keys, and service credentials should not be embedded
+directly into source code or committed to version control.
+
+Production systems should use a dedicated secrets-management mechanism or a secure
+environment configuration strategy appropriate to the deployment platform.
+
+
+
+  Secret                       Unsafe Practice               Better Practice
+
+
+  Database password            Hard-coded in repository      Managed secret configuration
+
+
+  API key                      Committed to source control   Secret store or protected environment
+
+
+  Signing key                  Shared in chat messages       Controlled key management
+
+
+
+
+   15. Encryption in Transit
+Sensitive communication should be protected in transit. HTTPS and modern TLS
+configurations prevent intermediaries from trivially reading or modifying traffic.
+
+Encryption in transit should cover external client connections and, where appropriate, internal
+service-to-service communication.
+
+Figure 16.2 — Encryption in transit protects communication across architectural boundaries.
+
+
+
+
+   16. Encryption at Rest
+Data stored in databases, object storage, backups, and other persistent systems may require
+encryption at rest. Encryption reduces the impact of unauthorized access to physical or
+storage infrastructure.
+
+Encryption does not replace authorization. A compromised application with legitimate
+decryption access may still be able to read sensitive data.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                               144
+LEARNFORGE                                                                 SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   17. Security Headers
+Web applications can reduce common browser-based risks through appropriate security
+headers and browser policies.
+
+
+
+  Header or Policy                         Security Purpose
+
+
+  Content-Security-Policy                  Restrict permitted content sources
+
+
+  Strict-Transport-Security                Encourage HTTPS-only access
+
+
+  X-Content-Type-Options                   Reduce MIME-sniffing behavior
+
+
+  Referrer-Policy                          Control referrer information
+
+
+
+
+   18. Rate Limiting
+Rate limiting protects resources by restricting how frequently a client or identity can perform
+an operation.
+
+
+
+    const limiter = rateLimit({
+      windowMs: 60_000,
+      limit: 100,
+      standardHeaders: true,
+      legacyHeaders: false
+    });
+
+
+
+
+Rate limits should reflect the business operation. Login attempts, password reset requests,
+expensive searches, and ordinary reads may require different limits.
+
+Production Tip
+Do not use one global rate limit for every endpoint. Design limits around resource cost, abuse
+potential, and legitimate user behavior.
+
+
+
+
+   19. Service-to-Service Security
+Internal services should not automatically trust every other internal component. Internal
+networks can be compromised, misconfigured, or exposed through another vulnerability.
+
+
+
+LearnForge • Engineering Handbook • 2026                                                               145
+LEARNFORGE                                                                  SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Service identities, mutual TLS where appropriate, scoped credentials, and explicit
+authorization policies can reduce lateral movement after a compromise.
+
+
+
+
+   20. Audit Logging
+Security-sensitive actions should generate structured audit records. These records help detect
+suspicious behavior and reconstruct important events during incident investigation.
+
+
+
+    const auditEvent = {
+      actorId,
+      action: "USER_ROLE_CHANGED",
+      targetId: userId,
+      timestamp: new Date().toISOString(),
+      requestId
+    };
+
+
+
+
+  Event                                           Audit Value
+
+
+  Login failure                                   Detect credential attacks
+
+
+  Permission change                               Track privilege changes
+
+
+  Account deletion                                Reconstruct destructive actions
+
+
+  Security configuration change                   Identify administrative changes
+
+
+
+
+   21. Threat Modeling
+Threat modeling is a structured process for identifying what can go wrong before attackers
+discover the weaknesses in production.
+
+A practical process is to identify assets, trust boundaries, actors, entry points, potential
+threats, and mitigations.
+
+Figure 16.3 — Threat modeling connects protected assets, threats, controls, and validation.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                146
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   22. Defense in Depth
+Defense in depth means using multiple independent layers of protection. No single control
+should be assumed to stop every attack.
+
+
+
+  Layer                       Example Control
+
+
+  Identity                    Strong authentication
+
+
+  Application                 Authorization and input validation
+
+
+  Network                     Segmentation and encrypted communication
+
+
+  Data                        Encryption and access controls
+
+
+  Operations                  Monitoring and incident response
+
+
+
+
+   23. Security Testing
+Security should be validated continuously rather than only before release. Different tests
+identify different classes of problems.
+
+   • Static analysis: identify suspicious source-code patterns.
+
+   • Dependency scanning: identify known vulnerable dependencies.
+
+   • Dynamic testing: evaluate running application behavior.
+
+   • Penetration testing: investigate realistic attack paths.
+
+   • Configuration review: detect insecure infrastructure settings.
+
+
+
+
+   24. Dependency and Supply-Chain Security
+Modern applications depend heavily on third-party packages, build tools, container images,
+plugins, and external services. A vulnerability in a dependency can become a vulnerability in
+the application.
+
+Teams should maintain dependency inventories, update important packages, review security
+advisories, and protect the build pipeline itself.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                             147
+LEARNFORGE                                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Common Mistake
+Treating dependency security as an optional maintenance task. The software supply chain is
+part of the application's attack surface.
+
+
+
+
+   25. Incident Response Architecture
+Even strong preventive controls cannot guarantee that incidents will never occur. Architecture
+should therefore support detection, containment, investigation, recovery, and learning.
+
+
+
+  Phase                      Architectural Capability
+
+
+  Detection                  Monitoring, alerts, audit logs
+
+
+  Containment                Credential rotation, isolation, access restriction
+
+
+  Investigation              Correlated logs and traces
+
+
+  Recovery                   Backups, restoration procedures, redeployment
+
+
+  Learning                   Post-incident review and architectural improvements
+
+
+
+
+   26. Practical Security Architecture Checklist
+   •
+       Are authentication and authorization explicitly separated?
+
+   •
+       Does every sensitive resource have an authorization policy?
+
+   •
+       Are permissions based on least privilege?
+
+   •
+       Are passwords stored using an appropriate password-hashing algorithm?
+
+   •
+       Are sessions and tokens protected with appropriate lifetimes and controls?
+
+   •
+       Are all important trust boundaries identified?
+
+   •
+       Is untrusted input validated at server-side boundaries?
+
+   •
+       Are database queries parameterized?
+
+   •
+
+LearnForge • Engineering Handbook • 2026                                                                      148
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+       Are secrets kept outside source code?
+
+   •
+       Is sensitive communication encrypted in transit?
+
+   •
+       Are important security events recorded in audit logs?
+
+   •
+       Are rate limits applied to abuse-sensitive operations?
+
+   •
+       Are dependencies monitored for known vulnerabilities?
+
+   •
+       Has threat modeling been performed for critical workflows?
+
+   •
+       Can compromised credentials be revoked or rotated?
+
+
+
+
+   27. Key Takeaways
+   • Security is an architectural property, not a final development phase.
+
+   • Authentication establishes identity while authorization controls access.
+
+   • Least privilege limits the damage caused by compromised identities.
+
+   • Passwords must be protected with dedicated password-hashing mechanisms.
+
+   • APIs must validate input and enforce authorization on the server side.
+
+   • Secrets should be managed outside source code and protected throughout their lifecycle.
+
+   • Encryption protects data in transit and at rest but does not replace authorization.
+
+   • Threat modeling helps identify security weaknesses before production incidents.
+
+   • Defense in depth reduces dependence on any single security control.
+
+   • Security architecture must include detection, response, recovery, and continuous
+       improvement.
+
+
+
+
+   28. Quick Review
+  1. What is the difference between authentication and authorization?
+
+  2. Why is least privilege important?
+
+  3. Why should passwords never be stored as plaintext?
+
+  4. What risks do poorly protected sessions create?
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          149
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  5. Why should APIs validate input on the server?
+
+  6. What is the purpose of rate limiting?
+
+  7. Why should secrets not be committed to source control?
+
+  8. What is threat modeling?
+
+  9. What does defense in depth mean?
+
+10. Why is incident response part of security architecture?
+
+
+
+
+   29. Architect's Checklist
+   •
+       Have all major assets and trust boundaries been documented?
+
+   •
+       Is every sensitive operation explicitly authorized?
+
+   •
+       Are privileged identities minimized?
+
+   •
+       Are authentication credentials protected throughout their lifecycle?
+
+   •
+       Are service-to-service permissions explicitly defined?
+
+   •
+       Are security controls observable and auditable?
+
+   •
+       Are security failures designed to fail safely?
+
+   •
+       Have realistic attack scenarios been tested?
+
+   •
+       Can the organization detect and contain a compromised credential?
+
+   •
+       Is the security architecture reviewed whenever major system boundaries change?
+
+
+
+
+   30. Final Perspective
+The strongest security architecture is not the architecture with the largest number of security
+products. It is the architecture in which trust, permissions, data protection, failure behavior,
+monitoring, and recovery are deliberately designed.
+
+Security should therefore be treated as a continuous architectural practice. As systems grow,
+new services, dependencies, users, integrations, and data flows create new risks. Good
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           150
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+architecture makes those risks visible, constrains their impact, and gives the engineering
+team practical mechanisms for preventing, detecting, and recovering from security failures.
+
+Production Tip
+Review security architecture whenever a major trust boundary, data flow, authentication
+mechanism, external integration, or privileged capability is introduced. Security review is
+most effective before the boundary becomes expensive to change.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                         151
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODEChapter 17
+
+Deployment & Infrastructure
+Architecture
+Good software architecture must survive the transition from source code to production.
+Deployment architecture defines how applications are packaged, released, scaled, monitored,
+secured, and recovered across environments.
+
+What You Will Learn
+
+   • How deployment architecture differs from application architecture.
+
+   • How environments, configuration, and secrets should be separated.
+
+   • Why containers improve deployment consistency.
+
+   • How CI/CD pipelines reduce deployment risk.
+
+   • How blue-green, rolling, and canary deployments work.
+
+   • How health checks, autoscaling, and rollback strategies improve reliability.
+
+   • How infrastructure should be designed for observability and recovery.
+
+
+
+
+   1. What Is Deployment Architecture?
+Deployment architecture describes how software moves from development into running
+production infrastructure. It includes application packaging, servers, containers, networks,
+databases, configuration, secrets, deployment pipelines, monitoring, scaling, and recovery
+mechanisms.
+
+A well-designed application can still fail operationally if deployment is manual, configuration is
+inconsistent, secrets are exposed, or rollback is difficult.
+
+Architect's Rule
+A system is not production-ready merely because the application works. Production readiness
+includes repeatable deployment, controlled configuration, observability, security, scaling, and
+recovery.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          152
+LEARNFORGE                                                                 SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   2. Environment Separation
+Most production systems use multiple environments. Development is optimized for rapid
+experimentation, while production is optimized for reliability and controlled change.
+
+
+
+  Environment          Purpose                             Typical Characteristics
+
+
+  Development          Local engineering                   Fast feedback and flexible configuration
+
+
+  Testing              Automated validation                Repeatable and isolated
+
+
+  Staging              Production-like verification        Similar infrastructure and configuration
+
+
+  Production           Real users and business workloads   Strict security and reliability controls
+
+
+
+
+Environment separation reduces the probability that experimental changes affect real users.
+However, environments should not become completely different systems because large
+differences create deployment surprises.
+
+
+
+
+   3. Configuration Management
+Configuration includes values that change between environments without changing
+application logic. Examples include database endpoints, service URLs, feature flags, timeout
+values, and operational limits.
+
+
+
+    interface AppConfig {
+      port: number;
+      databaseUrl: string;
+      paymentServiceUrl: string;
+      requestTimeoutMs: number;
+    }
+
+    const config: AppConfig = {
+      port: Number(process.env.PORT ?? 3000),
+      databaseUrl: process.env.DATABASE_URL!,
+      paymentServiceUrl: process.env.PAYMENT_SERVICE_URL!,
+      requestTimeoutMs: Number(process.env.REQUEST_TIMEOUT_MS ?? 1500)
+    };
+
+
+
+
+Common Mistake
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                               153
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Hard-coding production URLs, credentials, or environment-specific values inside source code.
+Configuration should be externally supplied and managed through controlled deployment
+mechanisms.
+
+
+
+
+   4. Secrets Management
+Passwords, API keys, private certificates, and database credentials are secrets. They should
+not be committed to source control or embedded directly in application code.
+
+
+
+  Secret                          Risk                           Better Approach
+
+
+  Database password               Unauthorized database access   Secret manager
+
+
+  API key                         Unauthorized API usage         Managed secret storage
+
+
+  Private key                     Identity compromise            Restricted secret store
+
+
+  Session signing key             Session forgery                Rotatable protected secret
+
+
+
+
+Architect's Rule
+Treat secrets as replaceable credentials. Design systems so credentials can be rotated without
+rebuilding application logic.
+
+
+
+
+   5. Containers
+Containers package an application together with its runtime dependencies. This reduces the
+difference between environments and makes application artifacts easier to transport.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          154
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    FROM node:22-alpine
+
+    WORKDIR /app
+
+    COPY package*.json ./
+    RUN npm ci --omit=dev
+
+    COPY dist ./dist
+
+    USER node
+
+    EXPOSE 3000
+
+    CMD ["node", "dist/server.js"]
+
+
+
+
+Containers do not automatically make an architecture scalable or secure. They are a
+packaging and isolation mechanism. Poor application design remains poor when placed inside
+a container.
+
+
+
+
+   6. Immutable Deployment Artifacts
+An immutable artifact is built once and then promoted through environments without
+rebuilding it for every environment.
+
+Figure 17.1 — A repeatable pipeline creates one validated artifact that can be promoted
+across environments.
+
+
+
+
+   7. CI/CD Architecture
+Continuous Integration validates changes frequently. Continuous Delivery automates the
+preparation and controlled release of validated artifacts. Together, they reduce manual
+deployment work and shorten feedback loops.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                        155
+LEARNFORGE                                                                 SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Pipeline Stage                Purpose                            Failure Action
+
+
+  Lint                          Detect code-quality issues         Stop pipeline
+
+
+  Unit tests                    Validate local behavior            Stop pipeline
+
+
+  Build                         Create deployable artifact         Stop pipeline
+
+
+  Security scan                 Detect vulnerabilities             Block according to policy
+
+
+  Integration tests             Validate boundaries                Stop or quarantine release
+
+
+  Deployment                    Release artifact                   Rollback or halt
+
+
+
+
+   8. Health Checks
+Health checks allow infrastructure and orchestration systems to determine whether an
+application is alive and capable of serving traffic.
+
+
+
+    app.get("/health/live", (_req, res) => {
+      res.status(200).json({ status: "alive" });
+    });
+
+    app.get("/health/ready", async (_req, res) => {
+      const databaseReady = await database.ping();
+
+         if (!databaseReady) {
+           return res.status(503).json({ status: "not-ready" });
+         }
+
+      return res.status(200).json({ status: "ready" });
+    });
+
+
+
+
+Liveness and readiness are different. Liveness asks whether the process should be restarted.
+Readiness asks whether the process should receive traffic.
+
+Production Tip
+Do not make liveness checks depend on every external service. A temporary database failure
+should not necessarily cause the process itself to restart. Use readiness checks to control
+traffic instead.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                               156
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   9. Rolling Deployments
+A rolling deployment gradually replaces old application instances with new instances. It
+reduces the need for a complete service shutdown.
+
+Figure 17.2 — Rolling deployments replace instances gradually rather than switching the
+entire fleet at once.
+
+
+
+
+   10. Blue-Green Deployment
+Blue-green deployment maintains two production environments. One environment serves
+traffic while the other receives the new release and is validated before traffic is switched.
+
+
+
+  Strategy            Advantage                            Trade-off
+
+
+  Rolling             Efficient resource usage             Old and new versions coexist
+
+
+  Blue-green          Fast rollback                        Requires additional capacity
+
+
+  Canary              Small exposure before full release   More sophisticated traffic control
+
+
+
+
+   11. Canary Releases
+A canary release sends a small percentage of traffic to the new version. Engineers monitor
+error rate, latency, resource consumption, and business metrics before increasing traffic.
+
+Architect's Rule
+Deployment strategy should match failure impact. High-risk changes deserve smaller
+exposure, stronger monitoring, and easier rollback.
+
+
+
+
+   12. Rollback Strategy
+A deployment is incomplete without a recovery strategy. If a release causes unexpected
+behavior, the team must be able to return to a known-good version.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           157
+LEARNFORGE                                                                  SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    # Example conceptual release flow
+    deploy artifact-v42
+
+    if health_checks_fail; then
+       rollback artifact-v41
+    fi
+
+
+
+
+Rollback becomes more complicated when database schemas are changed. Backward-
+compatible migrations are therefore important for safe application rollbacks.
+
+
+
+
+   13. Database Deployment Compatibility
+Application and database changes should not require an instantaneous switch between
+incompatible versions.
+
+
+
+  Phase                Action
+
+
+  Expand               Add new schema elements without removing old ones
+
+
+  Deploy               Release application compatible with both versions
+
+
+  Migrate              Move or backfill data
+
+
+  Contract             Remove obsolete schema elements after verification
+
+
+
+
+   14. Autoscaling
+Autoscaling changes application capacity according to workload. Scaling decisions can use
+CPU, memory, request rate, queue depth, or application specific metrics.
+
+Scaling more instances does not automatically solve every performance problem. If the
+database or another shared dependency is already saturated, adding application instances
+may increase the pressure.
+
+Common Mistake
+Assuming that horizontal scaling fixes every bottleneck. Always identify the actual
+constrained resource before increasing capacity.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                158
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   15. Infrastructure as Code
+Infrastructure as Code represents infrastructure configuration in versioned files rather than
+relying exclusively on manual console operations.
+
+
+
+    const service = {
+      name: "course-api",
+      replicas: 3,
+      cpuLimit: "500m",
+      memoryLimit: "512Mi",
+      healthPath: "/health/ready"
+    };
+
+
+
+
+The exact tool may vary, but the architectural principle is consistent: infrastructure changes
+should be reviewable, repeatable, and auditable.
+
+
+
+
+   16. Network Architecture
+Production services should not automatically have unrestricted network access. Network
+boundaries can reduce the blast radius of compromised components and accidental traffic.
+
+
+
+  Layer                    Control                           Goal
+
+
+  Internet                 Load balancer / firewall          Control external access
+
+
+  Application              Service policies                  Restrict service communication
+
+
+  Database                 Private network rules             Prevent direct public access
+
+
+  Administration           Restricted management path        Protect operational interfaces
+
+
+
+
+   17. Observability
+Deployment architecture must expose enough telemetry to determine whether a release is
+healthy.
+
+   • Metrics: latency, throughput, error rate, saturation.
+
+   • Logs: structured application and infrastructure events.
+
+
+
+LearnForge • Engineering Handbook • 2026                                                             159
+LEARNFORGE                                                                 SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   • Traces: request paths across distributed components.
+
+   • Deployment markers: correlation between releases and incidents.
+
+
+
+    {
+        "service": "course-api",
+        "version": "42",
+        "environment": "production",
+        "latencyMs": 143,
+        "status": "success"
+    }
+
+
+
+
+   18. Resource Limits
+Resource limits protect shared infrastructure from a single workload consuming excessive
+capacity.
+
+
+
+  Resource                        Why Limit It?
+
+
+  CPU                             Prevent noisy-neighbor behavior
+
+
+  Memory                          Reduce uncontrolled memory consumption
+
+
+  Connections                     Protect databases and network services
+
+
+  Queue depth                     Prevent unbounded backlog
+
+
+
+
+   19. Disaster Recovery
+Disaster recovery defines how a system returns to service after major infrastructure or data
+failures.
+
+Two important concepts are Recovery Point Objective (RPO) and Recovery Time Objective
+(RTO). RPO describes how much data loss is acceptable, while RTO describes how quickly
+service should be restored.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                               160
+LEARNFORGE                                                                         SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Concept                  Question
+
+
+  RPO                      How much recent data can we afford to lose?
+
+
+  RTO                      How quickly must the service recover?
+
+
+
+
+Production Tip
+A backup that has never been restored has not yet demonstrated that it can serve as a reliable recovery mechanism.
+Regularly test restoration procedures.
+
+
+
+
+   20. Deployment Security
+Deployment systems have powerful privileges and therefore become high-value security
+targets. CI/CD credentials should have the minimum permissions required for their job.
+
+   • Protect build credentials.
+
+   • Restrict deployment permissions.
+
+   • Scan dependencies and artifacts.
+
+   • Sign or verify important artifacts where appropriate.
+
+   • Audit production changes.
+
+
+
+
+   21. Deployment Decision Framework
+
+  Question                                     Recommended Consideration
+
+
+  Is downtime acceptable?                      Choose strategy accordingly
+
+
+  Is rollback critical?                        Prefer easily reversible releases
+
+
+  Is capacity limited?                         Rolling deployment may be preferable
+
+
+  Is the change high risk?                     Use canary or staged exposure
+
+
+  Is schema changing?                          Use backward-compatible migration
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                       161
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   22. Production Readiness Checklist
+   •
+       Are development, testing, staging, and production appropriately separated?
+
+   •
+       Is configuration externalized?
+
+   •
+       Are secrets protected and rotatable?
+
+   •
+       Is the deployment artifact reproducible?
+
+   •
+       Are automated tests executed before deployment?
+
+   •
+       Are health and readiness checks implemented?
+
+   •
+       Is rollback tested?
+
+   •
+       Are database migrations backward compatible?
+
+   •
+       Are resource limits defined?
+
+   •
+       Is production observability available?
+
+   •
+       Are backups regularly tested?
+
+
+
+
+   23. Key Takeaways
+   • Deployment architecture determines how software becomes reliable production
+       infrastructure.
+
+   • Configuration and secrets should remain outside application source code.
+
+   • Immutable artifacts improve deployment consistency.
+
+   • CI/CD makes releases repeatable and auditable.
+
+   • Health checks must distinguish process health from traffic readiness.
+
+   • Rolling, blue-green, and canary releases provide different risk profiles.
+
+   • Rollback and database compatibility must be designed before deployment.
+
+   • Autoscaling must consider the actual system bottleneck.
+
+   • Disaster recovery requires tested restoration, not merely backups.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           162
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   24. Quick Review
+  1. What is deployment architecture?
+
+  2. Why should configuration be separated from application code?
+
+  3. What is an immutable deployment artifact?
+
+  4. What is the difference between liveness and readiness?
+
+  5. How does a rolling deployment work?
+
+  6. When is a canary release useful?
+
+  7. Why are backward-compatible database migrations important?
+
+  8. What do RPO and RTO measure?
+
+
+
+
+   25. Architect's Checklist
+   •
+       Can the entire deployment be reproduced?
+
+   •
+       Can the previous release be restored quickly?
+
+   •
+       Are deployment credentials minimally privileged?
+
+   •
+       Can the team detect a bad release quickly?
+
+   •
+       Can infrastructure changes be reviewed and audited?
+
+   •
+       Have failure and recovery scenarios been tested?
+
+   •
+       Are critical dependencies protected from resource exhaustion?
+
+   •
+       Does the deployment strategy match the business risk?
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           163
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE

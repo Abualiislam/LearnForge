@@ -1,0 +1,429 @@
+CHAPTER 24
+Modernization
+
+Modernization consumes engineering capacity. Therefore the justification should be connected
+to measurable outcomes such as reduced operational cost, faster delivery, improved
+reliability, stronger security, or increased scalability.
+
+  Driver                                   Possible Measurement
+
+  Slow delivery                            Lead time for changes
+
+  Reliability problems                     Incident frequency and recovery time
+
+  High infrastructure cost                 Cost per transaction or user
+
+  Security risk                            Critical vulnerabilities and remediation time
+
+  Scaling limitations                      Maximum sustainable throughput
+
+   4. Refactoring vs Rewriting
+Refactoring changes the internal structure of a system while preserving its observable
+behavior. Rewriting replaces substantial portions of the existing implementation with a new
+system.
+
+LearnForge • Engineering Handbook • 2026                                                                     248
+
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+  Approach             Advantage                        Risk
+
+  Refactoring          Small incremental changes        Old constraints may remain
+
+  Rewriting            Opportunity for major redesign   Large unknown migration risk
+
+  Replacement          Can remove obsolete technology   Integration and migration complexity
+
+Common Mistake
+Assuming a rewrite is faster simply because the existing system is difficult to understand. A
+rewrite often recreates years of hidden business rules that were embedded in the original
+implementation.
+
+   5. The Strangler Fig Pattern
+The Strangler Fig pattern replaces an old system gradually. New capabilities are implemented
+around the legacy system until enough functionality has moved that the original component
+can eventually be retired.
+
+Figure 24.1 — The Strangler Fig pattern allows a legacy system to be replaced incrementally
+rather than through one high-risk cutover.
+
+   6. Establish a Migration Boundary
+A modernization effort needs a clear boundary. The boundary may be an API, event stream,
+module, database table, or business capability.
+
+A good boundary reduces the amount of code that must change simultaneously and creates a
+measurable migration unit.
+
+   7. Branch by Abstraction
+Branch by abstraction introduces an abstraction layer between consumers and the
+implementation being replaced. The old and new implementations can then coexist while
+traffic or behavior is gradually migrated.
+
+LearnForge • Engineering Handbook • 2026                                                          249
+
+LEARNFORGE                                                         SYSTEM ARCHITECTURE & CLEAN CODE
+
+    interface PricingService {
+      calculatePrice(productId: string): Promise;
+    }
+
+    class LegacyPricing implements PricingService {
+      async calculatePrice(productId: string) {
+        return legacyPricingSystem.getPrice(productId);
+      }
+    }
+
+    class NewPricing implements PricingService {
+      async calculatePrice(productId: string) {
+        return modernPricingEngine.calculate(productId);
+      }
+    }
+
+The abstraction prevents consumers from becoming directly dependent on either
+implementation.
+
+   8. Feature Flags
+Feature flags allow teams to change behavior without deploying a completely new release for
+every experiment or migration step.
+
+    function selectPricingEngine(userId: string) {
+      if (featureFlags.enabled("new-pricing", userId)) {
+        return new NewPricing();
+      }
+
+        return new LegacyPricing();
+    }
+
+Production Tip
+Feature flags are temporary architecture tools. Every migration flag should have an owner,
+purpose, monitoring plan, and removal date.
+
+   9. Database Modernization
+Database migration is often one of the most difficult parts of modernization because
+application behavior and persistent state are tightly connected.
+
+LearnForge • Engineering Handbook • 2026                                                       250
+
+LEARNFORGE                                                                    SYSTEM ARCHITECTURE & CLEAN CODE
+
+  Strategy                       Use Case                                      Risk
+
+  Big-bang migration             Small datasets and controlled downtime        High cutover risk
+
+  Dual write                     Gradual transition                            Consistency problems
+
+  Change data capture            Synchronizing systems during migration        Operational complexity
+
+  Backfill + validation          Large existing datasets                       Long migration window
+
+   10. Expand and Contract
+The expand-and-contract pattern allows database schemas to evolve without requiring every
+application version to change simultaneously.
+
+  Phase               Action
+
+  Expand              Add the new schema without removing the old structure
+
+  Migrate             Deploy code that can work with both representations
+
+  Backfill            Populate the new representation
+
+  Switch              Move reads and writes to the new structure
+
+  Contract            Remove the obsolete schema
+
+   11. API Evolution
+APIs become architectural contracts. Once external or internal consumers depend on them,
+changing them carelessly can create widespread failures.
+
+LearnForge • Engineering Handbook • 2026                                                                  251
+
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+    interface UserResponseV1 {
+      id: string;
+      name: string;
+    }
+
+    interface UserResponseV2 {
+      id: string;
+      displayName: string;
+      locale: string;
+    }
+
+Safe API evolution often uses additive changes, compatibility periods, versioning, consumer
+testing, and explicit deprecation schedules.
+
+   12. Compatibility Is a Migration Tool
+Compatibility allows old and new components to coexist. This is particularly important when
+teams cannot deploy every component simultaneously.
+
+  Compatibility Technique                  Purpose
+
+  Additive API fields                      Allow old consumers to continue working
+
+  Versioned contracts                      Support multiple consumer generations
+
+  Adapters                                 Translate old interfaces into new ones
+
+  Dual-read logic                          Support migration between data representations
+
+  Feature flags                            Control rollout behavior
+
+   13. Migration Observability
+A migration without observability is difficult to control. Engineers need to know whether the
+new implementation behaves correctly and whether users are experiencing regressions.
+
+LearnForge • Engineering Handbook • 2026                                                                   252
+
+LEARNFORGE                                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+  Signal                                   What to Monitor
+
+  Errors                                   New vs legacy error rates
+
+  Latency                                  p50, p95, and p99 behavior
+
+  Business outcomes                        Successful transactions and conversion
+
+  Data consistency                         Differences between old and new results
+
+   14. Shadow Traffic
+Shadow traffic sends a copy of real requests to a new implementation without using its
+response for the user's actual operation.
+
+    async function handleRequest(request: Request) {
+      const result = await legacyService.execute(request);
+
+        void newService.execute(request).catch(error => {
+          logger.error({
+            event: "shadow-request-failed",
+            error
+          });
+        });
+
+        return result;
+    }
+
+Shadow traffic can reveal performance and behavioral differences before the new
+implementation receives production authority.
+
+   15. Incremental Cutover
+Instead of switching every user at once, traffic can be moved gradually. A typical rollout may
+begin with internal users, then a small percentage, then progressively larger groups.
+
+Figure 24.2 — Incremental rollout limits the blast radius of modernization changes.
+
+LearnForge • Engineering Handbook • 2026                                                                        253
+
+LEARNFORGE                                                                   SYSTEM ARCHITECTURE & CLEAN CODE
+
+   16. Rollback Planning
+Every significant migration should define what happens when the new implementation
+behaves incorrectly.
+
+Architect's Rule
+A migration is not production-ready until the team knows how to stop, reverse, or safely
+continue it when reality differs from the migration plan.
+
+   17. Migration Risk Matrix
+
+  Risk                             Probability   Impact     Mitigation
+
+  Data inconsistency               Medium        High       Validation and reconciliation
+
+  Performance regression           Medium        High       Load testing and gradual rollout
+
+  Hidden business rule             High          High       Characterization tests and domain review
+
+  Rollback failure                 Low           Critical   Test rollback before cutover
+
+   18. Characterization Tests
+Before changing legacy behavior, teams should capture what the existing system actually
+does. These tests are called characterization tests.
+
+    test("legacy pricing behavior is preserved", async () => {
+      const result = await legacyPricing.calculatePrice("product-123");
+
+      expect(result).toEqual(1299);
+    });
+
+The purpose is not necessarily to prove that the old behavior is ideal. It creates a safety net
+that exposes accidental behavior changes during modernization.
+
+LearnForge • Engineering Handbook • 2026                                                                 254
+
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+   19. Modernizing a Monolith
+A monolith does not need to be replaced with microservices simply because it has grown.
+Many monoliths can be improved through modularization, better testing, clearer ownership,
+and selective extraction.
+
+  Problem                                  First Modernization Step
+
+  Large tangled modules                    Create explicit module boundaries
+
+  Shared database access                   Introduce ownership around data access
+
+  Slow tests                               Create focused unit and integration tests
+
+  Manual deployment                        Automate build and deployment
+
+  Unclear dependencies                     Measure and document dependency graph
+
+   20. Cloud Migration
+Moving an application to cloud infrastructure is not automatically modernization. Simply
+moving virtual machines without improving operational architecture may preserve the original
+problems.
+
+Cloud modernization may involve managed databases, automated infrastructure, elastic
+scaling, observability, security automation, and improved deployment processes.
+
+   21. Avoiding Migration Big Bangs
+Large migration projects become risky when too many changes are combined into one
+release. Splitting the migration into independently verifiable steps reduces uncertainty.
+
+Common Mistake
+Combining database migration, service extraction, infrastructure replacement, API redesign,
+and UI changes into one cutover. If the result fails, the team cannot easily determine which
+change caused the problem.
+
+LearnForge • Engineering Handbook • 2026                                                                   255
+
+LEARNFORGE                                                                   SYSTEM ARCHITECTURE & CLEAN CODE
+
+   22. Measuring Modernization Progress
+
+  Measure                                  Useful Question
+
+  Legacy dependency count                   Are obsolete components decreasing?
+
+  Migration coverage                        How much functionality has moved?
+
+  Incident rate                             Is modernization improving reliability?
+
+  Deployment frequency                      Can teams deliver changes more easily?
+
+  Change lead time                          Has engineering speed improved?
+
+   23. Removing the Old System
+A migration is incomplete when the new system works but the old system continues running
+indefinitely. The old path creates cost, confusion, and maintenance obligations.
+
+Retirement should therefore be treated as an explicit migration phase: disable traffic, confirm
+consumers are gone, archive required data, remove infrastructure, and delete obsolete code.
+
+   24. Practical Modernization Checklist
+   •
+       Is there a measurable reason for modernization?
+
+   •
+       Is the migration divided into small verifiable steps?
+
+   •
+       Are important legacy behaviors covered by tests?
+
+   •
+       Is there a clear migration boundary?
+
+   •
+       Can old and new implementations coexist safely?
+
+   •
+       Are APIs and database schemas backward compatible during transition?
+
+   •
+       Is migration telemetry available?
+
+   •
+
+LearnForge • Engineering Handbook • 2026                                                                 256
+
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+       Is rollout gradual where appropriate?
+
+   •
+       Has rollback been tested?
+
+   •
+       Is there a defined retirement plan for obsolete components?
+
+   25. Key Takeaways
+   • Modernization should solve measurable business or engineering problems.
+
+   • Incremental migration usually reduces risk compared with big-bang replacement.
+
+   • The Strangler Fig pattern allows old and new architecture to coexist.
+
+   • Compatibility is one of the most important tools for safe evolution.
+
+   • Feature flags, shadow traffic, and gradual rollout reduce migration blast radius.
+
+   • Database and API migrations require explicit compatibility strategies.
+
+   • Characterization tests protect important existing behavior.
+
+   • A migration is incomplete until obsolete architecture is safely retired.
+
+   26. Quick Review
+  1. What makes a system legacy?
+
+  2. When should refactoring be preferred over rewriting?
+
+  3. How does the Strangler Fig pattern reduce migration risk?
+
+  4. What is branch by abstraction?
+
+  5. Why are feature flags useful during modernization?
+
+  6. What is the expand-and-contract migration pattern?
+
+  7. Why is API compatibility important?
+
+  8. What purpose does shadow traffic serve?
+
+  9. Why should migration rollout be gradual?
+
+10. Why must the old system eventually be retired?
+
+   27. Architect's Checklist
+   •
+
+LearnForge • Engineering Handbook • 2026                                                           257
+
+LEARNFORGE                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+       Is the modernization objective measurable?
+
+   •
+       Are business-critical behaviors understood?
+
+   •
+       Are migration boundaries explicit?
+
+   •
+       Are dependencies and data flows documented?
+
+   •
+       Are compatibility requirements defined?
+
+   •
+       Are data consistency risks monitored?
+
+   •
+       Are rollout and rollback procedures tested?
+
+   •
+       Are feature flags temporary and owned?
+
+   •
+       Are migration outcomes measured?
+
+   •
+       Is obsolete architecture scheduled for removal?
+
+LearnForge • Engineering Handbook • 2026                                             258
+
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODEChapter 25

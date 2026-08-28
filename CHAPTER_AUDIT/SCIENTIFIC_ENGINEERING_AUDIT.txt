@@ -1,0 +1,2381 @@
+================================================================================
+LEARNFORGE — SCIENTIFIC & ENGINEERING AUDIT REPORT
+================================================================================
+
+IMPORTANT: SOURCE FILES WERE NOT MODIFIED.
+
+Chunks verified : 16
+Words verified  : 44,601
+Chapters        : 25/25
+
+================================================================================
+AUDIT FINDINGS
+================================================================================
+
+--------------------------------------------------------------------------------
+FINDING #1
+Chapter : 01
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+What It Means Moving from a software developer to a software architect requires shifting your primary frame of reference.
+
+--------------------------------------------------------------------------------
+FINDING #2
+Chapter : 01
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Abstraction must serve clear failure isolation or change control boundaries, not theoretical future requirements.
+
+--------------------------------------------------------------------------------
+FINDING #3
+Chapter : 01
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Never rely on team memory.
+
+--------------------------------------------------------------------------------
+FINDING #4
+Chapter : 01
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Every architecture is a trade-off; there are no silver bullets, only costs and consequences.
+
+--------------------------------------------------------------------------------
+FINDING #5
+Chapter : 03
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+CHAPTER 03 Requirements Before Architecture CHAPTER 03 Requirements Before Architecture Designing systems without concrete functional and non- functional requirements guarantees overengineering or critical production failure.
+
+--------------------------------------------------------------------------------
+FINDING #6
+Chapter : 03
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A system needing 100 requests per second (RPS) requires a radically different design than one processing 100,000 RPS.
+
+--------------------------------------------------------------------------------
+FINDING #7
+Chapter : 03
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+KEY TAKEAWAYS • Always translate business requests into concrete numbers: RPS, payload size, storage growth, and availability percentages.
+
+--------------------------------------------------------------------------------
+FINDING #8
+Chapter : 04
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+CHAPTER 04 Scalability CHAPTER 04 Scalability Scalability is the structural ability of a system to handle increased load by adding resources, without breaking performance guarantees.
+
+--------------------------------------------------------------------------------
+FINDING #9
+Chapter : 04
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Load Balancer API Node 1 API Node 2 API Node 3 Stateless Application Tier To enable horizontal scaling at the API level, application nodes must be completely stateless.
+
+--------------------------------------------------------------------------------
+FINDING #10
+Chapter : 04
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Session states must be offloaded to distributed data stores like Redis.
+
+--------------------------------------------------------------------------------
+FINDING #11
+Chapter : 04
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+app.post('/login', (req, res) => { // Session locked to this specific node process instance activeSessions.set(sessionToken, user); }); // STATELESS ARCHITECTURAL PATTERN (Enables Horizontal Scaling) import { createClient } from 'redis'; const redis = createClient({ url: process.env.REDIS_URL }); app.post('/login', async (req, res) => { // Shared state offloaded to centralized cache accessible by all nodes await redis.set(`session:${sessionToken}`, JSON.stringify(user), { EX: 86400 }); }); ARCHITECT'S RULE LearnForge • Engineering Handbook • 2026 11 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE Never hold mutable operational state in node application memory if you intend to scale horizontally.
+
+--------------------------------------------------------------------------------
+FINDING #12
+Chapter : 04
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+KEY TAKEAWAYS • Horizontal scaling requires stateless application layers.
+
+--------------------------------------------------------------------------------
+FINDING #13
+Chapter : 05
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+CHAPTER 05 Performance, Latency and Throughput CHAPTER 05 Performance, Latency and Throughput Optimizing performance requires accurate measurement of response time distributions rather than arithmetic averages.
+
+--------------------------------------------------------------------------------
+FINDING #14
+Chapter : 05
+Severity: MEDIUM
+Reason  : Verify whether tail latency/percentiles should also be discussed.
+
+TEXT:
+The Flaw of Averages Measuring average latency masks severe tail latency issues.
+
+--------------------------------------------------------------------------------
+FINDING #15
+Chapter : 05
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+LearnForge • Engineering Handbook • 2026 13 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE KEY TAKEAWAYS • Never monitor performance using arithmetic average latency; track p95 and p99 percentiles.
+
+--------------------------------------------------------------------------------
+FINDING #16
+Chapter : 06
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+The caller must now consider network latency, timeouts, retries, partial failure, authentication, service discovery, observability, and version compatibility.
+
+--------------------------------------------------------------------------------
+FINDING #17
+Chapter : 06
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Then, only when justified, turn that boundary into a network boundary.
+
+--------------------------------------------------------------------------------
+FINDING #18
+Chapter : 07
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Why distributed systems require explicit failure-handling strategies.
+
+--------------------------------------------------------------------------------
+FINDING #19
+Chapter : 07
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+If the organization cannot operate the additional boundaries reliably, the architecture may be more complex than the business requires.
+
+--------------------------------------------------------------------------------
+FINDING #20
+Chapter : 07
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+When those modules become separate services, the call must cross a network.
+
+--------------------------------------------------------------------------------
+FINDING #21
+Chapter : 07
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A remote dependency must always be treated as potentially slow, unavailable, or partially successful.
+
+--------------------------------------------------------------------------------
+FINDING #22
+Chapter : 07
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Architect's Rule Retry only when the operation and failure mode are understood.
+
+--------------------------------------------------------------------------------
+FINDING #23
+Chapter : 07
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+For example, if ten services must always be deployed together, communicate synchronously for every request, and share one database schema, the system may have the operational cost of microservices without receiving their independence benefits.
+
+--------------------------------------------------------------------------------
+FINDING #24
+Chapter : 07
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Operational Complexity A production microservice platform requires more than application code.
+
+--------------------------------------------------------------------------------
+FINDING #25
+Chapter : 07
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Teams must manage deployment pipelines, service discovery, secrets, monitoring, distributed tracing, logs, certificates, network policies, capacity planning, and incident response.
+
+--------------------------------------------------------------------------------
+FINDING #26
+Chapter : 07
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Architecture and team capability must evolve together.
+
+--------------------------------------------------------------------------------
+FINDING #27
+Chapter : 07
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A Practical Decision Framework Question If Yes If No Does one capability require independent scaling?
+
+--------------------------------------------------------------------------------
+FINDING #28
+Chapter : 07
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Remove the old implementation only after the new path is stable.
+
+--------------------------------------------------------------------------------
+FINDING #29
+Chapter : 07
+Severity: MEDIUM
+Reason  : Potentially context-dependent engineering claim.
+
+TEXT:
+Summary Comparison Characteristic Monolith Modular Monolith Microservices Deployment Single unit Single unit Independent units Internal boundaries Can be weak Explicit modules Network/service boundaries Operational Low Low to moderate High complexity Independent scaling Limited Limited Strong Failure isolation Lower Moderate Potentially strong Network failure Low Low High concerns Lower at large High when boundaries are Team autonomy Moderate to high scale healthy Small or evolving Growing systems with Systems with proven Best starting point systems clear domains independent-service needs 13.
+
+--------------------------------------------------------------------------------
+FINDING #30
+Chapter : 07
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Independent deployment and scaling are valuable only when the system actually needs them.
+
+--------------------------------------------------------------------------------
+FINDING #31
+Chapter : 07
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+LearnForge • Engineering Handbook • 2026 28 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE • Remote calls must be treated as unreliable dependencies with timeouts and explicit failure handling.
+
+--------------------------------------------------------------------------------
+FINDING #32
+Chapter : 08
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A system becomes distributed when important parts of its computation or state exist in separate processes or machines and must communicate over a network.
+
+--------------------------------------------------------------------------------
+FINDING #33
+Chapter : 08
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A remote call can be slow, unavailable, duplicated, rejected, or successful even when its response never reaches the caller.
+
+--------------------------------------------------------------------------------
+FINDING #34
+Chapter : 08
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+LearnForge • Engineering Handbook • 2026 30 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE Failure Possible Effect Architectural Response Caller cannot determine whether work Timeout Idempotency and status checking completed Connection failure Request may never reach dependency Bounded retry where safe Deduplication or idempotent Duplicate message Operation may execute twice processing Delayed response Stale result may arrive later Deadlines and request correlation Dependency Latency and error rate increase Backpressure and load shedding overload 3.
+
+--------------------------------------------------------------------------------
+FINDING #35
+Chapter : 08
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Consistency and Availability Distributed systems frequently require trade-offs between consistency, availability, latency, and partition tolerance.
+
+--------------------------------------------------------------------------------
+FINDING #36
+Chapter : 08
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Define which business operations require immediate correctness and which operations can tolerate temporary divergence.
+
+--------------------------------------------------------------------------------
+FINDING #37
+Chapter : 08
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+CAP in Practical Terms The CAP theorem describes a fundamental limitation of distributed data systems during a network partition: a system cannot simultaneously guarantee both strong consistency and full availability for every operation while also tolerating the partition.
+
+--------------------------------------------------------------------------------
+FINDING #38
+Chapter : 08
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+It does not mean that every system must choose exactly two permanent properties.
+
+--------------------------------------------------------------------------------
+FINDING #39
+Chapter : 08
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Model Meaning Typical Risk At-most-once Message is delivered zero or one time Messages may be lost At-least-once Message is delivered one or more times Duplicates must be handled Effectively-once Business effect is made safe against duplicates Requires careful application design In practice, at-least-once delivery combined with idempotent consumers is often easier to reason about than pretending that a distributed transport can guarantee perfect exactly-once business behavior.
+
+--------------------------------------------------------------------------------
+FINDING #40
+Chapter : 08
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Transport- level delivery guarantees do not replace application-level idempotency.
+
+--------------------------------------------------------------------------------
+FINDING #41
+Chapter : 08
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Backpressure and Load Shedding When a downstream system cannot process work as quickly as requests arrive, the upstream system must avoid creating an unlimited backlog.
+
+--------------------------------------------------------------------------------
+FINDING #42
+Chapter : 08
+Severity: HIGH
+Reason  : Potentially exaggerated scalability/capacity claim.
+
+TEXT:
+Architect's Rule A resilient system does not attempt to accept unlimited work.
+
+--------------------------------------------------------------------------------
+FINDING #43
+Chapter : 08
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Designing for Graceful Degradation A resilient system does not always need every feature to remain available.
+
+--------------------------------------------------------------------------------
+FINDING #44
+Chapter : 08
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+During an outage, engineers should know which features can be disabled and which business operations must remain available.
+
+--------------------------------------------------------------------------------
+FINDING #45
+Chapter : 08
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Partial failure must be treated as a normal architectural condition.
+
+--------------------------------------------------------------------------------
+FINDING #46
+Chapter : 08
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• At-least-once delivery requires consumers that can safely handle duplicates.
+
+--------------------------------------------------------------------------------
+FINDING #47
+Chapter : 08
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Distributed workflows often require explicit compensation rather than one global transaction.
+
+--------------------------------------------------------------------------------
+FINDING #48
+Chapter : 08
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Observability must cross service boundaries.
+
+--------------------------------------------------------------------------------
+FINDING #49
+Chapter : 08
+Severity: MEDIUM
+Reason  : Potentially context-dependent engineering claim.
+
+TEXT:
+Production Tip The best distributed architecture is not the one with the most services.
+
+--------------------------------------------------------------------------------
+FINDING #50
+Chapter : 09
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Therefore, consumers must be designed to tolerate duplicate delivery.
+
+--------------------------------------------------------------------------------
+FINDING #51
+Chapter : 09
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Exactly-once behavior is difficult to guarantee across independent systems, so application-level idempotency remains important.
+
+--------------------------------------------------------------------------------
+FINDING #52
+Chapter : 09
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Common Mistake LearnForge • Engineering Handbook • 2026 43 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE Assuming that a message will always be delivered exactly once.
+
+--------------------------------------------------------------------------------
+FINDING #53
+Chapter : 09
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Ordering is not automatically guaranteed across distributed consumers.
+
+--------------------------------------------------------------------------------
+FINDING #54
+Chapter : 09
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+LearnForge • Engineering Handbook • 2026 44 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE Problem Possible Cause Response Events arrive out of order Parallel processing Partitioning or sequence numbers Duplicate events At-least-once delivery Idempotent consumer Missing event Producer or broker failure Replay and reconciliation Late event Network or consumer delay Version checks and timestamps Architect's Rule Do not require global ordering unless the business actually needs it.
+
+--------------------------------------------------------------------------------
+FINDING #55
+Chapter : 09
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A dead-letter queue (DLQ) provides a controlled destination for messages that require investigation or later recovery.
+
+--------------------------------------------------------------------------------
+FINDING #56
+Chapter : 09
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Temporary database connectivity problems may justify a retry, while malformed event data may require immediate isolation.
+
+--------------------------------------------------------------------------------
+FINDING #57
+Chapter : 09
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+The business state then says that an order was created, but downstream consumers never receive the corresponding event.
+
+--------------------------------------------------------------------------------
+FINDING #58
+Chapter : 09
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Architect's Rule When database state and event publication must remain consistent, consider the transactional outbox instead of pretending that two independent operations form one atomic transaction.
+
+--------------------------------------------------------------------------------
+FINDING #59
+Chapter : 09
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Analytics dashboards Usually yes Search indexing Usually yes Email notifications Usually yes Critical account balance Often requires stronger guarantees Payment authorization Usually requires explicit consistency controls LearnForge • Engineering Handbook • 2026 48 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE 17.
+
+--------------------------------------------------------------------------------
+FINDING #60
+Chapter : 09
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Replay requires careful design.
+
+--------------------------------------------------------------------------------
+FINDING #61
+Chapter : 09
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Consumers must be deterministic where possible, idempotent, and able to handle historical event versions.
+
+--------------------------------------------------------------------------------
+FINDING #62
+Chapter : 09
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Event architecture therefore requires explicit access control and data-minimization decisions.
+
+--------------------------------------------------------------------------------
+FINDING #63
+Chapter : 09
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+The caller needs an immediate result Work can happen asynchronously The operation requires direct validation Multiple independent consumers need the fact Strong immediate consistency is required Eventual consistency is acceptable The dependency relationship is explicit Loose coupling is valuable The request is interactive The work is background or integration-oriented LearnForge • Engineering Handbook • 2026 50 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE Many production systems use both approaches.
+
+--------------------------------------------------------------------------------
+FINDING #64
+Chapter : 09
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• At-least-once delivery means duplicate processing must be expected.
+
+--------------------------------------------------------------------------------
+FINDING #65
+Chapter : 09
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Observability must connect event publication with downstream processing.
+
+--------------------------------------------------------------------------------
+FINDING #66
+Chapter : 10
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+class Course { constructor( readonly id: string, private title: string, private published: boolean = false ) {} publish(): void { if (this.title.trim().length < 3) { throw new Error("A course requires a valid title"); } this.published = true; } isPublished(): boolean { return this.published; } } The entity contains a business rule: a course cannot be published unless it has a meaningful title.
+
+--------------------------------------------------------------------------------
+FINDING #67
+Chapter : 10
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+If changing the database requires rewriting business rules, the boundary is weak.
+
+--------------------------------------------------------------------------------
+FINDING #68
+Chapter : 10
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+If changing an HTTP transport only requires replacing an adapter, the boundary is stronger.
+
+--------------------------------------------------------------------------------
+FINDING #69
+Chapter : 10
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Avoid abstraction whose only purpose is satisfying a pattern.
+
+--------------------------------------------------------------------------------
+FINDING #70
+Chapter : 11
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+The principles are not rigid laws and they do not require every class to have an interface or every application to use complex inheritance.
+
+--------------------------------------------------------------------------------
+FINDING #71
+Chapter : 11
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Principle Core Idea Main Benefit SRP One reason to change Focused responsibilities OCP Extend behavior without unnecessary modification Safer evolution LSP Subtypes must remain substitutable Predictable polymorphism ISP Prefer focused interfaces Lower dependency burden DIP Depend on abstractions at architectural boundaries Reduced coupling Architect's Rule SOLID is valuable when it reduces the cost of change.
+
+--------------------------------------------------------------------------------
+FINDING #72
+Chapter : 11
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A common misunderstanding is that SRP means a class must contain only one method.
+
+--------------------------------------------------------------------------------
+FINDING #73
+Chapter : 11
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+LearnForge • Engineering Handbook • 2026 68 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE 3.1 Conditional Explosion function calculateDiscount( customerType: string, amount: number ) { if (customerType === "regular") { return amount * 0.05; } if (customerType === "premium") { return amount * 0.15; } if (customerType === "enterprise") { return amount * 0.25; } return 0; } Adding more customer types requires modifying the same function repeatedly.
+
+--------------------------------------------------------------------------------
+FINDING #74
+Chapter : 11
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A subtype must preserve the behavioral expectations established by the abstraction.
+
+--------------------------------------------------------------------------------
+FINDING #75
+Chapter : 11
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Large Interface Focused Interfaces Printer, scanner, fax, storage Printable, Scannable, Faxable, Storable Many unused methods Only required capabilities Higher implementation burden Lower implementation burden LearnForge • Engineering Handbook • 2026 72 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE interface Printable { print(document: Document): void; } interface Scannable { scan(): Document; } class SimplePrinter implements Printable { print(document: Document) { console.log("Printing"); } } class MultiFunctionPrinter implements Printable, Scannable { print(document: Document) { console.log("Printing"); } scan() { return new Document(); } } Architect's Rule Prefer interfaces that represent meaningful capabilities.
+
+--------------------------------------------------------------------------------
+FINDING #76
+Chapter : 11
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+LearnForge • Engineering Handbook • 2026 74 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE class FakeOrderRepository implements OrderRepository { public orders: Order[] = []; async save(order: Order) { this.orders.push(order); } } test("saves an order", async () => { const repository = new FakeOrderRepository(); const service = new OrderService(repository); await service.save({ id: "order-1", total: 100 }); expect(repository.orders).toHaveLength(1); }); The test does not require a real database.
+
+--------------------------------------------------------------------------------
+FINDING #77
+Chapter : 11
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Useful Abstraction Suspicious Abstraction Protects a real architectural boundary Exists only because "SOLID says so" Encapsulates meaningful variation Hides a trivial function Improves testing or replacement Adds layers without benefit Clarifies ownership Makes navigation harder Common Mistake LearnForge • Engineering Handbook • 2026 76 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE Confusing more abstractions with better architecture.
+
+--------------------------------------------------------------------------------
+FINDING #78
+Chapter : 11
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Introduce abstractions only where they provide real flexibility.
+
+--------------------------------------------------------------------------------
+FINDING #79
+Chapter : 11
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+What does LSP require from a subtype?
+
+--------------------------------------------------------------------------------
+FINDING #80
+Chapter : 12
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Why Simple Code Is Difficult Software becomes difficult to maintain when every change requires engineers to understand too many unrelated concepts.
+
+--------------------------------------------------------------------------------
+FINDING #81
+Chapter : 12
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+DRY — Don't Repeat Yourself DRY is commonly interpreted as “never write the same code twice.” That is too narrow.
+
+--------------------------------------------------------------------------------
+FINDING #82
+Chapter : 12
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+If a payment system must support refunds, fraud checks, currency conversion, and regulatory rules, those requirements create unavoidable complexity.
+
+--------------------------------------------------------------------------------
+FINDING #83
+Chapter : 12
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Unnecessary frameworks, duplicated transformations, excessive indirection, and unclear dependencies can make a system harder than the underlying business problem requires.
+
+--------------------------------------------------------------------------------
+FINDING #84
+Chapter : 12
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+7.1 Speculative Design class UserService { createUser(user: User) { // current requirement } // Future features that have no current requirement: // importFromLegacySystem() // exportToTwentyDifferentFormats() // syncWithUnknownPartner() } Building unused functionality creates code that must be tested, documented, secured, and maintained even though it provides no current value.
+
+--------------------------------------------------------------------------------
+FINDING #85
+Chapter : 12
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+YAGNI asks whether functionality exists only because someone predicts that it may be needed later.
+
+--------------------------------------------------------------------------------
+FINDING #86
+Chapter : 12
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A useful system requires components to communicate.
+
+--------------------------------------------------------------------------------
+FINDING #87
+Chapter : 12
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+class OrderService { constructor( private readonly paymentService: PaymentService ) {} } class PaymentService { constructor( private readonly orderService: OrderService ) {} } A better design often introduces a higher-level workflow or event boundary so that neither module must directly own the other.
+
+--------------------------------------------------------------------------------
+FINDING #88
+Chapter : 13
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+The contract describes what can be requested, what data must be supplied, what response will be returned, and how errors are represented.
+
+--------------------------------------------------------------------------------
+FINDING #89
+Chapter : 13
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+LearnForge • Engineering Handbook • 2026 98 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE interface CreateCourseRequest { title: string; description: string; instructorId: string; } function validateCourseRequest( input: CreateCourseRequest ) { if (!input.title.trim()) { throw new Error("title is required"); } if (!input.instructorId.trim()) { throw new Error("instructorId is required"); } if (input.title.length > 200) { throw new Error("title is too long"); } } Production applications should normally use a dedicated validation library or framework mechanism rather than relying only on manually written checks.
+
+--------------------------------------------------------------------------------
+FINDING #90
+Chapter : 13
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+The important architectural principle is that untrusted external input must be validated before entering trusted application logic.
+
+--------------------------------------------------------------------------------
+FINDING #91
+Chapter : 13
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Sensitive stack traces, database details, credentials, and infrastructure information should never be exposed through public API responses.
+
+--------------------------------------------------------------------------------
+FINDING #92
+Chapter : 13
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Backward compatibility should be treated as an architectural concern rather than something discovered only after a client breaks.
+
+--------------------------------------------------------------------------------
+FINDING #93
+Chapter : 13
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+LearnForge • Engineering Handbook • 2026 100 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE • Design for evolution instead of assuming the first version will never change.
+
+--------------------------------------------------------------------------------
+FINDING #94
+Chapter : 13
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A well-designed API must allow the server to improve without unexpectedly breaking existing consumers.
+
+--------------------------------------------------------------------------------
+FINDING #95
+Chapter : 13
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Strategy Example Advantage Trade-off Multiple URLs must be URL Versioning /api/v1/users Simple and visible maintained Header Accept: application/ Less obvious to Keeps URL stable Versioning vnd.api.v2+json developers Query Can become /users?version=2 Easy to implement Versioning inconsistent Explicit Media-Type application/ representation More complex tooling Versioning vnd.company.resource+json control Architect's Rule Do not create a new API version merely because an implementation changed.
+
+--------------------------------------------------------------------------------
+FINDING #96
+Chapter : 13
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Authorization must be validated by the server.
+
+--------------------------------------------------------------------------------
+FINDING #97
+Chapter : 13
+Severity: HIGH
+Reason  : Potentially exaggerated scalability/capacity claim.
+
+TEXT:
+Pagination, Filtering and Sorting Collection endpoints should avoid returning unlimited amounts of data.
+
+--------------------------------------------------------------------------------
+FINDING #98
+Chapter : 13
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Login, payment, search, and public endpoints may require different limits and protection strategies.
+
+--------------------------------------------------------------------------------
+FINDING #99
+Chapter : 13
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+API Documentation An API contract is only useful when consumers can understand how to use it.
+
+--------------------------------------------------------------------------------
+FINDING #100
+Chapter : 13
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Require explicit authorization 23.
+
+--------------------------------------------------------------------------------
+FINDING #101
+Chapter : 13
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Input validation must happen at trust boundaries.
+
+--------------------------------------------------------------------------------
+FINDING #102
+Chapter : 14
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Application code can frequently be replaced or scaled horizontally, but business data must remain correct, durable, and accessible.
+
+--------------------------------------------------------------------------------
+FINDING #103
+Chapter : 14
+Severity: MEDIUM
+Reason  : Potentially context-dependent engineering claim.
+
+TEXT:
+The correct question is not simply "Which database is best?" but "Which data model and operational behavior best fit this system?" Architect's Rule Choose a database according to data characteristics, consistency requirements, query patterns, scale, and operational capability—not because a particular database is fashionable.
+
+--------------------------------------------------------------------------------
+FINDING #104
+Chapter : 14
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+They are particularly strong when the system requires structured data, joins, constraints, and transactional consistency.
+
+--------------------------------------------------------------------------------
+FINDING #105
+Chapter : 14
+Severity: MEDIUM
+Reason  : Potentially context-dependent engineering claim.
+
+TEXT:
+Characteristic Relational Non-Relational Data structure Tables and relationships Documents, keys, graphs, or columns Schema Usually explicit Often more flexible Joins Strong native support Often limited or avoided Transactions Strong transactional model Varies by product Best fit Structured business data Specific high-scale or flexible access patterns 3.
+
+--------------------------------------------------------------------------------
+FINDING #106
+Chapter : 14
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Email addresses, usernames, and product codes may have business meaning but are not always stable identifiers.
+
+--------------------------------------------------------------------------------
+FINDING #107
+Chapter : 14
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Problem Effect Normalization Benefit Duplicate data Higher storage and inconsistency risk Centralized representation Update anomaly One fact must be changed in many places Single source of truth Insert anomaly Cannot store a fact independently Independent entities Delete anomaly Deleting one record removes unrelated information Separated responsibilities 7.
+
+--------------------------------------------------------------------------------
+FINDING #108
+Chapter : 14
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Every index requires storage and can increase the cost of inserts, updates, and deletes.
+
+--------------------------------------------------------------------------------
+FINDING #109
+Chapter : 14
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+The classic ACID properties describe important transactional guarantees: atomicity, consistency, isolation, and durability.
+
+--------------------------------------------------------------------------------
+FINDING #110
+Chapter : 14
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Transaction Example await db.transaction(async (tx) => { const order = await tx.orders.create({ userId, status: "pending" }); await tx.orderItems.createMany({ orderId: order.id, items }); await tx.inventory.reserve({ items }); }); The exact transaction API varies by database library, but the architectural principle remains the same: operations that must preserve one business invariant should share an appropriate transactional boundary.
+
+--------------------------------------------------------------------------------
+FINDING #111
+Chapter : 14
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+LearnForge • Engineering Handbook • 2026 115 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE Level General Idea Read Uncommitted Allows the weakest visibility guarantees Read Committed Reads committed data Repeatable Read Provides stronger repeatability within a transaction Serializable Provides the strongest ordering guarantees Production Tip Do not select the strongest isolation level automatically.
+
+--------------------------------------------------------------------------------
+FINDING #112
+Chapter : 14
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+UPDATE courses SET title = 'Advanced Architecture', version = version + 1 WHERE id = :id AND version = :expectedVersion; If zero rows are updated, the application can detect that the record changed and require the caller to reload or resolve the conflict.
+
+--------------------------------------------------------------------------------
+FINDING #113
+Chapter : 14
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Applications must understand whether a workflow requires the latest data or can tolerate eventual consistency.
+
+--------------------------------------------------------------------------------
+FINDING #114
+Chapter : 14
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Caching Caching stores frequently accessed data closer to the application so that repeated reads do not always reach the primary database.
+
+--------------------------------------------------------------------------------
+FINDING #115
+Chapter : 14
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+The architecture must define when cached values expire, when they are invalidated, and whether stale responses are acceptable.
+
+--------------------------------------------------------------------------------
+FINDING #116
+Chapter : 14
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Production Tip Prefer expand-and-contract migrations for risky changes: introduce the new schema, deploy compatible application code, migrate or backfill data, and only then remove the old structure.
+
+--------------------------------------------------------------------------------
+FINDING #117
+Chapter : 14
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+The system should define whether deleted data must eventually be permanently removed.
+
+--------------------------------------------------------------------------------
+FINDING #118
+Chapter : 14
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Database Failure Handling A production application must assume that the database can become slow, unavailable, overloaded, or temporarily unreachable.
+
+--------------------------------------------------------------------------------
+FINDING #119
+Chapter : 14
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Database failure must be treated as a normal production scenario.
+
+--------------------------------------------------------------------------------
+FINDING #120
+Chapter : 14
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Good architecture makes its guarantees, limitations, ownership, and failure behavior explicit.
+
+--------------------------------------------------------------------------------
+FINDING #121
+Chapter : 15
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+The classic ACID properties describe important transactional guarantees: atomicity, consistency, isolation, and durability.
+
+--------------------------------------------------------------------------------
+FINDING #122
+Chapter : 15
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+LearnForge • Engineering Handbook • 2026 127 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE Isolation Level General Idea Read Uncommitted Allows the weakest visibility guarantees.
+
+--------------------------------------------------------------------------------
+FINDING #123
+Chapter : 15
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+The order of indexed columns matters because the database optimizer may only be able to efficiently use certain prefixes of the index.
+
+--------------------------------------------------------------------------------
+FINDING #124
+Chapter : 15
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+User flows that require read-after-write consistency may need to read from the primary or use another consistency mechanism.
+
+--------------------------------------------------------------------------------
+FINDING #125
+Chapter : 15
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A cache can reduce database load and latency, but introduces another copy of data that must eventually become invalid or expire.
+
+--------------------------------------------------------------------------------
+FINDING #126
+Chapter : 15
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+async function getProduct(id: string) { const cached = await cache.get(`product:${id}`); if (cached) { return JSON.parse(cached); } const product = await db.query( "SELECT * FROM products WHERE id = $1", [id] ); await cache.set( `product:${id}`, JSON.stringify(product), { ttl: 300 } ); return product; } The central cache question is not only how to store data.
+
+--------------------------------------------------------------------------------
+FINDING #127
+Chapter : 15
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Cache Invalidation Strategy Advantage Risk TTL Simple automatic expiration Data may remain stale Explicit invalidation Faster freshness after changes More application complexity Write-through Cache updated with writes Additional write path complexity Cache-aside Simple and widely applicable Requires careful invalidation 17.
+
+--------------------------------------------------------------------------------
+FINDING #128
+Chapter : 15
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+ALTER TABLE users ADD COLUMN display_name VARCHAR(120); UPDATE users SET display_name = name WHERE display_name IS NULL; A safer deployment may add the new field first, deploy code that can work with both schemas, backfill data, and only later remove obsolete structures.
+
+--------------------------------------------------------------------------------
+FINDING #129
+Chapter : 15
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Backups and Recovery A backup strategy is incomplete if restoration has never been tested.
+
+--------------------------------------------------------------------------------
+FINDING #130
+Chapter : 15
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Organizations need to understand how much data they can afford to lose and how quickly service must be restored.
+
+--------------------------------------------------------------------------------
+FINDING #131
+Chapter : 15
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+RTO How quickly must service be restored?
+
+--------------------------------------------------------------------------------
+FINDING #132
+Chapter : 15
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Backup retention How long must recoverable copies remain available?
+
+--------------------------------------------------------------------------------
+FINDING #133
+Chapter : 15
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Applications should receive only the permissions they require.
+
+--------------------------------------------------------------------------------
+FINDING #134
+Chapter : 15
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Backups are valuable only when restoration is reliable and tested.
+
+--------------------------------------------------------------------------------
+FINDING #135
+Chapter : 15
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Why must database restoration be tested?
+
+--------------------------------------------------------------------------------
+FINDING #136
+Chapter : 16
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Architect's Rule Never define a security boundary implicitly.
+
+--------------------------------------------------------------------------------
+FINDING #137
+Chapter : 16
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Least Privilege Least privilege means granting an identity only the permissions required to perform its legitimate responsibilities.
+
+--------------------------------------------------------------------------------
+FINDING #138
+Chapter : 16
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+LearnForge • Engineering Handbook • 2026 138 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE Identity Required Permission Unnecessary Permission Read-only analyst Read reports Modify production data Payment service Create and query payments Manage user credentials Notification worker Read notification jobs Delete customer accounts Administrator Explicit administrative actions Unrestricted access without auditing Production Tip Review permissions periodically.
+
+--------------------------------------------------------------------------------
+FINDING #139
+Chapter : 16
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Password Security Passwords should never be stored as plaintext.
+
+--------------------------------------------------------------------------------
+FINDING #140
+Chapter : 16
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Cookie Attribute Purpose Secure Send the cookie only over HTTPS HttpOnly Reduce direct JavaScript access to the cookie SameSite Reduce cross-site request risks res.cookie("session", sessionId, { httpOnly: true, secure: true, sameSite: "lax", maxAge: 1000 * 60 * 60 }); 7.
+
+--------------------------------------------------------------------------------
+FINDING #141
+Chapter : 16
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Attribute Example Rule User identity User may access their own profile Organization Employee may access resources belonging to their organization Resource owner Owner may edit the resource Risk level Sensitive operation requires stronger verification 11.
+
+--------------------------------------------------------------------------------
+FINDING #142
+Chapter : 16
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Never assume that data from browsers, mobile applications, external APIs, message queues, or other services is automatically trustworthy.
+
+--------------------------------------------------------------------------------
+FINDING #143
+Chapter : 16
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+SQL Injection and Parameterized Queries Applications should never construct SQL queries by directly concatenating untrusted input.
+
+--------------------------------------------------------------------------------
+FINDING #144
+Chapter : 16
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Encryption at Rest Data stored in databases, object storage, backups, and other persistent systems may require encryption at rest.
+
+--------------------------------------------------------------------------------
+FINDING #145
+Chapter : 16
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Header or Policy Security Purpose Content-Security-Policy Restrict permitted content sources Strict-Transport-Security Encourage HTTPS-only access X-Content-Type-Options Reduce MIME-sniffing behavior Referrer-Policy Control referrer information 18.
+
+--------------------------------------------------------------------------------
+FINDING #146
+Chapter : 16
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Login attempts, password reset requests, expensive searches, and ordinary reads may require different limits.
+
+--------------------------------------------------------------------------------
+FINDING #147
+Chapter : 16
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Security Testing Security should be validated continuously rather than only before release.
+
+--------------------------------------------------------------------------------
+FINDING #148
+Chapter : 16
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Incident Response Architecture Even strong preventive controls cannot guarantee that incidents will never occur.
+
+--------------------------------------------------------------------------------
+FINDING #149
+Chapter : 16
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Passwords must be protected with dedicated password-hashing mechanisms.
+
+--------------------------------------------------------------------------------
+FINDING #150
+Chapter : 16
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• APIs must validate input and enforce authorization on the server side.
+
+--------------------------------------------------------------------------------
+FINDING #151
+Chapter : 16
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Security architecture must include detection, response, recovery, and continuous improvement.
+
+--------------------------------------------------------------------------------
+FINDING #152
+Chapter : 16
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Why should passwords never be stored as plaintext?
+
+--------------------------------------------------------------------------------
+FINDING #153
+Chapter : 17
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Chapter 17 Deployment & Infrastructure Architecture Good software architecture must survive the transition from source code to production.
+
+--------------------------------------------------------------------------------
+FINDING #154
+Chapter : 17
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Strategy Advantage Trade-off Rolling Efficient resource usage Old and new versions coexist Blue-green Fast rollback Requires additional capacity Canary Small exposure before full release More sophisticated traffic control 11.
+
+--------------------------------------------------------------------------------
+FINDING #155
+Chapter : 17
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+If a release causes unexpected behavior, the team must be able to return to a known-good version.
+
+--------------------------------------------------------------------------------
+FINDING #156
+Chapter : 17
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Database Deployment Compatibility Application and database changes should not require an instantaneous switch between incompatible versions.
+
+--------------------------------------------------------------------------------
+FINDING #157
+Chapter : 17
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Always identify the actual constrained resource before increasing capacity.
+
+--------------------------------------------------------------------------------
+FINDING #158
+Chapter : 17
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Observability Deployment architecture must expose enough telemetry to determine whether a release is healthy.
+
+--------------------------------------------------------------------------------
+FINDING #159
+Chapter : 17
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+RTO How quickly must the service recover?
+
+--------------------------------------------------------------------------------
+FINDING #160
+Chapter : 17
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Production Tip A backup that has never been restored is an assumption, not a proven recovery mechanism.
+
+--------------------------------------------------------------------------------
+FINDING #161
+Chapter : 17
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Health checks must distinguish process health from traffic readiness.
+
+--------------------------------------------------------------------------------
+FINDING #162
+Chapter : 17
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Rollback and database compatibility must be designed before deployment.
+
+--------------------------------------------------------------------------------
+FINDING #163
+Chapter : 17
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Autoscaling must consider the actual system bottleneck.
+
+--------------------------------------------------------------------------------
+FINDING #164
+Chapter : 17
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Disaster recovery requires tested restoration, not merely backups.
+
+--------------------------------------------------------------------------------
+FINDING #165
+Chapter : 18
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Architect's Rule Do not scale the entire system when only one resource is constrained.
+
+--------------------------------------------------------------------------------
+FINDING #166
+Chapter : 18
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Advantage Limitation Simple operational model Hardware has practical limits Often requires fewer architectural changes Large instances can become expensive Useful for databases and stateful systems Can preserve a single point of failure LearnForge • Engineering Handbook • 2026 165 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE 5.
+
+--------------------------------------------------------------------------------
+FINDING #167
+Chapter : 18
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+interface Session { userId: string; expiresAt: number; } function validateSession(session: Session) { return session.expiresAt > Date.now(); } Common Mistake Keeping important state only in process memory and then expecting horizontal scaling to work correctly.
+
+--------------------------------------------------------------------------------
+FINDING #168
+Chapter : 18
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+LearnForge • Engineering Handbook • 2026 167 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE Strategy Behavior Trade-off TTL Expire entries after a period Simple but potentially stale Write-through Update cache with writes More consistent but more complex Cache-aside Application loads missing entries Flexible and common Explicit invalidation Delete/update cache on changes Requires reliable invalidation logic Production Tip Cache only data whose freshness requirements are understood.
+
+--------------------------------------------------------------------------------
+FINDING #169
+Chapter : 18
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+const pool = new DatabasePool({ maxConnections: 20, idleTimeoutMs: 30000 }); async function getCourse(id: string) { const connection = await pool.acquire(); try { return await connection.query( "SELECT * FROM courses WHERE id = ?", [id] ); } finally { connection.release(); } } Architect's Rule Connection pools must be sized according to database capacity, application concurrency, and workload.
+
+--------------------------------------------------------------------------------
+FINDING #170
+Chapter : 18
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Backpressure When consumers cannot process work quickly enough, producers must slow down or reject additional work.
+
+--------------------------------------------------------------------------------
+FINDING #171
+Chapter : 18
+Severity: HIGH
+Reason  : Potentially exaggerated scalability/capacity claim.
+
+TEXT:
+Common Mistake Treating queue capacity as infinite.
+
+--------------------------------------------------------------------------------
+FINDING #172
+Chapter : 18
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+LearnForge • Engineering Handbook • 2026 170 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE const users = await userRepository.findMany([ "u101", "u102", "u103", "u104" ]); Batching must be bounded.
+
+--------------------------------------------------------------------------------
+FINDING #173
+Chapter : 18
+Severity: MEDIUM
+Reason  : Verify whether tail latency/percentiles should also be discussed.
+
+TEXT:
+Latency Percentiles Average latency can hide serious slow requests.
+
+--------------------------------------------------------------------------------
+FINDING #174
+Chapter : 18
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Testing only a single simple endpoint can produce misleading conclusions.
+
+--------------------------------------------------------------------------------
+FINDING #175
+Chapter : 18
+Severity: MEDIUM
+Reason  : Potentially context-dependent engineering claim.
+
+TEXT:
+• Horizontal scaling works best with stateless application instances.
+
+--------------------------------------------------------------------------------
+FINDING #176
+Chapter : 18
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Performance must be evaluated together with reliability and infrastructure cost.
+
+--------------------------------------------------------------------------------
+FINDING #177
+Chapter : 19
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Chapter 19 Reliability & Resilience Architecture Reliable systems are not systems that never fail.
+
+--------------------------------------------------------------------------------
+FINDING #178
+Chapter : 19
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Architect's Rule Do not ask only whether individual components are reliable.
+
+--------------------------------------------------------------------------------
+FINDING #179
+Chapter : 19
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Redundancy is valuable only when redundant instances do not share the same hidden failure domain.
+
+--------------------------------------------------------------------------------
+FINDING #180
+Chapter : 19
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+app.get("/health/live", (_req, res) => { res.status(200).json({ status: "alive" }); }); app.get("/health/ready", async (_req, res) => { const databaseReady = await database.ping(); if (!databaseReady) { return res.status(503).json({ status: "not-ready" }); } res.status(200).json({ status: "ready" }); }); Liveness and readiness should not always mean the same thing.
+
+--------------------------------------------------------------------------------
+FINDING #181
+Chapter : 19
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A retry is safe only when repeating the operation cannot create unintended side effects or when idempotency mechanisms make repetition safe.
+
+--------------------------------------------------------------------------------
+FINDING #182
+Chapter : 19
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Typical Retry Operation Reason Safety Read request Usually safer Normally does not create a new state change Duplicate execution can create financial Create payment Requires protection damage Send notification Depends on provider Duplicate messages may be undesirable Update with idempotency Safer Repeated request can be recognized key LearnForge • Engineering Handbook • 2026 181 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE 9.
+
+--------------------------------------------------------------------------------
+FINDING #183
+Chapter : 19
+Severity: HIGH
+Reason  : Potentially exaggerated scalability/capacity claim.
+
+TEXT:
+Backpressure Backpressure prevents an application from accepting unlimited work when downstream capacity is constrained.
+
+--------------------------------------------------------------------------------
+FINDING #184
+Chapter : 19
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Recovery Objectives Term Meaning Architectural Question RTO Recovery Time Objective How quickly must service return?
+
+--------------------------------------------------------------------------------
+FINDING #185
+Chapter : 19
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A critical financial system may require significantly stronger recovery objectives than a low-priority internal reporting tool.
+
+--------------------------------------------------------------------------------
+FINDING #186
+Chapter : 19
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Backup Is Not Recovery A backup that has never been restored is an assumption, not a verified recovery mechanism.
+
+--------------------------------------------------------------------------------
+FINDING #187
+Chapter : 19
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A backup system must be paired with restoration procedures and periodic recovery testing.
+
+--------------------------------------------------------------------------------
+FINDING #188
+Chapter : 19
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Failure Injection Resilience cannot be validated only during normal operation.
+
+--------------------------------------------------------------------------------
+FINDING #189
+Chapter : 19
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Observability Reliable systems require telemetry that helps engineers detect, understand, and recover from failures.
+
+--------------------------------------------------------------------------------
+FINDING #190
+Chapter : 19
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A system that is technically recoverable but impossible for operators to understand is not operationally resilient.
+
+--------------------------------------------------------------------------------
+FINDING #191
+Chapter : 19
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Key Takeaways • Reliability must be designed as a system property.
+
+--------------------------------------------------------------------------------
+FINDING #192
+Chapter : 19
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Redundancy is effective only when hidden shared failure domains are avoided.
+
+--------------------------------------------------------------------------------
+FINDING #193
+Chapter : 19
+Severity: HIGH
+Reason  : Potentially exaggerated scalability/capacity claim.
+
+TEXT:
+• Timeouts prevent slow dependencies from consuming unlimited resources.
+
+--------------------------------------------------------------------------------
+FINDING #194
+Chapter : 19
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Retries require backoff, limits, and idempotency awareness.
+
+--------------------------------------------------------------------------------
+FINDING #195
+Chapter : 19
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Backups are useful only when restoration is verified.
+
+--------------------------------------------------------------------------------
+FINDING #196
+Chapter : 19
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Resilience requires controlled failure testing and strong observability.
+
+--------------------------------------------------------------------------------
+FINDING #197
+Chapter : 20
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A reliable architecture must make it possible to understand what happened, where it happened, why it happened, and which users or business operations were affected.
+
+--------------------------------------------------------------------------------
+FINDING #198
+Chapter : 20
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+What You Will Learn • Why observability is an architectural capability rather than only a monitoring tool.
+
+--------------------------------------------------------------------------------
+FINDING #199
+Chapter : 20
+Severity: MEDIUM
+Reason  : Potentially context-dependent engineering claim.
+
+TEXT:
+The Three Core Signals Signal Best For Example Logs Detailed event context Payment request rejected Metrics Trends and aggregation HTTP error rate = 2.4% Traces Request flow across boundaries API → Order → Payment These signals are complementary.
+
+--------------------------------------------------------------------------------
+FINDING #200
+Chapter : 20
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Structured Logging Logs become more useful when important fields are structured rather than embedded only inside free-form text.
+
+--------------------------------------------------------------------------------
+FINDING #201
+Chapter : 20
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Operational visibility must not become a data-leak mechanism.
+
+--------------------------------------------------------------------------------
+FINDING #202
+Chapter : 20
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Log Levels Log levels help distinguish normal diagnostic information from conditions that require attention.
+
+--------------------------------------------------------------------------------
+FINDING #203
+Chapter : 20
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Level Typical Use DEBUG Detailed development or troubleshooting information INFO Important normal application events WARN Unexpected condition that does not necessarily indicate failure ERROR Operation failed or requires investigation Production systems should avoid generating enormous volumes of low-value logs.
+
+--------------------------------------------------------------------------------
+FINDING #204
+Chapter : 20
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Trace Context Propagation Tracing only becomes valuable across services when trace context is propagated correctly.
+
+--------------------------------------------------------------------------------
+FINDING #205
+Chapter : 20
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Alerting Architecture An alert should represent a condition that requires human or automated action.
+
+--------------------------------------------------------------------------------
+FINDING #206
+Chapter : 20
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Alert Quality Reason Critical checkout failures rising High value Direct business impact CPU reached 70% Context dependent May not require action One debug log appeared Low value Usually not actionable Common Mistake LearnForge • Engineering Handbook • 2026 195 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE Creating alerts for every abnormal metric.
+
+--------------------------------------------------------------------------------
+FINDING #207
+Chapter : 20
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Synthetic checks should never create real financial or destructive operations unless the environment is explicitly designed for that purpose.
+
+--------------------------------------------------------------------------------
+FINDING #208
+Chapter : 20
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Logging systems must therefore follow security and privacy requirements.
+
+--------------------------------------------------------------------------------
+FINDING #209
+Chapter : 20
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Never log authentication secrets.
+
+--------------------------------------------------------------------------------
+FINDING #210
+Chapter : 20
+Severity: MEDIUM
+Reason  : Potentially context-dependent engineering claim.
+
+TEXT:
+Observability During Incidents During an incident, the primary goal is not to produce perfect explanations immediately.
+
+--------------------------------------------------------------------------------
+FINDING #211
+Chapter : 20
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Telemetry must be designed with security, privacy, retention, and cost in mind.
+
+--------------------------------------------------------------------------------
+FINDING #212
+Chapter : 21
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+function calculateTotal( price: number, quantity: number ): number { if (quantity <= 0) { throw new Error('Quantity must be positive'); } return price * quantity; } test('calculates total price', () => { expect(calculateTotal(25, 4)).toBe(100); }); The test is fast because it does not require a database, network, payment provider, or browser.
+
+--------------------------------------------------------------------------------
+FINDING #213
+Chapter : 21
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+When every small behavior requires a full application workflow, feedback becomes unnecessarily slow.
+
+--------------------------------------------------------------------------------
+FINDING #214
+Chapter : 21
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A test that passes only because a previous test created data is unreliable.
+
+--------------------------------------------------------------------------------
+FINDING #215
+Chapter : 21
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Property Example Non-negative total Total should never be below zero Idempotency Repeating the same operation should not duplicate state Ordering Sorted output remains ordered Round-trip Encode then decode preserves meaning LearnForge • Engineering Handbook • 2026 209 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE 16.
+
+--------------------------------------------------------------------------------
+FINDING #216
+Chapter : 21
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Testing Distributed Failure Distributed systems require tests that intentionally simulate dependency failure.
+
+--------------------------------------------------------------------------------
+FINDING #217
+Chapter : 21
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A system that has only been tested under perfect conditions has not been tested for many of its most important production risks.
+
+--------------------------------------------------------------------------------
+FINDING #218
+Chapter : 21
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Cause Mitigation Timing dependency Use deterministic clocks and explicit waits Shared state Isolate test data Randomness Control seeds External network Use controlled integration environments Concurrency race Synchronize explicitly and test race conditions Architect's Rule Never normalize flaky tests as harmless.
+
+--------------------------------------------------------------------------------
+FINDING #219
+Chapter : 21
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Never expose real secrets through test data.
+
+--------------------------------------------------------------------------------
+FINDING #220
+Chapter : 21
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• High coverage does not guarantee high-quality tests.
+
+--------------------------------------------------------------------------------
+FINDING #221
+Chapter : 22
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+If developers must manually perform many fragile steps to release software, the architecture is carrying unnecessary operational risk.
+
+--------------------------------------------------------------------------------
+FINDING #222
+Chapter : 22
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Fast Feedback A pipeline is valuable only if developers receive useful feedback quickly.
+
+--------------------------------------------------------------------------------
+FINDING #223
+Chapter : 22
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Quality Gates A quality gate is an explicit condition that must be satisfied before a pipeline can continue.
+
+--------------------------------------------------------------------------------
+FINDING #224
+Chapter : 22
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Architect's Rule Never place production credentials directly in source code or repository configuration.
+
+--------------------------------------------------------------------------------
+FINDING #225
+Chapter : 22
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Application code and database schemas do not always change at exactly the same moment.
+
+--------------------------------------------------------------------------------
+FINDING #226
+Chapter : 22
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Advantage Risk Uses existing infrastructure Old and new versions coexist Gradual replacement Rollback may require replacing instances again No full duplicate environment required Backward compatibility becomes important 13.
+
+--------------------------------------------------------------------------------
+FINDING #227
+Chapter : 22
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Rollback Method Useful When Important Constraint Previous artifact Application regression Schema compatibility Traffic switch Blue-green deployment Both environments must work Feature disable Flag-controlled feature Feature must be isolated Canary stop Progressive delivery Monitoring must be fast Common Mistake Treating database rollback as identical to application rollback.
+
+--------------------------------------------------------------------------------
+FINDING #228
+Chapter : 22
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Deployment Verification Deployment success should not be defined only as "the process completed." The application must also behave correctly after deployment.
+
+--------------------------------------------------------------------------------
+FINDING #229
+Chapter : 22
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Release Approvals Not every production deployment requires manual approval.
+
+--------------------------------------------------------------------------------
+FINDING #230
+Chapter : 22
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Instead, automate evidence collection and place human approval only where human judgment genuinely adds value.
+
+--------------------------------------------------------------------------------
+FINDING #231
+Chapter : 22
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Release Anti-Patterns Anti-Pattern Problem Better Approach Manual production copying Unrepeatable and error-prone Automated artifact deployment Build separately per environment Artifact drift Build once and promote No rollback plan Long incident recovery Tested rollback strategy All tests only after deployment Late feedback Shift appropriate validation left Permanent feature flags Growing code complexity Flag ownership and cleanup 27.
+
+--------------------------------------------------------------------------------
+FINDING #232
+Chapter : 22
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Database changes require backward-compatible deployment strategies.
+
+--------------------------------------------------------------------------------
+FINDING #233
+Chapter : 22
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Deployment success must include post-release behavioral validation.
+
+--------------------------------------------------------------------------------
+FINDING #234
+Chapter : 22
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Delivery pipelines themselves require security, ownership, and recovery planning.
+
+--------------------------------------------------------------------------------
+FINDING #235
+Chapter : 23
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+# ADR-023: Use PostgreSQL for Transactional Order Data ## Status Accepted ## Context Order data requires transactions, constraints, and reliable consistency.
+
+--------------------------------------------------------------------------------
+FINDING #236
+Chapter : 23
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+## Alternatives - Document database - Distributed key-value store - Relational database ## Consequences We gain strong transactional guarantees and mature SQL tooling.
+
+--------------------------------------------------------------------------------
+FINDING #237
+Chapter : 23
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Horizontal scaling requires deliberate partitioning and read-scaling strategies as traffic increases.
+
+--------------------------------------------------------------------------------
+FINDING #238
+Chapter : 23
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Exceptions to Standards Rigid standards can become harmful when unusual business or technical requirements require a different solution.
+
+--------------------------------------------------------------------------------
+FINDING #239
+Chapter : 23
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Documentation that only describes implementation details quickly becomes outdated.
+
+--------------------------------------------------------------------------------
+FINDING #240
+Chapter : 23
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Architecture requires continuous verification as the system evolves.
+
+--------------------------------------------------------------------------------
+FINDING #241
+Chapter : 23
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Governance Anti-Patterns Anti-Pattern Problem Better Approach Teams become slow and Central approval for everything Delegate local decisions dependent Use evidence and explicit trade- Architecture by opinion Decisions become political offs Documentation after incidents Record important decisions when Reasoning is lost only made Give exceptions owners and review Permanent exceptions Standards gradually disappear dates Architecture becomes Enable teams with principles and Architect as bottleneck centralized tools LearnForge • Engineering Handbook • 2026 244 LEARNFORGE SYSTEM ARCHITECTURE & CLEAN CODE 24.
+
+--------------------------------------------------------------------------------
+FINDING #242
+Chapter : 23
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Why must architecture be continuously monitored?
+
+--------------------------------------------------------------------------------
+FINDING #243
+Chapter : 24
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Chapter 24 Evolutionary Architecture & System Modernization Mature software systems must evolve continuously.
+
+--------------------------------------------------------------------------------
+FINDING #244
+Chapter : 24
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Why Software Architecture Must Evolve Software architecture is created under a particular set of business requirements, technical constraints, team structures, and infrastructure conditions.
+
+--------------------------------------------------------------------------------
+FINDING #245
+Chapter : 24
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A good boundary reduces the amount of code that must change simultaneously and creates a measurable migration unit.
+
+--------------------------------------------------------------------------------
+FINDING #246
+Chapter : 24
+Severity: MEDIUM
+Reason  : Potentially context-dependent engineering claim.
+
+TEXT:
+test("legacy pricing behavior is preserved", async () => { const result = await legacyPricing.calculatePrice("product-123"); expect(result).toEqual(1299); }); The purpose is not necessarily to prove that the old behavior is ideal.
+
+--------------------------------------------------------------------------------
+FINDING #247
+Chapter : 24
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• Database and API migrations require explicit compatibility strategies.
+
+--------------------------------------------------------------------------------
+FINDING #248
+Chapter : 24
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Why must the old system eventually be retired?
+
+--------------------------------------------------------------------------------
+FINDING #249
+Chapter : 25
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Chapter 25 Architecture Patterns & Practical System Design Architecture patterns provide reusable ways to structure software systems, but a pattern is valuable only when it solves a real problem without introducing unnecessary complexity.
+
+--------------------------------------------------------------------------------
+FINDING #250
+Chapter : 25
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Architect's Rule Never choose a pattern because it is popular.
+
+--------------------------------------------------------------------------------
+FINDING #251
+Chapter : 25
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Constraint Important Question Possible Architectural Influence Scale What must scale independently?
+
+--------------------------------------------------------------------------------
+FINDING #252
+Chapter : 25
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Service separation, caching, partitioning Redundancy, failover, graceful Availability Which functions must remain available?
+
+--------------------------------------------------------------------------------
+FINDING #253
+Chapter : 25
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+degradation Latency Which operations require fast responses?
+
+--------------------------------------------------------------------------------
+FINDING #254
+Chapter : 25
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Module or service boundaries structure Data How strong must consistency be?
+
+--------------------------------------------------------------------------------
+FINDING #255
+Chapter : 25
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Separating reads and writes can increase operational and consistency complexity, so the benefit must justify the additional architecture.
+
+--------------------------------------------------------------------------------
+FINDING #256
+Chapter : 25
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A mobile application may require a different data shape and interaction pattern from a web application.
+
+--------------------------------------------------------------------------------
+FINDING #257
+Chapter : 25
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Combining Patterns Real systems rarely use only one architectural pattern.
+
+--------------------------------------------------------------------------------
+FINDING #258
+Chapter : 25
+Severity: MEDIUM
+Reason  : Potentially context-dependent engineering claim.
+
+TEXT:
+Architecture Pattern Trade-offs Pattern Strength Weakness Best Fit Can create rigid Traditional business Layered Simple structure dependencies systems Domain-heavy Hexagonal External isolation More abstractions applications Asynchronous Event-driven Loose coupling Harder debugging workflows High-scale or complex CQRS Read/write specialization Higher complexity domains Modular Strong boundaries with simple Shared runtime Growing applications monolith deployment 18.
+
+--------------------------------------------------------------------------------
+FINDING #259
+Chapter : 25
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+Avoiding Pattern Overengineering Overengineering occurs when architecture becomes more complicated than the problem requires.
+
+--------------------------------------------------------------------------------
+FINDING #260
+Chapter : 25
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+A system may begin as a simple layered application, become a modular monolith as the domain grows, and later extract only those capabilities that demonstrate a real need for independent deployment or scaling.
+
+--------------------------------------------------------------------------------
+FINDING #261
+Chapter : 25
+Severity: HIGH
+Reason  : Absolute claim — verify whether the statement has valid exceptions.
+
+TEXT:
+• CQRS is valuable only when read/write differences justify its complexity.
+
+--------------------------------------------------------------------------------
+FINDING #262
+Chapter : 25
+Severity: MEDIUM
+Reason  : Potentially context-dependent engineering claim.
+
+TEXT:
+Production Tip The best architecture is rarely the one with the most patterns.
+
+================================================================================
+SUMMARY
+================================================================================
+Potential findings : 262
+HIGH               : 250
+MEDIUM             : 12
+
+NO SOURCE FILES MODIFIED
+================================================================================

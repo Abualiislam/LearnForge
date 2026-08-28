@@ -1,0 +1,175 @@
+CHAPTER 15
+Security
+
+Database security begins with least privilege. Applications should receive only the
+permissions they require. Credentials should be managed through appropriate secret-
+management mechanisms rather than embedded in source code.
+
+    const databaseConfig = {
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME
+    };
+
+Encryption in transit, encryption at rest, auditing, access controls, credential rotation, and
+network isolation should be evaluated according to the sensitivity and regulatory
+requirements of the data.
+
+   24. Database Observability
+   • Latency: how long queries and transactions take.
+
+   • Throughput: how much work the database processes.
+
+   • Error rate: how frequently operations fail.
+
+LearnForge • Engineering Handbook • 2026                                                                   133
+
+LEARNFORGE                                                                       SYSTEM ARCHITECTURE & CLEAN CODE
+
+   • Connections: whether connection pools are exhausted.
+
+   • Locks: whether transactions are blocking one another.
+
+   • Storage: whether capacity is approaching limits.
+
+   25. Practical Database Decision Framework
+
+  Question                                          Architectural Direction
+
+  Are strong relationships and transactions
+                                                    Prefer a relational model.
+  central?
+
+  Are access patterns primarily key-based?          Evaluate key-value storage.
+
+  Is flexible document structure important?         Evaluate document storage.
+
+  Is read traffic much larger than write traffic?   Consider replicas and caching.
+
+  Is one database reaching capacity?                Measure first, then evaluate partitioning or sharding.
+
+                                                    Invest in automated migrations and compatibility
+  Are schema changes frequent?
+                                                    practices.
+
+   26. Database Architecture Checklist
+   •
+       Is the data model aligned with business concepts?
+
+   •
+       Are integrity constraints enforced appropriately?
+
+   •
+       Are transaction boundaries clearly defined?
+
+   •
+       Are important queries supported by appropriate indexes?
+
+   •
+       Is connection pooling configured according to measured capacity?
+
+   •
+       Are replica consistency characteristics understood?
+
+   •
+       Is cache invalidation behavior documented?
+
+   •
+
+LearnForge • Engineering Handbook • 2026                                                                     134
+
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+       Are partition keys based on actual access patterns?
+
+   •
+       Is database ownership clear between services?
+
+   •
+       Are migrations backward-compatible where required?
+
+   •
+       Are backups regularly tested through restoration?
+
+   •
+       Are RPO and RTO requirements defined?
+
+   •
+       Is database access protected by least privilege?
+
+   •
+       Are database latency, errors, locks, and capacity monitored?
+
+   27. Key Takeaways
+   • Database architecture is a business and systems-design decision, not merely a
+       technology choice.
+
+   • Relational databases remain powerful when relationships, integrity, and transactions
+       matter.
+
+   • NoSQL databases are useful when their data models match the workload.
+
+   • Indexes improve reads but add storage and write costs.
+
+   • Replication improves scalability but can introduce stale reads.
+
+   • Caching reduces latency and database load but creates invalidation complexity.
+
+   • Partitioning and sharding can increase capacity while increasing operational complexity.
+
+   • Database ownership should be explicit in service-oriented architectures.
+
+   • Backups are valuable only when restoration is reliable and tested.
+
+   • Security, observability, migrations, and recovery are part of database architecture.
+
+   28. Quick Review
+  1. When is a relational database usually a strong architectural choice?
+
+  2. What trade-offs are introduced by indexes?
+
+  3. Why are transaction boundaries important?
+
+  4. What problem does connection pooling solve?
+
+LearnForge • Engineering Handbook • 2026                                                           135
+
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+  5. Why can read replicas produce stale data?
+
+  6. What makes cache invalidation difficult?
+
+  7. When should partitioning or sharding be considered?
+
+  8. Why should services avoid directly modifying another service's tables?
+
+  9. What are RPO and RTO?
+
+10. Why must database restoration be tested?
+
+   29. Architect's Final Checklist
+   •
+       Have database requirements been derived from actual business workflows?
+
+   •
+       Are consistency requirements explicitly documented?
+
+   •
+       Are critical queries measured under realistic workload?
+
+   •
+       Are indexes reviewed using execution plans?
+
+   •
+       Are transactions bounded and observable?
+
+   •
+       Are replication and failover behaviors understood?
+
+   •
+       Are cache failure and invalidation scenarios designed?
+
+   •
+       Are migrations tested before production

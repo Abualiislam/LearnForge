@@ -1,0 +1,762 @@
+Chapter 15
+
+Database Architecture
+Database architecture is not simply about choosing SQL or NoSQL. It is about designing data
+ownership, consistency, transactions, indexing, scalability, availability, and recovery around
+the actual requirements of the business.
+
+What You Will Learn
+
+   • How to choose between relational and non-relational databases.
+
+   • Why data modeling is an architectural decision.
+
+   • How indexes improve reads while creating write and storage costs.
+
+   • How transactions and isolation protect business correctness.
+
+   • How replication, partitioning, caching, and read replicas scale systems.
+
+   • How database ownership and migrations reduce architectural risk.
+
+
+
+
+   1. Why Database Architecture Matters
+The database is often the most durable component of an application. Application code can be
+replaced or redeployed quickly, but business data may need to survive for years. A poor
+database design can therefore become a long-term architectural constraint.
+
+Database architecture determines how information is represented, protected, queried,
+replicated, migrated, backed up, and recovered. These decisions affect performance and
+correctness as well as the ability of teams to evolve the system.
+
+Architect's Rule
+Choose database technology according to workload, consistency requirements, access
+patterns, and operational capability—not because a technology is currently fashionable.
+
+
+
+
+   2. Relational Databases
+Relational databases organize information into tables connected through well-defined
+relationships. SQL provides expressive querying, transactions, constraints, and mature
+tooling.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                         124
+LEARNFORGE                                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Strength               Why It Matters
+
+
+  Transactions           Multiple related changes can succeed or fail together.
+
+
+  Constraints            The database can enforce important integrity rules.
+
+
+  SQL                    Complex relationships and analytical queries are well supported.
+
+
+  Mature tooling         Monitoring, backups, migrations, and administration are widely supported.
+
+
+
+
+   3. NoSQL Databases
+NoSQL is a broad category rather than one specific database model. Document, key-value,
+wide-column, and graph databases optimize for different access patterns and workloads.
+
+
+
+  Model                Typical Use                                Important Consideration
+
+
+  Document             Flexible application records               Data duplication may be intentional.
+
+
+  Key-value            Fast lookup by key                         Access patterns should be predictable.
+
+
+  Wide-column          Large-scale distributed workloads          Data modeling is often query-driven.
+
+
+  Graph                Highly connected relationships             Traversal patterns drive the design.
+
+
+
+
+   4. Choosing SQL or NoSQL
+
+  Requirement                                                   Often Favors
+
+
+  Strong relational integrity                                   Relational database
+
+
+  Complex joins                                                 Relational database
+
+
+  Flexible document structure                                   Document database
+
+
+  Extremely high key-based throughput                           Key-value systems may fit well
+
+
+  Highly connected graph traversal                              Graph database
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                      125
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+The important question is not which category is universally better. The important question is
+which data model naturally represents the application's business rules and dominant access
+patterns.
+
+
+
+
+   5. Data Modeling
+Data modeling describes the entities, attributes, relationships, constraints, and lifecycle of
+business information. Good modeling starts from business concepts and expected queries
+rather than from arbitrary tables.
+
+Figure 15.1 — A simple relational model expresses ownership and relationships between
+business entities.
+
+
+
+
+   6. Normalization
+Normalization reduces unnecessary duplication by separating data into related structures. It
+can improve consistency because one fact has a controlled location.
+
+However, normalization is not an absolute rule. Read-heavy workloads may benefit from
+carefully controlled denormalization when the performance gain justifies the additional
+complexity.
+
+Common Mistake
+Denormalizing prematurely. First understand the workload and measure the actual bottleneck.
+Duplication creates synchronization responsibilities.
+
+
+
+
+   7. Transactions
+A transaction groups related database operations into a logical unit. The classic ACID
+properties describe important transactional guarantees: atomicity, consistency, isolation, and
+durability.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          126
+LEARNFORGE                                                                         SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Property             Meaning
+
+
+  Atomicity            All required changes succeed together or are rolled back.
+
+
+  Consistency          Transactions preserve defined integrity rules.
+
+
+  Isolation            Concurrent operations are controlled according to the isolation model.
+
+
+  Durability           Committed data survives appropriate failures.
+
+
+
+
+   8. Transaction Example
+
+    async function createOrder(db: Database, order: Order) {
+      return db.transaction(async tx => {
+        await tx.insert("orders", order);
+
+         await tx.insert("order_items", {
+           order_id: order.id,
+           product_id: order.productId,
+           quantity: order.quantity
+         });
+
+          return order;
+        });
+    }
+
+
+
+
+The transaction boundary should match the business operation being protected. It should not
+be made unnecessarily large because long transactions can hold locks and consume database
+resources.
+
+
+
+
+   9. Isolation Levels
+Concurrent transactions can observe or interfere with each other in different ways. Database
+systems therefore provide isolation levels that balance correctness, concurrency, and
+performance.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                       127
+LEARNFORGE                                                                         SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Isolation Level                General Idea
+
+
+  Read Uncommitted               Allows the weakest visibility guarantees.
+
+
+  Read Committed                 Prevents reading data that has not been committed.
+
+
+  Repeatable Read                Provides stronger repeatability for reads within a transaction.
+
+
+  Serializable                   Provides the strongest isolation at higher concurrency cost.
+
+
+
+
+The exact behavior varies between database engines. Architects should consult the
+documentation of the selected database rather than assuming that names alone imply
+identical behavior.
+
+
+
+
+   10. Indexes
+Indexes allow databases to locate rows more efficiently for supported query patterns. They
+can dramatically improve read performance but consume storage and add work to inserts,
+updates, and deletes.
+
+
+
+    CREATE INDEX idx_orders_customer_created
+    ON orders(customer_id, created_at);
+
+
+
+
+A composite index should reflect actual query patterns. The order of indexed columns matters
+because the database optimizer may only be able to efficiently use certain prefixes of the
+index.
+
+
+
+
+   11. Query Performance
+Performance tuning should begin with evidence. Slow-query logs, execution plans, latency
+metrics, and production workload measurements are more useful than guessing.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                       128
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Signal                         Possible Cause                     Investigation
+
+
+  High query latency             Missing or ineffective index       Inspect execution plan
+
+
+  High CPU                       Expensive queries                  Profile query workload
+
+
+  Lock contention                Long or conflicting transactions   Inspect locks and transaction duration
+
+
+  Connection exhaustion          Too many concurrent clients        Review pooling and concurrency
+
+
+
+
+   12. Connection Pooling
+Opening a new database connection for every request can create unnecessary overhead.
+Connection pools maintain a controlled number of reusable connections.
+
+
+
+    const pool = new Pool({
+      max: 20,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 2_000
+    });
+
+
+
+
+Pool size should be based on database capacity, workload, query duration, application
+concurrency, and the number of application instances. More connections do not automatically
+produce more throughput.
+
+
+
+
+   13. Read Replicas
+Read replicas allow some read workloads to be served from copies of the primary database.
+This can reduce pressure on the primary and improve read scalability.
+
+Figure 15.2 — Replication can distribute read workloads while preserving a designated write
+authority.
+
+
+
+
+   14. Replication Lag
+Read replicas may not contain the newest committed data immediately. This creates
+replication lag and therefore possible stale reads.
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                     129
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Production Tip
+Do not send every read to replicas automatically. User flows that require read-after-write
+consistency may need to read from the primary or use another consistency mechanism.
+
+
+
+
+   15. Caching
+Caching stores frequently accessed data closer to the application or user. A cache can reduce
+database load and latency, but introduces another copy of data that must eventually become
+invalid or expire.
+
+
+
+    async function getProduct(id: string) {
+      const cached = await cache.get(`product:${id}`);
+
+        if (cached) {
+          return JSON.parse(cached);
+        }
+
+        const product = await db.query(
+           "SELECT * FROM products WHERE id = $1",
+          [id]
+        );
+
+        await cache.set(
+           `product:${id}`,
+           JSON.stringify(product),
+          { ttl: 300 }
+        );
+
+        return product;
+    }
+
+
+
+
+The central cache question is not only how to store data. It is how and when cached data
+becomes invalid.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                         130
+LEARNFORGE                                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   16. Cache Invalidation
+
+  Strategy                      Advantage                               Risk
+
+
+  TTL                           Simple automatic expiration             Data may remain stale
+
+
+  Explicit invalidation         Faster freshness after changes          More application complexity
+
+
+  Write-through                 Cache updated with writes               Additional write path complexity
+
+
+  Cache-aside                   Simple and widely applicable            Requires careful invalidation
+
+
+
+
+   17. Partitioning
+Partitioning divides a large dataset into smaller logical or physical partitions. The goal may be
+improved scalability, maintenance, or query performance.
+
+A partition key should distribute workload effectively. A poor key can create hot partitions
+where a disproportionate amount of traffic reaches one partition.
+
+Architect's Rule
+Choose partition keys using real access patterns. A technically valid key that concentrates
+traffic can become a scalability bottleneck.
+
+
+
+
+   18. Sharding
+Sharding distributes data across independent database nodes. It can provide horizontal
+capacity beyond a single database instance, but it also makes operations, queries,
+transactions, and migrations more complicated.
+
+
+
+  Benefit                                           Trade-off
+
+
+  Horizontal capacity                                More operational complexity
+
+
+  Distributed storage                                Cross-shard queries become harder
+
+
+  Potential workload isolation                       Rebalancing can be difficult
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                        131
+LEARNFORGE                                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   19. Database per Service
+In a microservice architecture, database ownership should normally follow service ownership.
+This does not necessarily mean every service needs a different database technology. It means
+that one service should not casually modify another service's internal tables.
+
+Common Mistake
+Sharing database tables across independent services. This creates hidden coupling because
+schema changes become coordination requirements across teams.
+
+
+
+
+   20. Schema Migrations
+Database schemas evolve continuously. Production migrations should be backward-
+compatible whenever old and new application versions may coexist.
+
+
+
+    ALTER TABLE users
+    ADD COLUMN display_name VARCHAR(120);
+
+    UPDATE users
+    SET display_name = name
+    WHERE display_name IS NULL;
+
+
+
+
+A safer deployment may add the new field first, deploy code that can work with both
+schemas, backfill data, and only later remove obsolete structures.
+
+
+
+
+   21. Expand and Contract
+
+  Phase               Action
+
+
+  Expand              Add new schema structures without breaking old code.
+
+
+  Migrate             Move or backfill existing data.
+
+
+  Switch              Deploy application code using the new structure.
+
+
+  Contract            Remove obsolete structures after they are no longer used.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                      132
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   22. Backups and Recovery
+A backup strategy is incomplete if restoration has never been tested. Organizations need to
+understand how much data they can afford to lose and how quickly service must be restored.
+
+
+
+  Concept                         Question
+
+
+  RPO                             How much recent data loss is acceptable?
+
+
+  RTO                             How quickly must service be restored?
+
+
+  Backup retention                How long must recoverable copies remain available?
+
+
+  Restore testing                 Can the team actually recover the system?
+
+
+
+
+   23. Database Security
+Database security begins with least privilege. Applications should receive only the
+permissions they require. Credentials should be managed through appropriate secret-
+management mechanisms rather than embedded in source code.
+
+
+
+    const databaseConfig = {
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME
+    };
+
+
+
+
+Encryption in transit, encryption at rest, auditing, access controls, credential rotation, and
+network isolation should be evaluated according to the sensitivity and regulatory
+requirements of the data.
+
+
+
+
+   24. Database Observability
+   • Latency: how long queries and transactions take.
+
+   • Throughput: how much work the database processes.
+
+   • Error rate: how frequently operations fail.
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                   133
+LEARNFORGE                                                                       SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   • Connections: whether connection pools are exhausted.
+
+   • Locks: whether transactions are blocking one another.
+
+   • Storage: whether capacity is approaching limits.
+
+
+
+
+   25. Practical Database Decision Framework
+
+  Question                                          Architectural Direction
+
+
+  Are strong relationships and transactions
+                                                    Prefer a relational model.
+  central?
+
+
+  Are access patterns primarily key-based?          Evaluate key-value storage.
+
+
+  Is flexible document structure important?         Evaluate document storage.
+
+
+  Is read traffic much larger than write traffic?   Consider replicas and caching.
+
+
+  Is one database reaching capacity?                Measure first, then evaluate partitioning or sharding.
+
+
+                                                    Invest in automated migrations and compatibility
+  Are schema changes frequent?
+                                                    practices.
+
+
+
+
+   26. Database Architecture Checklist
+   •
+       Is the data model aligned with business concepts?
+
+   •
+       Are integrity constraints enforced appropriately?
+
+   •
+       Are transaction boundaries clearly defined?
+
+   •
+       Are important queries supported by appropriate indexes?
+
+   •
+       Is connection pooling configured according to measured capacity?
+
+   •
+       Are replica consistency characteristics understood?
+
+   •
+       Is cache invalidation behavior documented?
+
+   •
+
+
+LearnForge • Engineering Handbook • 2026                                                                     134
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+       Are partition keys based on actual access patterns?
+
+   •
+       Is database ownership clear between services?
+
+   •
+       Are migrations backward-compatible where required?
+
+   •
+       Are backups regularly tested through restoration?
+
+   •
+       Are RPO and RTO requirements defined?
+
+   •
+       Is database access protected by least privilege?
+
+   •
+       Are database latency, errors, locks, and capacity monitored?
+
+
+
+
+   27. Key Takeaways
+   • Database architecture is a business and systems-design decision, not merely a
+       technology choice.
+
+   • Relational databases remain powerful when relationships, integrity, and transactions
+       matter.
+
+   • NoSQL databases are useful when their data models match the workload.
+
+   • Indexes improve reads but add storage and write costs.
+
+   • Replication improves scalability but can introduce stale reads.
+
+   • Caching reduces latency and database load but creates invalidation complexity.
+
+   • Partitioning and sharding can increase capacity while increasing operational complexity.
+
+   • Database ownership should be explicit in service-oriented architectures.
+
+   • Backups are valuable only when restoration is reliable and tested.
+
+   • Security, observability, migrations, and recovery are part of database architecture.
+
+
+
+
+   28. Quick Review
+  1. When is a relational database usually a strong architectural choice?
+
+  2. What trade-offs are introduced by indexes?
+
+  3. Why are transaction boundaries important?
+
+  4. What problem does connection pooling solve?
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           135
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  5. Why can read replicas produce stale data?
+
+  6. What makes cache invalidation difficult?
+
+  7. When should partitioning or sharding be considered?
+
+  8. Why should services avoid directly modifying another service's tables?
+
+  9. What are RPO and RTO?
+
+10. Why must database restoration be tested?
+
+
+
+
+   29. Architect's Final Checklist
+   •
+       Have database requirements been derived from actual business workflows?
+
+   •
+       Are consistency requirements explicitly documented?
+
+   •
+       Are critical queries measured under realistic workload?
+
+   •
+       Are indexes reviewed using execution plans?
+
+   •
+       Are transactions bounded and observable?
+
+   •
+       Are replication and failover behaviors understood?
+
+   •
+       Are cache failure and invalidation scenarios designed?
+
+   •
+       Are migrations tested before production deployment?
+
+   •
+       Are backup restoration procedures automated or regularly rehearsed?
+
+   •
+       Can the team explain how the database behaves during partial failure?
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                        136
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE

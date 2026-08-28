@@ -308,7 +308,6 @@ footer{
 
     <div class="nav-links">
       <a href="#books">eBooks</a>
-        <a href="blog/index.html">Blog</a>
       <a href="#features">Why LearnForge</a>
       <a href="#about">About</a>
     </div>

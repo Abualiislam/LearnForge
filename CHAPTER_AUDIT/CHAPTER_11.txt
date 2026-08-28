@@ -1,0 +1,867 @@
+Chapter 11
+
+SOLID Principles
+SOLID principles provide practical guidelines for organizing object-oriented code so that
+systems remain understandable, extensible, testable, and resistant to unnecessary change.
+
+What You Will Learn
+
+   • What each SOLID principle means in practical engineering.
+
+   • How SOLID reduces coupling and improves maintainability.
+
+   • How to recognize common violations in real code.
+
+   • When abstraction helps and when it becomes unnecessary complexity.
+
+   • How SOLID principles connect with clean architecture and testing.
+
+
+
+
+   1. What SOLID Really Means
+SOLID is a collection of five object-oriented design principles associated with maintainable
+software design. The principles are not rigid laws and they do not require every class to have
+an interface or every application to use complex inheritance.
+
+Their real purpose is to help engineers control dependencies, isolate change, keep
+responsibilities understandable, and make software easier to test and extend.
+
+
+
+  Principle       Core Idea                                            Main Benefit
+
+
+  SRP             One reason to change                                 Focused responsibilities
+
+
+  OCP             Extend behavior without unnecessary modification     Safer evolution
+
+
+  LSP             Subtypes must remain substitutable                   Predictable polymorphism
+
+
+  ISP             Prefer focused interfaces                            Lower dependency burden
+
+
+  DIP             Depend on abstractions at architectural boundaries   Reduced coupling
+
+
+
+
+Architect's Rule
+SOLID is valuable when it reduces the cost of change. Applying SOLID mechanically can
+create unnecessary abstractions and make simple systems harder to understand.
+
+
+LearnForge • Engineering Handbook • 2026                                                             66
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   2. Single Responsibility Principle
+The Single Responsibility Principle, or SRP, states that a module should have one clear
+responsibility and one primary reason to change.
+
+A common misunderstanding is that SRP means a class must contain only one method. That is
+not the intention. A class may contain many related operations while still representing one
+coherent responsibility.
+
+
+2.1 A Typical Violation
+
+
+    class UserService {
+      createUser(data: UserData) {
+        // create database record
+      }
+
+        sendWelcomeEmail(user: User) {
+          // send email
+        }
+
+        generatePdfReport(user: User) {
+          // create PDF
+        }
+
+        writeAuditLog(user: User) {
+          // write audit record
+        }
+    }
+
+
+
+
+This class has accumulated several unrelated responsibilities. Changes to email delivery, PDF
+generation, persistence, or auditing can all force changes to the same class.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                         67
+LEARNFORGE                                                         SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+2.2 A More Focused Design
+
+
+    class UserService {
+      constructor(
+        private readonly repository: UserRepository
+      ) {}
+
+        createUser(data: UserData) {
+          return this.repository.save(data);
+        }
+    }
+
+    class EmailService {
+      sendWelcomeEmail(user: User) {
+        // email responsibility
+      }
+    }
+
+    class AuditService {
+      recordUserCreated(user: User) {
+        // audit responsibility
+      }
+    }
+
+
+
+
+Figure 11.1 — SRP encourages focused responsibilities instead of one class becoming the
+owner of unrelated concerns.
+
+
+
+
+   3. Open/Closed Principle
+The Open/Closed Principle states that software entities should generally be open for extension
+but closed for unnecessary modification.
+
+The practical idea is to design stable code so that new behavior can often be introduced
+through new implementations rather than repeatedly modifying a large conditional structure.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                        68
+LEARNFORGE                                                       SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+3.1 Conditional Explosion
+
+
+    function calculateDiscount(
+      customerType: string,
+      amount: number
+    ) {
+      if (customerType === "regular") {
+        return amount * 0.05;
+      }
+
+        if (customerType === "premium") {
+          return amount * 0.15;
+        }
+
+        if (customerType === "enterprise") {
+          return amount * 0.25;
+        }
+
+        return 0;
+    }
+
+
+
+
+Adding more customer types requires modifying the same function repeatedly. A strategy-
+based design can isolate each pricing rule.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                      69
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    interface DiscountPolicy {
+      calculate(amount: number): number;
+    }
+
+    class RegularDiscount implements DiscountPolicy {
+      calculate(amount: number) {
+        return amount * 0.05;
+      }
+    }
+
+    class PremiumDiscount implements DiscountPolicy {
+      calculate(amount: number) {
+        return amount * 0.15;
+      }
+    }
+
+    class EnterpriseDiscount implements DiscountPolicy {
+      calculate(amount: number) {
+        return amount * 0.25;
+      }
+    }
+
+    function calculateDiscount(
+      policy: DiscountPolicy,
+      amount: number
+    ) {
+      return policy.calculate(amount);
+    }
+
+
+
+
+Production Tip
+Do not create abstractions for every possible future requirement. Use OCP where variation is
+already visible or likely enough to justify the added design complexity.
+
+
+
+
+   4. Liskov Substitution Principle
+The Liskov Substitution Principle, or LSP, states that objects of a subtype should be usable
+wherever objects of the parent abstraction are expected without breaking the correctness
+assumptions of the program.
+
+Inheritance is not automatically safe merely because two classes appear related. A subtype
+must preserve the behavioral expectations established by the abstraction.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          70
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+4.1 The Classic Problem
+
+
+    interface Bird {
+      fly(): void;
+    }
+
+    class Eagle implements Bird {
+      fly() {
+        console.log("Flying");
+      }
+    }
+
+    class Penguin implements Bird {
+      fly() {
+        throw new Error("Penguins cannot fly");
+      }
+    }
+
+
+
+
+The abstraction incorrectly assumes that every Bird can fly. Penguin is biologically a bird, but
+the chosen software abstraction does not represent the behavior safely.
+
+
+4.2 Better Abstraction
+
+
+    interface Bird {
+      eat(): void;
+    }
+
+    interface FlyingBird extends Bird {
+      fly(): void;
+    }
+
+    class Penguin implements Bird {
+      eat() {
+        console.log("Eating");
+      }
+    }
+
+    class Eagle implements FlyingBird {
+      eat() {
+        console.log("Eating");
+      }
+
+        fly() {
+          console.log("Flying");
+        }
+    }
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           71
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Common Mistake
+Using inheritance merely because two concepts are related in the real world. Software
+abstractions should model the behavior required by the application, not just taxonomy.
+
+
+
+
+   5. Interface Segregation Principle
+The Interface Segregation Principle states that clients should not be forced to depend on
+methods they do not use.
+
+Large interfaces often create unnecessary coupling. When one method changes, many
+unrelated implementations may need to change simply because they depend on the same
+oversized contract.
+
+
+
+  Large Interface                           Focused Interfaces
+
+
+  Printer, scanner, fax, storage            Printable, Scannable, Faxable, Storable
+
+
+  Many unused methods                       Only required capabilities
+
+
+  Higher implementation burden              Lower implementation burden
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                              72
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    interface Printable {
+      print(document: Document): void;
+    }
+
+    interface Scannable {
+      scan(): Document;
+    }
+
+    class SimplePrinter implements Printable {
+      print(document: Document) {
+        console.log("Printing");
+      }
+    }
+
+    class MultiFunctionPrinter
+      implements Printable, Scannable {
+
+        print(document: Document) {
+          console.log("Printing");
+        }
+
+        scan() {
+          return new Document();
+        }
+    }
+
+
+
+
+Architect's Rule
+Prefer interfaces that represent meaningful capabilities. A small interface is not automatically
+better, but a focused contract usually reduces unnecessary dependency.
+
+
+
+
+   6. Dependency Inversion Principle
+The Dependency Inversion Principle states that high-level policy should not depend directly on
+low-level implementation details. Both should depend on stable abstractions.
+
+This principle is especially important at architectural boundaries such as databases, external
+APIs, message brokers, payment providers, and file systems.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          73
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+6.1 Tight Coupling
+
+
+    class OrderService {
+      private database = new MySqlDatabase();
+
+        save(order: Order) {
+          this.database.insert(order);
+        }
+    }
+
+
+
+
+The high-level order logic is directly coupled to a specific database implementation.
+
+
+6.2 Dependency Inversion
+
+
+    interface OrderRepository {
+      save(order: Order): Promise;
+    }
+
+    class OrderService {
+      constructor(
+        private readonly repository: OrderRepository
+      ) {}
+
+        save(order: Order) {
+          return this.repository.save(order);
+        }
+    }
+
+    class MySqlOrderRepository implements OrderRepository {
+      async save(order: Order) {
+        // MySQL implementation
+      }
+    }
+
+
+
+
+Figure 11.2 — Dependency inversion places a stable abstraction between high-level business
+policy and infrastructure details.
+
+
+
+
+   7. SOLID and Testability
+Well-designed dependencies make unit testing easier because external systems can be
+replaced with controlled test implementations.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          74
+LEARNFORGE                                                                       SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    class FakeOrderRepository implements OrderRepository {
+      public orders: Order[] = [];
+
+        async save(order: Order) {
+          this.orders.push(order);
+        }
+    }
+
+    test("saves an order", async () => {
+      const repository = new FakeOrderRepository();
+      const service = new OrderService(repository);
+
+        await service.save({
+          id: "order-1",
+          total: 100
+        });
+
+      expect(repository.orders).toHaveLength(1);
+    });
+
+
+
+
+The test does not require a real database. This makes the test faster, deterministic, and easier
+to reason about.
+
+
+
+
+   8. SOLID and Clean Architecture
+SOLID principles and clean architecture complement each other. SOLID helps organize
+dependencies inside components, while architectural boundaries determine which
+components should depend on which others.
+
+
+
+  Concept                       Relationship to SOLID
+
+
+  Entities                      Focused business responsibilities
+
+
+  Use cases                     Stable high-level policies
+
+
+  Repositories                  Dependency inversion at persistence boundaries
+
+
+  Controllers                   Focused delivery responsibilities
+
+
+  Infrastructure                Low-level implementations behind abstractions
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                      75
+LEARNFORGE                                                                SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   9. Composition Over Inheritance
+SOLID design frequently leads toward composition rather than deep inheritance hierarchies.
+Composition allows behavior to be assembled from smaller components without forcing every
+variation into a rigid class hierarchy.
+
+
+
+    interface PaymentGateway {
+      charge(amount: number): Promise;
+    }
+
+    class CheckoutService {
+      constructor(
+        private readonly payment: PaymentGateway
+      ) {}
+
+        async checkout(amount: number) {
+          await this.payment.charge(amount);
+        }
+    }
+
+
+
+
+The checkout service does not need to know whether the payment implementation uses
+Stripe, another provider, a local simulator, or a test double.
+
+
+
+
+   10. Avoiding Abstraction Overload
+SOLID principles can be misused. Creating an interface, factory, adapter, repository, and
+strategy for every small function can make a codebase harder to understand than the original
+implementation.
+
+
+
+  Useful Abstraction                                Suspicious Abstraction
+
+
+  Protects a real architectural boundary            Exists only because "SOLID says so"
+
+
+  Encapsulates meaningful variation                 Hides a trivial function
+
+
+  Improves testing or replacement                   Adds layers without benefit
+
+
+  Clarifies ownership                               Makes navigation harder
+
+
+
+
+Common Mistake
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                               76
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Confusing more abstractions with better architecture. Good architecture minimizes
+unnecessary complexity while protecting important boundaries.
+
+
+
+
+   11. A Practical SOLID Refactoring Process
+  1. Identify the code that changes frequently.
+
+  2. Find responsibilities that are unrelated to one another.
+
+  3. Identify dependencies on unstable infrastructure.
+
+  4. Extract focused responsibilities where the boundary is meaningful.
+
+  5. Introduce abstractions only where they provide real flexibility.
+
+  6. Write tests around the behavior being preserved.
+
+  7. Refactor incrementally rather than rewriting the entire system.
+
+
+
+
+   12. SOLID Smell Detection
+
+                                                   Possible
+  Code Smell                                                       Potential Response
+                                                   Principle
+
+
+  Huge class with unrelated responsibilities       SRP              Split by responsibility
+
+
+                                                                    Consider strategy or
+  Growing conditional branches                     OCP
+                                                                    polymorphism
+
+
+  Subtype throws unsupported-operation errors      LSP              Redesign the abstraction
+
+
+  Implementations depend on unused methods         ISP              Split interfaces
+
+
+  Business logic directly creates infrastructure
+                                                   DIP              Invert the dependency
+  objects
+
+
+
+
+   13. SOLID in a Real Application
+Consider an e-commerce checkout system. The checkout use case should coordinate business
+decisions without being responsible for SQL queries, HTTP transport, email delivery, or
+payment-provider-specific details.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                             77
+LEARNFORGE                                                                    SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    class CheckoutUseCase {
+      constructor(
+        private readonly orders: OrderRepository,
+        private readonly payments: PaymentGateway,
+        private readonly notifications: NotificationService
+      ) {}
+
+        async execute(input: CheckoutInput) {
+          const order = await this.orders.create(input);
+
+            await this.payments.charge(
+              order.total,
+              order.paymentReference
+            );
+
+            await this.notifications.sendConfirmation(order);
+
+            return order;
+        }
+    }
+
+
+
+
+Each dependency has a clear responsibility. The use case coordinates the business workflow
+while infrastructure implementations remain replaceable.
+
+
+
+
+   14. SOLID Trade-offs
+
+  Benefit                                        Possible Cost
+
+
+  Lower coupling                                 More interfaces
+
+
+  Better testing                                 More dependency configuration
+
+
+  Easier extension                               More indirection
+
+
+  Clearer responsibilities                       More classes or modules
+
+
+  Replaceable infrastructure                     Additional architectural discipline
+
+
+
+
+The goal is not maximum abstraction. The goal is an appropriate balance between flexibility
+and simplicity.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                   78
+LEARNFORGE                                                         SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   15. SOLID Design Heuristics
+Production Heuristics
+
+   • Prefer small, coherent responsibilities.
+
+   • Keep business rules independent from infrastructure where practical.
+
+   • Use interfaces at meaningful boundaries rather than everywhere.
+
+   • Prefer composition when inheritance creates behavioral constraints.
+
+   • Test behavior before and after significant refactoring.
+
+   • Remove abstractions that no longer provide value.
+
+
+
+
+   16. SOLID Architecture Diagram
+Figure 11.2 — SOLID principles work together to improve responsibility boundaries,
+dependency direction, substitutability, and maintainability.
+
+
+
+
+   17. Review Questions
+  1. What does "one reason to change" mean in SRP?
+
+  2. Why can large conditional structures violate OCP?
+
+  3. What does LSP require from a subtype?
+
+  4. Why can large interfaces violate ISP?
+
+  5. What problem does dependency inversion solve?
+
+  6. Why can composition be safer than deep inheritance?
+
+  7. When can an abstraction become unnecessary complexity?
+
+  8. How does SOLID improve testability?
+
+
+
+
+   18. Practical Checklist
+   •
+       Does each major component have a clear responsibility?
+
+   •
+       Are frequently changing concerns isolated?
+
+   •
+
+
+
+LearnForge • Engineering Handbook • 2026                                                        79
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+       Can new behavior be added without repeatedly modifying stable logic?
+
+   •
+       Are subtype contracts behaviorally safe?
+
+   •
+       Are interfaces focused on meaningful capabilities?
+
+   •
+       Does business logic avoid unnecessary infrastructure coupling?
+
+   •
+       Are important dependencies replaceable in tests?
+
+   •
+       Are abstractions justified by real requirements?
+
+   •
+       Is composition preferred where inheritance would create constraints?
+
+   •
+       Has unnecessary abstraction been removed?
+
+
+
+
+   19. Key Takeaways
+   • SRP keeps responsibilities focused and limits unrelated reasons for change.
+
+   • OCP encourages safe extension around stable behavior.
+
+   • LSP protects the behavioral correctness of polymorphism.
+
+   • ISP reduces unnecessary dependency on large contracts.
+
+   • DIP separates high-level policy from low-level implementation details.
+
+   • SOLID principles are tools for controlling change, not rules for maximizing abstraction.
+
+   • Composition often provides safer flexibility than deep inheritance.
+
+   • Good SOLID design improves testability, maintainability, and architectural clarity.
+
+
+
+
+   20. Architect's Final Checklist
+   •
+       Are responsibilities clearly separated?
+
+   •
+       Are unstable implementation details isolated behind useful boundaries?
+
+   •
+       Can important components be tested without unnecessary infrastructure?
+
+   •
+       Are interfaces small enough to represent meaningful capabilities?
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                             80
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   •
+       Do abstractions represent actual variation rather than imagined futures?
+
+   •
+       Can implementations be replaced without changing business policy?
+
+   •
+       Are inheritance relationships behaviorally valid?
+
+   •
+       Does the architecture remain understandable to a new engineer?
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           81
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE

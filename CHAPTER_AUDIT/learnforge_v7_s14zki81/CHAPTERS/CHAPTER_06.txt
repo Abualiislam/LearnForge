@@ -1,0 +1,594 @@
+CHAPTER 06
+Monolith, Modular Monolith and Microservices
+
+Monolith, Modular Monolith
+     and Microservices
+     Architecture should evolve from business and operational constraints, not from the
+     assumption that distributed systems are automatically superior.
+
+     What You Will Learn
+
+        ◦ How monolithic, modular-monolithic, and microservice architectures differ.
+
+        ◦ When a modular monolith is preferable to immediate service decomposition.
+
+        ◦ How network boundaries introduce latency, failure, and operational cost.
+
+        ◦ How to identify service boundaries from business capabilities.
+
+        ◦ How to migrate incrementally without creating a distributed monolith.
+
+LearnForge • Engineering Handbook • 2026                                                           15
+
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+        1. The Architectural Choice Is a Trade-off
+     One of the most common architectural mistakes is treating “monolith” and
+     “microservices” as competing technologies rather than different ways of organizing
+     system boundaries.
+
+     A monolith deploys multiple capabilities as one application unit. Microservices divide
+     capabilities into independently deployable services. A modular monolith sits between
+     these approaches: it can be deployed as one application while maintaining strong internal
+     boundaries between business modules.
+
+     The correct choice depends on domain complexity, team structure, deployment
+     independence, reliability requirements, expected scale, and operational maturity.
+
+     Architect's Rule
+     Do not introduce a network boundary merely to make a diagram look distributed. A
+     boundary should solve a real organizational, deployment, scaling, reliability, or domain-
+     isolation problem.
+
+        2. The Traditional Monolith
+     In a monolithic architecture, major business capabilities run inside a common deployable
+     unit. Authentication, courses, payments, reporting, and administration may all exist inside
+     the same application.
+
+     Figure 6.1 — A monolith can contain multiple business capabilities while remaining one
+     deployable application.
+
+     Strengths
+
+        ◦ Simple deployment and local development.
+
+        ◦ Low network overhead between modules.
+
+        ◦ Simple transactions across related data.
+
+        ◦ Lower infrastructure and operational complexity.
+
+        ◦ Easy debugging when the system is relatively small.
+
+     Risks
+
+        ◦ Weak internal boundaries can create tightly coupled code.
+
+LearnForge • Engineering Handbook • 2026                                                           16
+
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+        ◦ Large deployments can become slower and riskier.
+
+        ◦ Independent scaling of individual workloads becomes difficult.
+
+        ◦ A failure in one area can affect the whole application.
+
+     Common Mistake
+     Assuming that every monolith is badly designed. A well-structured monolith can be easier
+     to operate and evolve than a poorly designed microservice system.
+
+        3. Modular Monolith
+     A modular monolith keeps one deployment unit while enforcing explicit boundaries
+     between business capabilities.
+
+     For example, an education platform might contain separate modules for identity, courses,
+     payments, and notifications. Each module owns its internal business rules and exposes a
+     small public interface to other modules.
+
+          export interface CourseCatalog {
+            getPublishedCourse(courseId: string): Promise<CourseSummary>;
+          }
+
+          export class EnrollmentService {
+            constructor(
+              private readonly catalog: CourseCatalog,
+              private readonly enrollmentRepository: EnrollmentRepository
+            ) {}
+
+              async enroll(userId: string, courseId: string) {
+                const course = await this.catalog.getPublishedCourse(courseId);
+
+                  if (!course) {
+                    throw new Error('Course is not available');
+                  }
+
+                  return this.enrollmentRepository.create({
+                    userId,
+                    courseId
+                  });
+              }
+          }
+
+     The important architectural property is not the TypeScript syntax itself. The important
+     property is that the enrollment domain depends on an explicit business contract rather
+     than reaching directly into another module's database implementation.
+
+LearnForge • Engineering Handbook • 2026                                                              17
+
+LEARNFORGE                                                                  SYSTEM ARCHITECTURE & CLEAN CODE
+
+        4. Microservices
+     Microservices take modular boundaries one step further by making services
+     independently deployable processes. Communication usually occurs through HTTP, gRPC,
+     or asynchronous messaging.
+
+     Figure 6.2 — Microservices introduce explicit process and network boundaries.
+
+        5. The Cost of a Network Boundary
+     Moving functionality from an in-process call to a remote service introduces new failure
+     modes. The caller must now consider network latency, timeouts, retries, partial failure,
+     authentication, service discovery, observability, and version compatibility.
+
+       Concern                In-Process Module          Remote Service
+
+       Latency                Very low                   Network dependent
+
+       Failure                Usually local              Partial failures possible
+
+       Deployment             Shared                     Independent
+
+       Scaling                Usually application-wide   Service-specific
+
+       Operations             Lower complexity           Higher complexity
+
+       Transactions           Relatively simple          Distributed transaction challenges
+
+        6. Choosing the Right Architecture
+     A practical decision process starts with the simplest architecture that can satisfy known
+     requirements.
+
+LearnForge • Engineering Handbook • 2026                                                                 18
+
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+       Situation                                           Recommended Starting Point
+
+       Small team and evolving product                     Modular monolith
+
+       Strong transactional requirements                   Monolith or modular monolith
+
+       Clearly independent high-scale workloads            Selective service decomposition
+
+       Large organization with autonomous teams            Potentially microservices
+
+       Unclear domain boundaries                           Modular monolith first
+
+     Production Tip
+     Microservices should usually be extracted because a boundary has become valuable, not
+     because a framework makes service creation easy.
+
+        7. Migration Without a Distributed Monolith
+     When an existing monolith has reached a point where independent deployment or scaling
+     is valuable, migration should be incremental.
+
+       1. Identify a stable business capability.
+
+       2. Define a clear ownership boundary.
+
+       3. Separate the module internally before extracting it.
+
+       4. Introduce an explicit API or event contract.
+
+       5. Move the capability behind the new boundary.
+
+       6. Measure latency, failure rate, operational cost, and deployment impact.
+
+     Architect's Rule
+     First create a modular boundary. Then, only when justified, turn that boundary into a
+     network boundary.
+
+        Key Takeaways
+        ◦ A monolith is not inherently bad architecture.
+
+        ◦ A modular monolith provides strong boundaries without network complexity.
+
+LearnForge • Engineering Handbook • 2026                                                             19
+
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+        ◦ Microservices provide independent deployment and scaling at a significant
+           operational cost.
+
+        ◦ Business capabilities are usually stronger service-boundary candidates than technical
+           layers.
+
+        ◦ Architecture should evolve according to measurable constraints.
+
+     Quick Review
+
+       1. Why can a modular monolith be preferable to microservices for a new product?
+
+       2. What new failure modes appear when an in-process call becomes a network call?
+
+       3. Why should business capabilities influence service boundaries?
+
+     Architect's Checklist
+
+        ◦ Are business modules clearly separated?
+
+        ◦ Are module dependencies explicit?
+
+        ◦ Is a network boundary solving a measurable problem?
+
+        ◦ Have latency and failure modes been evaluated before extracting a service?
+
+LearnForge • Engineering Handbook • 2026                                                          20
+
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODEChapter 07
+
+Microservice Trade-offs
+Microservices can improve independent scaling and deployment, but every distributed
+boundary introduces new costs in latency, reliability, observability, security, and operational
+complexity.
+
+What You Will Learn
+
+   • How to evaluate the real benefits and costs of microservices.
+
+   • Why distributed systems require explicit failure-handling strategies.
+
+   • How synchronous and asynchronous communication affect architecture.
+
+   • How service ownership and data ownership reduce coupling.
+
+   • How to avoid the distributed-monolith anti-pattern.
+
+   1. Why Microservices Are Attractive
+Microservices are attractive because they allow different parts of a system to evolve
+independently. A team can deploy one service without necessarily redeploying the entire
+platform. A heavily used service can also be scaled independently from services with lower
+traffic.
+
+For a large organization, these properties can be extremely valuable. However, independence
+is not free. The architecture exchanges some in-process simplicity for distributed-system
+complexity.
+
+Architect's Rule
+Every independent service creates an independent operational responsibility. If the
+organization cannot operate the additional boundaries reliably, the architecture may be more
+complex than the business requires.
+
+   2. Independent Deployment
+One of the strongest arguments for microservices is deployment independence. A payment
+service can release a new implementation without requiring a simultaneous release of the
+course catalog.
+
+LearnForge • Engineering Handbook • 2026                                                           21
+
+LEARNFORGE                                                                SYSTEM ARCHITECTURE & CLEAN CODE
+
+Figure 7.1 — Microservices can provide independent deployment and scaling, but each
+boundary creates additional operational responsibility.
+
+   3. The Distributed-System Tax
+When two modules communicate inside one process, a function call is normally fast and
+predictable. When those modules become separate services, the call must cross a network.
+
+The network introduces uncertainty. Packets can be delayed, connections can fail, services
+can become overloaded, and dependencies can become temporarily unavailable.
+
+  In-Process Call                          Distributed Call
+
+  Usually microseconds or less             Network latency is variable
+
+  Failure is usually local                 Timeouts and partial failures are possible
+
+  Simple stack traces                      Distributed tracing may be required
+
+  Simple memory model                      Serialization and transport required
+
+  Usually one deployment                   Independent deployment possible
+
+Common Mistake
+Treating a remote service call as if it were an ordinary local function call. A remote
+dependency must always be treated as potentially slow, unavailable, or partially successful.
+
+   4. Synchronous Communication
+Synchronous communication is useful when a caller needs an immediate result. HTTP and
+gRPC are common choices.
+
+LearnForge • Engineering Handbook • 2026                                                               22
+
+LEARNFORGE                                                                 SYSTEM ARCHITECTURE & CLEAN CODE
+
+    async function getCourse(courseId: string) {
+      const response = await fetch(
+         `https://course-service.internal/courses/${courseId}`,
+        {
+           signal: AbortSignal.timeout(1500)
+        }
+      );
+
+        if (!response.ok) {
+          throw new Error(`Course service returned ${response.status}`);
+        }
+
+        return response.json();
+    }
+
+The timeout is important. Without a bounded timeout, a slow dependency can consume
+application resources while requests wait indefinitely.
+
+   5. Retries Are Not Automatically Safe
+Retries can improve reliability when failures are temporary. However, repeating an operation
+can be dangerous when the operation is not idempotent.
+
+For example, blindly retrying a payment request may create duplicate charges if the first
+request succeeded but the response was lost.
+
+Architect's Rule
+Retry only when the operation and failure mode are understood. For state-changing
+operations, use idempotency keys or another mechanism that makes repeated requests safe.
+
+LearnForge • Engineering Handbook • 2026                                                                23
+
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+    interface PaymentRequest {
+      amount: number;
+      currency: string;
+      idempotencyKey: string;
+    }
+
+    async function createPayment(request: PaymentRequest) {
+      return paymentClient.create({
+        amount: request.amount,
+        currency: request.currency,
+        headers: {
+          'Idempotency-Key': request.idempotencyKey
+        }
+      });
+    }
+
+   6. The Distributed Monolith
+A distributed monolith occurs when an application is technically divided into multiple services
+but those services remain tightly coupled.
+
+For example, if ten services must always be deployed together, communicate synchronously
+for every request, and share one database schema, the system may have the operational cost
+of microservices without receiving their independence benefits.
+
+Figure 7.2 — A distributed monolith can preserve tight coupling while adding network and
+operational complexity.
+
+   7. Data Ownership
+One of the most important principles in service architecture is clear data ownership. A service
+should normally be responsible for the state belonging to its business capability.
+
+LearnForge • Engineering Handbook • 2026                                                          24
+
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+  Service               Primary Responsibility        Example Data
+
+  Identity              Authentication and identity    Users, credentials, roles
+
+  Course                Learning content               Courses, lessons, publishing state
+
+  Payment               Financial transactions         Orders, payment status, invoices
+
+  Notification          Message delivery               Templates, delivery status
+
+Clear ownership reduces accidental coupling. Other services should access another service's
+business state through a defined API or event contract rather than directly modifying its
+database tables.
+
+   8. Asynchronous Communication
+Asynchronous messaging is useful when the caller does not need an immediate result. Instead
+of waiting for another service, the application publishes an event and continues.
+
+    await eventBus.publish({
+      type: 'COURSE_PUBLISHED',
+      eventId: crypto.randomUUID(),
+      courseId,
+      publishedAt: new Date().toISOString()
+    });
+
+Consumers can process the event independently. This can improve resilience and reduce
+synchronous dependency chains.
+
+Production Tip
+Use asynchronous communication for work that can tolerate eventual consistency, such as
+notifications, analytics, search indexing, and many background processing tasks.
+
+   9. Operational Complexity
+A production microservice platform requires more than application code. Teams must manage
+deployment pipelines, service discovery, secrets, monitoring, distributed tracing, logs,
+certificates, network policies, capacity planning, and incident response.
+
+LearnForge • Engineering Handbook • 2026                                                             25
+
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+Therefore, the decision to adopt microservices is partly an organizational decision.
+Architecture and team capability must evolve together.
+
+   10. A Practical Decision Framework
+Question
+If Yes
+
+If No
+
+Does one capability require independent scaling?
+
+Consider extraction
+
+Keep it together
+
+Does it need independent deployment?
+
+Service boundary may help
+
+Shared deployment may be simpler
+
+Is the domain boundary well understood?
+
+cat >> ~/ebook_premium/chapters/chapter-07.html <<'EOF'
+
+Domain is still unclear
+
+Keep the boundary inside a modular monolith
+
+Can the team operate distributed infrastructure?
+
+Microservices become more realistic
+
+Prefer simpler architecture
+
+Is failure isolation important?
+
+Consider a separate service
+
+Shared process may be sufficient
+
+Common Mistake
+
+LearnForge • Engineering Handbook • 2026                                                          26
+
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+Choosing microservices because they are associated with large technology companies.
+Architecture should follow the system's actual constraints, not another organization's scale or
+technology stack.
+
+11. Migration Without a Big-Bang Rewrite
+
+Moving from a monolith to microservices should normally be incremental. Rewriting the entire
+platform at once creates a large change surface and makes failures difficult to isolate.
+
+A safer approach is to identify one business capability with a clear boundary, establish an API
+or event contract, move ownership gradually, and measure the operational result.
+
+  1. Identify a high-value and relatively independent domain.
+
+  2. Define its public contract.
+
+  3. Separate its business logic from unrelated modules.
+
+  4. Establish explicit data ownership.
+
+  5. Introduce observability before extraction.
+
+  6. Deploy the new service alongside the existing system.
+
+  7. Gradually move traffic and verify behavior.
+
+  8. Remove the old implementation only after the new path is stable.
+
+Production Tip
+The first extraction should be chosen for learning and risk control, not simply because it is
+technically interesting. A well-observed small migration is often more valuable than a large
+architectural rewrite.
+
+LearnForge • Engineering Handbook • 2026                                                           27
+
+LEARNFORGE                                                                SYSTEM ARCHITECTURE & CLEAN CODE
+
+12. Summary Comparison
+
+  Characteristic            Monolith            Modular Monolith       Microservices
+
+  Deployment                Single unit         Single unit            Independent units
+
+  Internal boundaries       Can be weak         Explicit modules       Network/service boundaries
+
+  Operational
+                            Low                 Low to moderate        High
+  complexity
+
+  Independent scaling       Limited             Limited                Strong
+
+  Failure isolation         Lower               Moderate               Potentially strong
+
+  Network failure
+                            Low                 Low                    High
+  concerns
+
+                            Lower at large                             High when boundaries are
+  Team autonomy                                 Moderate to high
+                            scale                                      healthy
+
+                            Small or evolving   Growing systems with   Systems with proven
+  Best starting point
+                            systems             clear domains          independent-service needs
+
+13. Final Architectural Principle
+
+There is no universally superior deployment model. A small product can achieve excellent
+reliability and maintainability with a well-structured monolith. A large organization may
+eventually benefit from independently deployable services.
+
+The important architectural skill is recognizing when the constraints have changed enough to
+justify a new boundary.
+
+Architect's Rule
+Start with the simplest architecture that satisfies the current requirements, but design internal
+boundaries so that future extraction remains possible when evidence justifies it.
+
+Key Takeaways
+
+   • Microservices trade local simplicity for distributed-system complexity.
+
+   • Independent deployment and scaling are valuable only when the system actually needs
+     them.
+
+LearnForge • Engineering Handbook • 2026                                                               28
+
+LEARNFORGE                                                                SYSTEM ARCHITECTURE & CLEAN CODE
+
+   • Remote calls must be treated as unreliable dependencies with timeouts and explicit
+       failure handling.
+
+   • Idempotency is essential when retries can repeat state-changing operations.
+
+   • Clear service and data ownership reduces coupling.
+
+   • A modular monolith is often an excellent intermediate architecture.
+
+   • Incremental migration is safer than a big-bang rewrite.
+
+Quick Review
+
+  1. What additional costs does a network boundary introduce?
+
+  2. Why can a distributed monolith be worse than a conventional monolith?
+
+  3. When should asynchronous communication be preferred?
+
+  4. Why is idempotency important for retried operations?
+
+  5. When is a modular monolith a better choice than microservices?
+
+Architect's Checklist
+
+   •
+       Does every service boundary solve a real problem?
+
+   •
+       Are service responsibilities aligned with business capabilities?
+
+   •
+       Does every remote call have bounded timeout behavior?
+
+   •
+       Are retryable operations explicitly designed for idempotency?
+
+   •
+       Is data ownership clearly defined?
+
+   •
+       Are distributed dependencies observable through logs, metrics, and tracing?
+
+   •
+       Can the system operate reliably with the organization's current engineering capacity?Chapter 08

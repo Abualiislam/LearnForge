@@ -1,0 +1,612 @@
+CHAPTER 15
+Security
+
+Security Architecture
+Secure architecture is not a collection of isolated security features. It is a system-wide
+discipline that reduces attack surface, protects identities and data, limits the impact of
+compromise, and makes security behavior explicit across every architectural boundary.
+
+What You Will Learn
+
+   • How to design security as an architectural concern rather than an afterthought.
+
+   • The difference between authentication, authorization, and accountability.
+
+   • How sessions, tokens, OAuth, and service identities work together.
+
+   • How to protect APIs, secrets, data, and service-to-service communication.
+
+   • How threat modeling and defense-in-depth reduce architectural risk.
+
+   • How to design security controls that remain practical in production.
+
+   1. Security Is an Architectural Concern
+Security cannot be added successfully at the end of a system's development. Architectural
+decisions determine where trust exists, how data moves, which components can access
+sensitive resources, and how much damage can occur after a compromise.
+
+A secure architecture therefore considers security at the same level as performance,
+reliability, maintainability, and scalability. Every boundary between users, applications,
+services, databases, networks, and external providers should have an explicit security model.
+
+Architect's Rule
+Never define a security boundary implicitly. Every important boundary should clearly define
+who is trusted, what is allowed, what is protected, and what happens when authorization fails.
+
+   2. The Security Objectives
+A useful starting point is to identify what the architecture is trying to protect. Traditional
+security design commonly focuses on confidentiality, integrity, and availability.
+
+LearnForge • Engineering Handbook • 2026                                                            137
+
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+  Objective           Meaning                             Example
+
+                      Prevent unauthorized access to      Protect user records from unauthorized
+  Confidentiality
+                      information                         users
+
+  Integrity           Prevent unauthorized modification   Prevent alteration of payment records
+
+  Availability        Keep important systems usable       Protect APIs against resource exhaustion
+
+  Accountability      Determine who performed an action   Audit administrative changes
+
+   3. Authentication vs Authorization
+Authentication answers the question: "Who are you?" Authorization answers a different
+question: "What are you allowed to do?"
+
+Confusing these responsibilities creates security vulnerabilities. A valid identity does not
+automatically have permission to access every resource.
+
+Figure 16.1 — Authentication establishes identity; authorization determines what that identity
+is permitted to access.
+
+   4. Least Privilege
+Least privilege means granting an identity only the permissions required to perform its
+legitimate responsibilities.
+
+A database account used by a reporting service should not automatically have permission to
+delete production data. Likewise, an API endpoint should not return administrative information
+merely because the caller is authenticated.
+
+LearnForge • Engineering Handbook • 2026                                                             138
+
+LEARNFORGE                                                                  SYSTEM ARCHITECTURE & CLEAN CODE
+
+  Identity                    Required Permission               Unnecessary Permission
+
+  Read-only analyst           Read reports                      Modify production data
+
+  Payment service             Create and query payments         Manage user credentials
+
+  Notification worker         Read notification jobs            Delete customer accounts
+
+  Administrator               Explicit administrative actions   Unrestricted access without auditing
+
+Production Tip
+Review permissions periodically. Permissions that were appropriate six months ago may no
+longer be necessary after the system evolves.
+
+   5. Password Security
+Passwords should never be stored as plaintext. Applications should use a password hashing
+algorithm designed specifically for password storage, with appropriate work factors and
+unique salts.
+
+The application should also avoid exposing password-related information in logs, error
+messages, analytics, or monitoring systems.
+
+    import argon2 from "argon2";
+
+    async function hashPassword(password: string) {
+      return argon2.hash(password);
+    }
+
+    async function verifyPassword(
+      password: string,
+      storedHash: string
+    ) {
+      return argon2.verify(storedHash, password);
+    }
+
+Common Mistake
+Using a fast general-purpose hash such as a basic SHA-256 digest directly for password
+storage. Password hashing should be intentionally expensive and should use a dedicated
+password-hashing algorithm.
+
+LearnForge • Engineering Handbook • 2026                                                                139
+
+LEARNFORGE                                                                       SYSTEM ARCHITECTURE & CLEAN CODE
+
+   6. Session-Based Authentication
+In session-based authentication, the server maintains authentication state and gives the
+client a session identifier. The identifier should be protected using secure cookie settings.
+
+  Cookie Attribute                     Purpose
+
+  Secure                               Send the cookie only over HTTPS
+
+  HttpOnly                             Reduce direct JavaScript access to the cookie
+
+  SameSite                             Reduce cross-site request risks
+
+    res.cookie("session", sessionId, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      maxAge: 1000 * 60 * 60
+    });
+
+   7. Token-Based Authentication
+Token-based authentication allows a client to present a signed credential with subsequent
+requests. JSON Web Tokens are one common implementation, although tokens are not
+automatically more secure than server-side sessions.
+
+The architecture should define token lifetime, issuer, audience, signing algorithm, revocation
+behavior, and the permissions represented by the token.
+
+    interface AccessTokenClaims {
+      sub: string;
+      aud: string;
+      iss: string;
+      exp: number;
+      scope: string[];
+    }
+
+Architect's Rule
+
+LearnForge • Engineering Handbook • 2026                                                                     140
+
+LEARNFORGE                                                                    SYSTEM ARCHITECTURE & CLEAN CODE
+
+Treat access tokens as credentials. Do not place secrets or unnecessary sensitive information
+inside them, and keep their lifetime appropriate for the risk of the operation.
+
+   8. OAuth and Delegated Authorization
+OAuth allows an application to obtain delegated access to resources without requiring the
+application to receive the user's primary credentials.
+
+The important architectural idea is separation of identity, authorization, and resource
+ownership. Modern deployments should use well-defined flows appropriate to the client type
+rather than inventing custom authentication protocols.
+
+  Component                                Responsibility
+
+  Resource Owner                           Controls the protected resource
+
+  Client                                   Requests delegated access
+
+  Authorization Server                     Issues authorization credentials
+
+  Resource Server                          Protects the requested resource
+
+   9. Role-Based Access Control
+Role-Based Access Control, or RBAC, assigns permissions through roles. Instead of granting
+every user individual permissions, the architecture defines roles such as administrator,
+instructor, analyst, or student.
+
+    type Role =
+      | "student"
+      | "instructor"
+      | "admin";
+
+    const permissions: Record<Role, string[]> = {
+      student: ["course:read"],
+      instructor: ["course:read", "course:write"],
+      admin: ["course:read", "course:write", "user:manage"]
+    };
+
+LearnForge • Engineering Handbook • 2026                                                                  141
+
+LEARNFORGE                                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+   10. Attribute-Based Authorization
+RBAC can become difficult when authorization depends on resource ownership, organization
+membership, location, risk level, or other attributes. Attribute-Based Access Control evaluates
+these properties directly.
+
+  Attribute                  Example Rule
+
+  User identity              User may access their own profile
+
+  Organization               Employee may access resources belonging to their organization
+
+  Resource owner             Owner may edit the resource
+
+  Risk level                 Sensitive operation requires stronger verification
+
+   11. API Security
+APIs should assume that every request may be malicious or malformed. Authentication,
+authorization, validation, rate limiting, logging, and safe error handling should be
+implemented at appropriate boundaries.
+
+  Control                                  Purpose
+
+  Authentication                           Identify the caller
+
+  Authorization                            Enforce permissions
+
+  Validation                               Reject malformed input
+
+  Rate limiting                            Control abusive traffic
+
+  Audit logging                            Record important security events
+
+  Safe errors                              Avoid leaking internal information
+
+LearnForge • Engineering Handbook • 2026                                                                      142
+
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+   12. Input Validation
+Input validation should happen at trust boundaries. Never assume that data from browsers,
+mobile applications, external APIs, message queues, or other services is automatically
+trustworthy.
+
+    interface CreateUserInput {
+      email: string;
+      displayName: string;
+    }
+
+    function validateCreateUser(input: unknown): CreateUserInput {
+      if (
+        typeof input !== "object" ||
+        input === null ||
+        typeof (input as any).email !== "string" ||
+        typeof (input as any).displayName !== "string"
+      ) {
+        throw new Error("Invalid request");
+      }
+
+        return input as CreateUserInput;
+    }
+
+Validation should also enforce business constraints such as maximum lengths, allowed values,
+numeric ranges, and required relationships between fields.
+
+   13. SQL Injection and Parameterized Queries
+Applications should never construct SQL queries by directly concatenating untrusted input.
+Parameterized queries separate SQL structure from values.
+
+    const result = await db.query(
+       "SELECT id, email FROM users WHERE email = $1",
+      [email]
+    );
+
+Common Mistake
+Assuming that frontend validation is sufficient. Client-side validation improves user
+experience but cannot replace server-side validation.
+
+LearnForge • Engineering Handbook • 2026                                                         143
+
+LEARNFORGE                                                                 SYSTEM ARCHITECTURE & CLEAN CODE
+
+   14. Secrets Management
+API keys, database passwords, signing keys, and service credentials should not be embedded
+directly into source code or committed to version control.
+
+Production systems should use a dedicated secrets-management mechanism or a secure
+environment configuration strategy appropriate to the deployment platform.
+
+  Secret                       Unsafe Practice               Better Practice
+
+  Database password            Hard-coded in repository      Managed secret configuration
+
+  API key                      Committed to source control   Secret store or protected environment
+
+  Signing key                  Shared in chat messages       Controlled key management
+
+   15. Encryption in Transit
+Sensitive communication should be protected in transit. HTTPS and modern TLS
+configurations prevent intermediaries from trivially reading or modifying traffic.
+
+Encryption in transit should cover external client connections and, where appropriate, internal
+service-to-service communication.
+
+Figure 16.2 — Encryption in transit protects communication across architectural boundaries.
+
+   16. Encryption at Rest
+Data stored in databases, object storage, backups, and other persistent systems may require
+encryption at rest. Encryption reduces the impact of unauthorized access to physical or
+storage infrastructure.
+
+Encryption does not replace authorization. A compromised application with legitimate
+decryption access may still be able to read sensitive data.
+
+LearnForge • Engineering Handbook • 2026                                                               144
+
+LEARNFORGE                                                                 SYSTEM ARCHITECTURE & CLEAN CODE
+
+   17. Security Headers
+Web applications can reduce common browser-based risks through appropriate security
+headers and browser policies.
+
+  Header or Policy                         Security Purpose
+
+  Content-Security-Policy                  Restrict permitted content sources
+
+  Strict-Transport-Security                Encourage HTTPS-only access
+
+  X-Content-Type-Options                   Reduce MIME-sniffing behavior
+
+  Referrer-Policy                          Control referrer information
+
+   18. Rate Limiting
+Rate limiting protects resources by restricting how frequently a client or identity can perform
+an operation.
+
+    const limiter = rateLimit({
+      windowMs: 60_000,
+      limit: 100,
+      standardHeaders: true,
+      legacyHeaders: false
+    });
+
+Rate limits should reflect the business operation. Login attempts, password reset requests,
+expensive searches, and ordinary reads may require different limits.
+
+Production Tip
+Do not use one global rate limit for every endpoint. Design limits around resource cost, abuse
+potential, and legitimate user behavior.
+
+   19. Service-to-Service Security
+Internal services should not automatically trust every other internal component. Internal
+networks can be compromised, misconfigured, or exposed through another vulnerability.
+
+LearnForge • Engineering Handbook • 2026                                                               145
+
+LEARNFORGE                                                                  SYSTEM ARCHITECTURE & CLEAN CODE
+
+Service identities, mutual TLS where appropriate, scoped credentials, and explicit
+authorization policies can reduce lateral movement after a compromise.
+
+   20. Audit Logging
+Security-sensitive actions should generate structured audit records. These records help detect
+suspicious behavior and reconstruct important events during incident investigation.
+
+    const auditEvent = {
+      actorId,
+      action: "USER_ROLE_CHANGED",
+      targetId: userId,
+      timestamp: new Date().toISOString(),
+      requestId
+    };
+
+  Event                                           Audit Value
+
+  Login failure                                   Detect credential attacks
+
+  Permission change                               Track privilege changes
+
+  Account deletion                                Reconstruct destructive actions
+
+  Security configuration change                   Identify administrative changes
+
+   21. Threat Modeling
+Threat modeling is a structured process for identifying what can go wrong before attackers
+discover the weaknesses in production.
+
+A practical process is to identify assets, trust boundaries, actors, entry points, potential
+threats, and mitigations.
+
+Figure 16.3 — Threat modeling connects protected assets, threats, controls, and validation.
+
+LearnForge • Engineering Handbook • 2026                                                                146
+
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+   22. Defense in Depth
+Defense in depth means using multiple independent layers of protection. No single control
+should be assumed to stop every attack.
+
+  Layer                       Example Control
+
+  Identity                    Strong authentication
+
+  Application                 Authorization and input validation
+
+  Network                     Segmentation and encrypted communication
+
+  Data                        Encryption and access controls
+
+  Operations                  Monitoring and incident response
+
+   23. Security Testing
+Security should be validated continuously rather than only before release. Different tests
+identify different classes of problems.
+
+   • Static analysis: identify suspicious source-code patterns.
+
+   • Dependency scanning: identify known vulnerable dependencies.
+
+   • Dynamic testing: evaluate running application behavior.
+
+   • Penetration testing: investigate realistic attack paths.
+
+   • Configuration review: detect insecure infrastructure settings.
+
+   24. Dependency and Supply-Chain Security
+Modern applications depend heavily on third-party packages, build tools, container images,
+plugins, and external services. A vulnerability in a dependency can become a vulnerability in
+the application.
+
+Teams should maintain dependency inventories, update important packages, review security
+advisories, and protect the build pipeline itself.
+
+LearnForge • Engineering Handbook • 2026                                                             147
+
+LEARNFORGE                                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+Common Mistake
+Treating dependency security as an optional maintenance task. The software supply chain is
+part of the application's attack surface.
+
+   25. Incident Response Architecture
+Even strong preventive controls cannot guarantee that incidents will never occur. Architecture
+should therefore support detection, containment, investigation, recovery, and learning.
+
+  Phase                      Architectural Capability
+
+  Detection                  Monitoring, alerts, audit logs
+
+  Containment                Credential rotation, isolation, access restriction
+
+  Investigation              Correlated logs and traces
+
+  Recovery                   Backups, restoration procedures, redeployment
+
+  Learning                   Post-incident review and architectural improvements
+
+   26. Practical Security Architecture Checklist
+   •
+       Are authentication and authorization explicitly separated?
+
+   •
+       Does every sensitive resource have an authorization policy?
+
+   •
+       Are permissions based on least privilege?
+
+   •
+       Are passwords stored using an appropriate password-hashing algorithm?
+
+   •
+       Are sessions and tokens protected with appropriate lifetimes and controls?
+
+   •
+       Are all important trust boundaries identified?
+
+   •
+       Is untrusted input validated at server-side boundaries?
+
+   •
+       Are database queries parameterized?
+
+   •
+
+LearnForge • Engineering Handbook • 2026                                                                      148
+
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+       Are secrets kept outside source code?
+
+   •
+       Is sensitive communication encrypted in transit?
+
+   •
+       Are important security events recorded in audit logs?
+
+   •
+       Are rate limits applied to abuse-sensitive operations?
+
+   •
+       Are dependencies monitored for known vulnerabilities?
+
+   •
+       Has threat modeling been performed for critical workflows?
+
+   •
+       Can compromised credentials be revoked or rotated?
+
+   27. Key Takeaways
+   • Security is an architectural property, not a final development phase.
+
+   • Authentication establishes identity while authorization controls access.
+
+   • Least privilege limits the damage caused by compromised identities.
+
+   • Passwords must be protected with dedicated password-hashing mechanisms.
+
+   • APIs must validate input and enforce authorization on the server side.
+
+   • Secrets should be managed outside source code and protected throughout their lifecycle.
+
+   • Encryption protects data in transit and at rest but does not replace authorization.
+
+   • Threat modeling helps identify security weaknesses before production incidents.
+
+   • Defense in depth reduces dependence on any single security control.
+
+   • Security architecture must include detection, response, recovery, and continuous
+       improvement.
+
+   28. Quick Review
+  1. What is the difference between authentication and authorization?
+
+  2. Why is least privilege important?
+
+  3. Why should passwords never be stored as plaintext?
+
+  4. What risks do poorly protected sessions create?
+
+LearnForge • Engineering Handbook • 2026                                                          149
+
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+  5. Why should APIs validate input on the server?
+
+  6. What is the purpose of rate limiting?
+
+  7. Why should secrets not be committed to source control?
+
+  8. What is threat modeling?
+
+  9. What does defense in depth mean?
+
+10. Why is incident response part of security architecture?
+
+   29. Architect's Checklist
+   •
+       Have all major assets and trust boundaries been documented?
+
+   •
+       Is every sensitive operation explicitly authorized?
+
+   •
+       Are privileged identities minimized?
+
+   •
+       Are authentication credentials protected throughout their lifecycle?
+
+   •
+       Are service-to-service permissions explicitly defined?
+
+   •
+       Are security controls observable and auditable?
+
+   •
+       Are security failures designed to fail safely?
+
+   •
+       Have realistic attack scenarios been tested?
+
+   •
+       Can the organization detect and contain a compromised credential?
+
+   •
+       Is the security architecture reviewed whenever major system boundaries change?
+
+   30. Final Perspective
+The strongest security architecture is not the architecture with the largest number of security
+products. It is the architecture in which trust, permissions, data protection, failure behavior,
+monitoring, and recovery are deliberately designed.
+
+Security should therefore be treated as a continuous architectural practice. As systems grow,
+new services, dependencies, users, integrations, and data flows create new risks. Good
+
+LearnForge • Engineering Handbook • 2026                                                           150
+
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+architecture makes those risks visible, constrains their impact, and gives the engineering
+team practical mechanisms for preventing, detecting, and recovering from security failures.
+
+Production Tip
+Review security architecture whenever a major trust boundary, data flow, authentication
+mechanism, external integration, or privileged capability is introduced. Security review is
+most effective before the boundary becomes expensive to change.
+
+LearnForge • Engineering Handbook • 2026                                                         151
+
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODEChapter 17

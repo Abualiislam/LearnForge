@@ -1,0 +1,10 @@
+CHAPTER 02
+
+The Foundations of Good Architecture Good architecture minimizes the lifetime cost of
+building, maintaining, operating, and extending a software system. WHAT YOU WILL LEARN •
+The core architectural quality attributes (Ilities). • How to balance competing quality
+requirements. • How structural simplicity protects software lifespan.
+
+What It Means System architecture consists of structural patterns chosen to satisfy system
+non-functional properties (quality attributes). A sound architecture respects the core
+attributes: Maintainability, Reliability, Scalability, and

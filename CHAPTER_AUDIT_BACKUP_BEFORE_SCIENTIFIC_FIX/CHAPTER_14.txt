@@ -1,0 +1,818 @@
+Chapter 14
+
+Database Architecture & Data
+Modeling
+Database architecture is not simply about choosing a database engine. It is about designing
+data ownership, consistency, access patterns, transactions, performance, resilience, and
+evolution so that the data layer remains reliable as the system grows.
+
+What You Will Learn
+
+   • How to choose between relational and non-relational databases.
+
+   • How data ownership and access patterns influence schema design.
+
+   • How normalization, denormalization, and indexing affect performance.
+
+   • How transactions and isolation protect data correctness.
+
+   • How replication, sharding, caching, and connection pooling improve scalability.
+
+   • How migrations and operational practices keep databases maintainable.
+
+
+
+
+   1. Why Database Architecture Matters
+The database is often one of the most important stateful components in a production system.
+Application code can frequently be replaced or scaled horizontally, but business data must
+remain correct, durable, and accessible. A poor database design can therefore become a long-
+term constraint on the entire architecture.
+
+Database decisions should begin with business requirements and access patterns rather than
+popularity. The correct question is not simply "Which database is best?" but "Which data
+model and operational behavior best fit this system?"
+
+Architect's Rule
+Choose a database according to data characteristics, consistency requirements, query
+patterns, scale, and operational capability—not because a particular database is fashionable.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                        110
+LEARNFORGE                                                                  SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   2. Relational vs Non-Relational Databases
+Relational databases organize information into tables with defined relationships. They are
+particularly strong when the system requires structured data, joins, constraints, and
+transactional consistency.
+
+Non-relational databases include document, key-value, wide-column, and graph models. They
+can be useful when the application's data access patterns or scale characteristics do not fit
+naturally into a relational model.
+
+
+
+  Characteristic         Relational                   Non-Relational
+
+
+  Data structure         Tables and relationships     Documents, keys, graphs, or columns
+
+
+  Schema                 Usually explicit             Often more flexible
+
+
+  Joins                  Strong native support        Often limited or avoided
+
+
+  Transactions           Strong transactional model   Varies by product
+
+
+  Best fit               Structured business data     Specific high-scale or flexible access patterns
+
+
+
+
+   3. Data Ownership
+In a well-designed architecture, ownership of data should be explicit. A component or service
+should have clear responsibility for creating, changing, validating, and protecting the data
+within its boundary.
+
+
+
+  Domain                   Owner                      Example Data
+
+
+  Identity                 Identity service            Users, roles, credentials
+
+
+  Catalog                  Catalog service             Products, categories, prices
+
+
+  Orders                   Order service               Orders, line items, status
+
+
+  Payments                 Payment service             Transactions, payment state
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                111
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Clear ownership reduces accidental coupling. Other components should normally interact with
+owned data through a stable contract instead of directly modifying another component's
+tables.
+
+
+
+
+   4. Schema Design
+A schema defines the structure and constraints of stored data. Good schema design makes
+invalid states difficult to create and common queries efficient.
+
+
+
+    CREATE TABLE courses (
+        id UUID PRIMARY KEY,
+        title VARCHAR(200) NOT NULL,
+        description TEXT,
+        status VARCHAR(30) NOT NULL,
+        created_at TIMESTAMP NOT NULL,
+        updated_at TIMESTAMP NOT NULL
+    );
+
+
+
+
+The schema should communicate important business rules. Required fields, unique
+constraints, foreign keys, and appropriate data types move correctness closer to the data
+boundary.
+
+
+
+
+   5. Primary Keys
+Every important entity should have a stable identity. Primary keys provide that identity and
+allow other records to reference the entity.
+
+
+
+  Key Type                     Strength                  Trade-off
+
+
+  Integer sequence              Compact and efficient    Can expose ordering information
+
+
+  UUID                          Globally unique          Larger storage and index footprint
+
+
+  Natural key                   Meaningful to business   May change over time
+
+
+
+
+Common Mistake
+Using a business attribute as the permanent identity of an entity without considering whether
+that attribute can change. Email addresses, usernames, and product codes may have
+business meaning but are not always stable identifiers.
+
+
+LearnForge • Engineering Handbook • 2026                                                            112
+LEARNFORGE                                                                   SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   6. Normalization
+Normalization reduces unnecessary duplication by separating data into logical structures and
+representing relationships explicitly.
+
+For example, storing customer information repeatedly inside every order can create update
+anomalies. A normalized design can keep customer data in one table and reference it from
+orders.
+
+
+
+  Problem                Effect                                               Normalization Benefit
+
+
+  Duplicate data         Higher storage and inconsistency risk                Centralized representation
+
+
+  Update anomaly         One fact must be changed in many places              Single source of truth
+
+
+  Insert anomaly         Cannot store a fact independently                    Independent entities
+
+
+  Delete anomaly         Deleting one record removes unrelated information    Separated responsibilities
+
+
+
+
+   7. Denormalization
+Denormalization intentionally duplicates or precomputes information to make important read
+operations faster or simpler. It should be driven by measured access patterns rather than
+speculation.
+
+Architect's Rule
+Normalize for correctness first. Denormalize when a demonstrated performance or operational
+requirement justifies the additional consistency burden.
+
+
+
+
+   8. Indexing
+An index provides a data structure that helps the database locate matching rows without
+scanning the entire table.
+
+
+
+    CREATE INDEX idx_courses_status_created
+    ON courses (status, created_at DESC);
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                   113
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Indexes can dramatically improve reads, but they are not free. Every index requires storage
+and can increase the cost of inserts, updates, and deletes.
+
+
+
+  Index                    Useful For                  Cost
+
+
+  Single-column            Simple filters              Additional storage and write work
+
+
+  Composite                Multi-column queries        More complex maintenance
+
+
+  Unique                   Enforcing uniqueness        Write validation overhead
+
+
+  Partial                  Frequently queried subset   Database-specific behavior
+
+
+
+
+   9. Query Performance
+Database performance should be investigated using real query behavior. Developers should
+inspect query plans, identify expensive scans, measure latency, and understand how indexes
+are being used.
+
+
+
+    EXPLAIN ANALYZE
+    SELECT id, title
+    FROM courses
+    WHERE status = 'published'
+    ORDER BY created_at DESC
+    LIMIT 20;
+
+
+
+
+A query that appears simple at the application level can still become expensive when
+executed against millions of rows. Performance testing should therefore use realistic data
+volumes.
+
+
+
+
+   10. Transactions
+A transaction groups related database operations into a controlled unit. The classic ACID
+properties describe important transactional guarantees: atomicity, consistency, isolation, and
+durability.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          114
+LEARNFORGE                                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Property              Meaning
+
+
+  Atomicity             All required operations succeed or the transaction is rolled back
+
+
+  Consistency           Rules and constraints remain satisfied
+
+
+  Isolation             Concurrent transactions do not produce unacceptable interference
+
+
+  Durability            Committed data survives expected failures
+
+
+
+
+   11. Transaction Example
+
+    await db.transaction(async (tx) => {
+      const order = await tx.orders.create({
+        userId,
+        status: "pending"
+      });
+
+       await tx.orderItems.createMany({
+         orderId: order.id,
+         items
+       });
+
+      await tx.inventory.reserve({
+        items
+      });
+    });
+
+
+
+
+The exact transaction API varies by database library, but the architectural principle remains
+the same: operations that must preserve one business invariant should share an appropriate
+transactional boundary.
+
+
+
+
+   12. Isolation Levels
+Isolation controls how concurrent transactions can observe each other's changes. Stronger
+isolation can improve correctness but may increase contention and reduce concurrency.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                      115
+LEARNFORGE                                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Level                              General Idea
+
+
+  Read Uncommitted                   Allows the weakest visibility guarantees
+
+
+  Read Committed                     Reads committed data
+
+
+  Repeatable Read                    Provides stronger repeatability within a transaction
+
+
+  Serializable                       Provides the strongest ordering guarantees
+
+
+
+
+Production Tip
+Do not select the strongest isolation level automatically. Choose the weakest level that safely
+preserves the business invariants required by the operation, then verify the behavior with
+concurrency tests.
+
+
+
+
+   13. Concurrency Control
+Concurrent requests can attempt to modify the same business state at the same time.
+Without appropriate controls, lost updates and inconsistent state can occur.
+
+Optimistic concurrency uses a version or timestamp to detect whether another process
+changed a record before an update was applied.
+
+
+
+    UPDATE courses
+    SET title = 'Advanced Architecture',
+        version = version + 1
+    WHERE id = :id
+      AND version = :expectedVersion;
+
+
+
+
+If zero rows are updated, the application can detect that the record changed and require the
+caller to reload or resolve the conflict.
+
+
+
+
+   14. Replication
+Replication maintains copies of data on multiple database instances. Replication can improve
+availability, read scalability, and disaster recovery capabilities.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                      116
+LEARNFORGE                                                                  SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Figure 14.1 — Replication can distribute read traffic and provide additional availability and
+recovery options.
+A critical consequence is that replicas may lag behind the primary. Applications must
+understand whether a workflow requires the latest data or can tolerate eventual consistency.
+
+
+
+
+   15. Read Replicas and Consistency
+Read replicas are useful for workloads dominated by queries. However, a request that writes
+data and immediately reads from a lagging replica may observe stale information.
+
+
+
+  Requirement                              Possible Strategy
+
+
+  Immediately read own write               Read from primary or use session consistency
+
+
+  Analytics can be stale                   Read from replicas
+
+
+  Critical financial state                 Prefer stronger consistency
+
+
+  High-volume dashboards                   Use replicas or derived data
+
+
+
+
+   16. Sharding
+Sharding partitions data across multiple database nodes. It can allow a system to scale
+beyond the capacity of a single database instance, but it also introduces significant
+complexity.
+
+Figure 14.2 — Sharding distributes data across partitions but introduces routing, rebalancing,
+and cross-shard query complexity.
+
+
+
+
+   17. Choosing a Shard Key
+A shard key determines how records are distributed. A poor key can create hot partitions
+where one node receives disproportionately high traffic.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                117
+LEARNFORGE                                                                SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Shard-Key Property                         Why It Matters
+
+
+  High cardinality                           Provides many possible partitions
+
+
+  Even distribution                          Prevents hot shards
+
+
+  Common query alignment                     Reduces cross-shard operations
+
+
+  Stable value                               Avoids expensive record movement
+
+
+
+
+   18. Caching
+Caching stores frequently accessed data closer to the application so that repeated reads do
+not always reach the primary database.
+
+
+
+    async function getCourse(id: string) {
+      const cached = await cache.get(`course:${id}`);
+
+        if (cached) {
+          return JSON.parse(cached);
+        }
+
+        const course = await db.courses.findById(id);
+
+        await cache.set(
+           `course:${id}`,
+           JSON.stringify(course),
+          { ttl: 60 }
+        );
+
+        return course;
+    }
+
+
+
+
+Caching introduces a new problem: stale data. The architecture must define when cached
+values expire, when they are invalidated, and whether stale responses are acceptable.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                              118
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   19. Cache Strategies
+
+  Strategy           Description                                 Common Use
+
+
+                     Application reads and writes the cache
+  Cache-aside                                                    General read-heavy workloads
+                     explicitly
+
+
+  Read-through       Cache loads missing values automatically    Frequently accessed data
+
+
+  Write-                                                         Strong cache freshness
+                     Writes update cache and persistent store
+  through                                                        requirements
+
+
+  Write-behind       Cache writes are persisted asynchronously   Specific high-throughput workloads
+
+
+
+
+   20. Connection Pooling
+Opening a new database connection for every request can be expensive and can exhaust
+database resources. Connection pools maintain a controlled number of reusable connections.
+
+
+
+    const pool = createPool({
+      max: 20,
+      min: 5,
+      idleTimeoutMillis: 30000
+    });
+
+    const result = await pool.query(
+       "SELECT id, title FROM courses WHERE status = $1",
+      ["published"]
+    );
+
+
+
+
+Pool sizing should consider application concurrency, database capacity, query duration, and
+the number of application instances. More connections do not automatically mean better
+performance.
+
+
+
+
+   21. Database Migrations
+Database schemas evolve as software evolves. Migrations provide a controlled history of
+schema changes and allow environments to move from one known schema state to another.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                            119
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    ALTER TABLE courses
+    ADD COLUMN published_at TIMESTAMP NULL;
+
+    CREATE INDEX idx_courses_published_at
+    ON courses (published_at);
+
+
+
+
+Production migrations should be designed carefully. Large table rewrites, long locks, and
+incompatible schema changes can cause significant downtime.
+
+Production Tip
+Prefer expand-and-contract migrations for risky changes: introduce the new schema, deploy
+compatible application code, migrate or backfill data, and only then remove the old structure.
+
+
+
+
+   22. Soft Deletes
+A soft delete marks a record as deleted instead of physically removing it. This can support
+recovery, auditing, and historical reporting.
+
+
+
+    ALTER TABLE users
+    ADD COLUMN deleted_at TIMESTAMP NULL;
+
+    SELECT *
+    FROM users
+    WHERE deleted_at IS NULL;
+
+
+
+
+Soft deletes are not automatically appropriate. They can complicate unique constraints,
+queries, storage, and data retention. The system should define whether deleted data must
+eventually be permanently removed.
+
+
+
+
+   23. Audit Trails
+Important business systems often need to answer who changed what and when. An audit trail
+records significant state transitions or administrative actions.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                        120
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Field                                    Purpose
+
+
+  actor_id                                 Who performed the action
+
+
+  action                                   What happened
+
+
+  entity_id                                Which object changed
+
+
+  timestamp                                When it occurred
+
+
+  metadata                                 Additional context
+
+
+
+
+   24. Database Failure Handling
+A production application must assume that the database can become slow, unavailable,
+overloaded, or temporarily unreachable.
+
+Figure 14.3 — Database failure handling should use bounded timeouts, controlled retries, and
+explicit degraded behavior.
+
+
+
+
+   25. Database Architecture Checklist
+   •
+       Is the database model appropriate for the data and access patterns?
+
+   •
+       Is data ownership clearly defined?
+
+   •
+       Are primary keys stable and appropriate?
+
+   •
+       Are important business constraints enforced?
+
+   •
+       Are indexes based on real query patterns?
+
+   •
+       Are transactions used around critical invariants?
+
+   •
+       Are concurrency conflicts handled explicitly?
+
+   •
+       Is replication consistency understood?
+
+   •
+       Are caches allowed to become stale where appropriate?
+
+
+LearnForge • Engineering Handbook • 2026                                                          121
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   •
+       Are migrations tested before production deployment?
+
+   •
+       Are database failures and overload scenarios tested?
+
+
+
+
+   26. Key Takeaways
+   • Database architecture should begin with business data and access patterns.
+
+   • Clear data ownership reduces coupling and accidental corruption.
+
+   • Normalization improves correctness; denormalization should have a measured reason.
+
+   • Indexes improve reads but increase storage and write costs.
+
+   • Transactions protect business invariants within appropriate boundaries.
+
+   • Replication and sharding improve scale but introduce consistency and operational
+       complexity.
+
+   • Caching improves performance but creates freshness and invalidation problems.
+
+   • Connection pools protect database resources under application concurrency.
+
+   • Migrations are part of application architecture, not merely deployment scripts.
+
+   • Database failure must be treated as a normal production scenario.
+
+
+
+
+   27. Quick Review
+  1. What factors should influence database selection?
+
+  2. Why is clear data ownership important?
+
+  3. What problem does normalization solve?
+
+  4. When is denormalization justified?
+
+  5. Why can too many indexes hurt performance?
+
+  6. What do the ACID properties represent?
+
+  7. Why are isolation levels important?
+
+  8. What problem does replication solve, and what new issue can it introduce?
+
+  9. Why is choosing a shard key difficult?
+
+10. What consistency problems can caching create?
+
+11. Why should production migrations be designed carefully?
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                         122
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   28. Architect's Checklist
+   •
+       Are database requirements documented before selecting technology?
+
+   •
+       Are schema constraints aligned with business invariants?
+
+   •
+       Have high-value queries been identified and measured?
+
+   •
+       Are transaction boundaries explicit?
+
+   •
+       Are concurrency scenarios tested?
+
+   •
+       Is replica lag monitored where replicas are used?
+
+   •
+       Is sharding avoided until single-node or simpler scaling options are insufficient?
+
+   •
+       Are cache invalidation and TTL policies documented?
+
+   •
+       Is connection-pool capacity appropriate for the database?
+
+   •
+       Are rollback and recovery strategies defined for schema changes?
+
+   •
+       Are backup and restore procedures regularly tested?
+
+
+
+
+   29. Final Architecture Principle
+Architect's Rule
+A database is not merely a storage component. It is a correctness boundary, a performance
+boundary, and an operational dependency. Good architecture makes its guarantees,
+limitations, ownership, and failure behavior explicit.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                            123
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE

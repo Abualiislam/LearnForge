@@ -1,0 +1,692 @@
+LearnForge • Engineering Handbook • 2026                                                                       182
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+Figure 19.2 — Bulkhead isolation prevents one workload from consuming all resources
+required by another.
+
+12. Backpressure
+Backpressure prevents an application from accepting unlimited work when downstream
+capacity is constrained.
+
+Queues, concurrency limits, rate limits, and bounded buffers are common backpressure
+mechanisms. The objective is to preserve system stability rather than maximize incoming
+work at any cost.
+
+13. Rate Limiting
+Rate limiting controls how much traffic a client or workload can generate during a period of
+time.
+
+Strategy                        Strength                         Typical Use
+
+Fixed window                     Simple                          Basic API limits
+
+Sliding window                   More accurate traffic control   Public APIs
+
+Token bucket                     Allows controlled bursts        Production APIs
+
+Concurrency limit                Limits simultaneous work        Expensive operations
+
+14. Error Budgets
+An error budget represents the amount of unreliability that is acceptable within a defined
+service-level objective.
+
+For example, if a service has a 99.9% monthly availability target, a small amount of downtime
+is tolerated. The purpose is not to encourage failure but to create an explicit balance between
+reliability work and feature delivery.
+
+Production Tip
+
+LearnForge • Engineering Handbook • 2026                                                         183
+LEARNFORGE                                                                         SYSTEM ARCHITECTURE & CLEAN CODE
+
+Use error budgets to make reliability measurable. When the budget is being consumed too
+quickly, prioritize reliability improvements before adding additional operational risk.
+
+15. Service-Level Indicators
+
+SLI                 Measurement                                        Example
+
+Availability        Successful requests / total requests               99.95%
+
+Latency             Request response time                              p95 < 300 ms
+
+Durability          Data successfully preserved                        Backup restoration success
+
+Freshness           Age of available data                              Events processed within target
+
+16. Recovery Objectives
+
+Term           Meaning                                     Architectural Question
+
+RTO            Recovery Time Objective                     How quickly must service return?
+
+RPO            Recovery Point Objective                    How much data loss is acceptable?
+
+RTO and RPO should be business-driven. A critical financial system may require significantly
+stronger recovery objectives than a low-priority internal reporting tool.
+
+17. Backup Is Not Recovery
+A backup that has never been restored has not yet demonstrated that it can serve as a verified recovery mechanism.
+
+Recovery testing should verify that backups can actually be restored, that the restored data is
+usable, and that the team understands the operational steps required to return the service to
+production.
+
+Common Mistake
+Assuming that successful backup creation proves disaster recovery capability. A backup
+system must be paired with restoration procedures and periodic recovery testing.
+
+LearnForge • Engineering Handbook • 2026                                                                       184
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+18. Deployment Resilience
+Deployments are one of the most common sources of production incidents. Reliable
+architecture therefore includes safe release strategies.
+
+Strategy                    Approach                              Risk Control
+
+Rolling deployment          Replace instances gradually           Reduces simultaneous impact
+
+Blue-green                  Maintain two environments             Fast rollback
+
+Canary                      Release to a small percentage first   Early detection
+
+Feature flags               Separate deployment from activation   Controlled exposure
+
+19. Failure Injection
+Resilience cannot be validated only during normal operation. Teams should test what happens
+when important dependencies fail.
+
+• Terminate an application instance.
+
+• Introduce network latency.
+
+• Return dependency errors.
+
+• Exhaust a controlled resource pool.
+
+• Simulate database unavailability.
+
+• Test restoration from backup.
+
+Failure testing should be controlled, observable, and performed within an appropriate
+environment and risk boundary.
+
+20. Observability
+Reliable systems require telemetry that helps engineers detect, understand, and recover from
+failures.
+
+LearnForge • Engineering Handbook • 2026                                                             185
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+Signal           Purpose                              Example
+
+Metrics          Detect trends and anomalies          Error rate, latency, saturation
+
+Logs             Understand individual events         Request failure details
+
+Traces           Follow distributed workflows         Cross-service latency
+
+Alerts           Notify operators                     SLO violation
+
+21. Incident Response
+Architecture and incident response are closely related. A system that is technically
+recoverable but impossible for operators to understand is not operationally resilient.
+
+Incident procedures should identify ownership, escalation paths, safe mitigation actions,
+rollback procedures, and communication responsibilities.
+
+22. Graceful Shutdown
+Applications should shut down in a controlled manner. Abrupt termination can drop requests,
+interrupt background work, or leave temporary state in an inconsistent condition.
+
+process.on("SIGTERM", async () => {
+      server.close();
+
+await worker.stop();
+         await database.close();
+
+process.exit(0);
+    });
+
+23. Resilience Patterns Working Together
+Figure 19.3 — Resilience is strongest when multiple complementary patterns protect the
+system rather than relying on one mechanism.
+
+LearnForge • Engineering Handbook • 2026                                                            186
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+24. Practical Reliability Checklist
+   •
+       Are all critical dependencies identified?
+
+•
+       Does every remote dependency have a bounded timeout?
+
+•
+       Are retries limited and protected by backoff?
+
+•
+       Are non-idempotent operations protected from duplicate execution?
+
+•
+       Are critical services redundant across appropriate failure domains?
+
+•
+       Are readiness and liveness checks correctly separated?
+
+•
+       Are circuit breakers or equivalent protection used where appropriate?
+
+•
+       Are degraded modes explicitly defined?
+
+•
+       Are backups regularly restored in testing?
+
+•
+       Are RTO and RPO requirements documented?
+
+•
+       Are important workflows observable across service boundaries?
+
+•
+       Are deployment rollback procedures tested?
+
+25. Key Takeaways
+   • Reliability must be designed as a system property.
+
+• Redundancy is effective only when hidden shared failure domains are avoided.
+
+• Timeouts limit how long operations may consume resources while waiting for slow dependencies.
+
+• Retries require backoff, limits, and idempotency awareness.
+
+• Circuit breakers, bulkheads, and backpressure reduce cascading failures.
+
+• Graceful degradation protects critical business functions.
+
+• SLOs and error budgets make reliability measurable.
+
+• Backups are useful only when restoration is verified.
+
+• Resilience requires controlled failure testing and strong observability.
+
+LearnForge • Engineering Handbook • 2026                                                           187
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+26. Quick Review
+  1. What is the difference between reliability and resilience?
+
+2. Why are failure domains important?
+
+3. Why can redundancy fail to improve availability?
+
+4. Why should timeouts be bounded?
+
+5. When is a retry unsafe?
+
+6. What problem does a circuit breaker solve?
+
+7. How does graceful degradation protect critical functionality?
+
+8. What are RTO and RPO?
+
+9. Why should backups be tested through restoration?
+
+10. How does observability improve incident response?
+
+27. Architect's Checklist
+   •
+       Have reliability requirements been defined from business impact?
+
+•
+       Have critical failure domains been mapped?
+
+•
+       Are redundancy and recovery mechanisms aligned with those domains?
+
+•
+       Does every critical dependency have an explicit failure policy?
+
+•
+       Are retry, timeout, and circuit-breaker policies documented?
+
+•
+       Can the system degrade without losing its critical business path?
+
+•
+       Are RTO, RPO, SLO, and error-budget targets measurable?
+
+•
+       Are disaster-recovery procedures tested periodically?
+
+•
+       Can operators diagnose failures quickly using telemetry?
+
+•
+       Have realistic failure scenarios been exercised safely?
+
+LearnForge • Engineering Handbook • 2026                                                             188
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODEChapter 20
+
+Observability & Monitoring
+Architecture
+Observability turns complex system behavior into actionable evidence. A reliable architecture
+must make it possible to understand what happened, where it happened, why it happened,
+and which users or business operations were affected.
+
+What You Will Learn
+
+• Why observability is an architectural capability rather than only a monitoring tool.
+
+• How logs, metrics, traces, and events complement each other.
+
+• How to design useful telemetry without creating excessive noise.
+
+• How correlation IDs and distributed tracing connect service activity.
+
+• How SLI, SLO, and error-budget concepts support engineering decisions.
+
+• How alerting should focus on actionable user and business impact.
+
+• How to design observability for failures, performance problems, and security events.
+
+1. What Is Observability?
+Observability is the ability to understand the internal state and behavior of a system by
+examining the information it produces. In modern distributed systems, that information
+commonly includes logs, metrics, traces, events, profiles, and structured diagnostic data.
+
+Monitoring usually asks whether known conditions are healthy. Observability goes further by
+helping engineers investigate unexpected conditions. A useful observability architecture
+should help answer questions that were not necessarily predicted when the system was
+originally designed.
+
+Architect's Rule
+Design telemetry around questions engineers and operators need to answer, not around the
+number of dashboards or log lines the platform can generate.
+
+LearnForge • Engineering Handbook • 2026                                                          189
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+2. The Three Core Signals
+
+Signal           Best For                                 Example
+
+Logs             Detailed event context                   Payment request rejected
+
+Metrics          Trends and aggregation                   HTTP error rate = 2.4%
+
+Traces           Request flow across boundaries           API → Order → Payment
+
+These signals are complementary. Metrics can reveal that a problem exists, logs can explain
+individual events, and traces can show where latency or failure occurred across a distributed
+request.
+
+Figure 20.1 — Logs, metrics, and traces provide complementary views of system behavior.
+
+3. Structured Logging
+Logs become more useful when important fields are structured rather than embedded only
+inside free-form text. Structured logs can be searched, aggregated, filtered, and correlated
+automatically.
+
+logger.info({
+      event: "payment.completed",
+      paymentId,
+      orderId,
+      userId,
+      amount,
+      currency,
+      durationMs,
+      traceId
+    });
+
+A production log should contain enough context to investigate an event without exposing
+secrets or unnecessary personal information.
+
+LearnForge • Engineering Handbook • 2026                                                          190
+LEARNFORGE                                                                      SYSTEM ARCHITECTURE & CLEAN CODE
+
+Field                          Purpose
+
+timestamp                      When the event occurred
+
+service                        Which component produced the event
+
+level                          Severity or importance
+
+traceId                        Connect event to a request trace
+
+requestId                      Identify an individual request
+
+event                          Stable machine-readable event name
+
+Common Mistake
+Logging secrets, access tokens, passwords, full payment credentials, or unnecessary sensitive
+data simply because the application has access to it. Operational visibility must not become a
+data-leak mechanism.
+
+4. Log Levels
+Log levels help distinguish normal diagnostic information from conditions that require
+attention. Exact levels vary by platform, but a common model includes debug, info, warn, and
+error.
+
+Level            Typical Use
+
+DEBUG            Detailed development or troubleshooting information
+
+INFO             Important normal application events
+
+WARN             Unexpected condition that does not necessarily indicate failure
+
+ERROR            Operation failed or requires investigation
+
+Production systems should avoid generating enormous volumes of low-value logs. Excessive
+logging increases storage costs and makes important events harder to find.
+
+LearnForge • Engineering Handbook • 2026                                                                    191
+LEARNFORGE                                                                    SYSTEM ARCHITECTURE & CLEAN CODE
+
+5. Metrics
+Metrics are numerical measurements collected over time. They are especially effective for
+identifying trends, capacity problems, and changes in system behavior.
+
+Metric Type                   Example                      Useful Question
+
+Counter                       HTTP requests                How many occurred?
+
+Gauge                         Queue depth                  What is the current value?
+
+Histogram                     Request latency              How is latency distributed?
+
+Latency distributions are often more informative than simple averages. An average response
+time may look healthy while a small but important percentage of users experience extremely
+slow requests.
+
+6. The Four Golden Signals
+A practical starting point for service monitoring is the four golden signals: latency, traffic,
+errors, and saturation.
+
+Signal              Question                                            Example
+
+Latency             How long does work take?                            p95 API latency
+
+Traffic             How much demand exists?                             Requests per second
+
+Errors              How often does work fail?                           HTTP 5xx rate
+
+Saturation          How close are resources to capacity?                CPU or queue utilization
+
+Production Tip
+Start service dashboards with a small set of high-value signals. Add deeper diagnostics after
+the primary health picture is clear.
+
+LearnForge • Engineering Handbook • 2026                                                                  192
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+7. Distributed Tracing
+A trace represents a logical request as it travels through multiple components. Each individual
+operation within that trace is represented by a span.
+
+Figure 20.2 — Distributed tracing shows how one request consumes time across multiple
+services.
+
+8. Correlation IDs
+A correlation identifier connects related operations. In a distributed system, the identifier can
+travel through HTTP requests, messages, jobs, and service boundaries.
+
+const correlationId =
+      request.headers.get("x-correlation-id") ??
+      crypto.randomUUID();
+
+logger.info({
+      event: "request.started",
+      correlationId,
+      path: request.url
+    });
+
+Correlation IDs are particularly useful during incident investigation because an engineer can
+search for one identifier and reconstruct the path of a specific operation across multiple
+components.
+
+9. Trace Context Propagation
+Tracing only becomes valuable across services when trace context is propagated correctly.
+The originating service should pass the relevant trace context to downstream services and
+message consumers.
+
+LearnForge • Engineering Handbook • 2026                                                          193
+LEARNFORGE                                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+Boundary                                         Propagation Method
+
+HTTP                                              Trace context headers
+
+Message queue                                     Message metadata
+
+Background job                                    Job context
+
+Scheduled task                                    Generated root trace
+
+10. Service-Level Indicators
+A Service-Level Indicator, or SLI, is a quantitative measurement of a service behavior that
+matters to users or the business.
+
+Examples include successful request percentage, request latency, payment completion rate,
+or availability of a critical workflow.
+
+SLI                                Measurement
+
+Availability                       Successful valid requests / total valid requests
+
+Latency                            Percentage of requests below a defined threshold
+
+Checkout success                   Completed checkouts / checkout attempts
+
+Message processing                 Successfully processed messages / received messages
+
+11. Service-Level Objectives
+A Service-Level Objective, or SLO, defines the target for an SLI over a specified period.
+
+For example, an engineering team might define an objective that 99.9 percent of valid API
+requests should succeed during a monthly measurement period. The exact target should
+reflect business requirements rather than arbitrary numbers.
+
+Architect's Rule
+
+LearnForge • Engineering Handbook • 2026                                                                        194
+LEARNFORGE                                                                    SYSTEM ARCHITECTURE & CLEAN CODE
+
+An SLO should describe an outcome that matters. A dashboard full of internal resource
+metrics is not a substitute for measuring whether users can successfully complete important
+operations.
+
+12. Error Budgets
+An error budget represents the amount of unreliability permitted by an SLO. If a service has a
+99.9 percent availability objective, the remaining fraction represents the allowed failure
+budget during the measurement period.
+
+Error budgets create a practical connection between reliability and delivery speed. If the
+budget is being consumed rapidly, the team may need to prioritize reliability work instead of
+introducing additional operational risk.
+
+Condition                                 Possible Engineering Response
+
+Budget healthy                            Continue planned delivery
+
+Budget declining quickly                  Investigate reliability risks
+
+Budget exhausted                          Prioritize stabilization
+
+13. Alerting Architecture
+An alert should represent a condition that requires human or automated action. If an alert
+does not lead to a meaningful response, it may be better represented as a dashboard metric
+or informational notification.
+
+Alert                                    Quality                          Reason
+
+Critical checkout failures rising        High value                       Direct business impact
+
+CPU reached 70%                          Context dependent                May not require action
+
+One debug log appeared                   Low value                        Usually not actionable
+
+Common Mistake
+
+LearnForge • Engineering Handbook • 2026                                                                  195
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+Creating alerts for every abnormal metric. Alert fatigue causes engineers to ignore
+notifications, including important ones. Prefer fewer alerts with clear ownership and
+documented actions.
+
+14. Alert Severity
+Severity should reflect impact and urgency, not simply technical abnormality. A minor internal
+warning may have little operational importance, while a small failure rate on a critical
+payment workflow may deserve immediate attention.
+
+Severity            Typical Meaning
+
+Critical            Major user or business impact
+
+High                Significant degradation requiring prompt action
+
+Medium              Important issue that can be investigated during working hours
+
+Low                 Informational or preventive condition
+
+15. Dashboard Design
+A useful dashboard should support a specific operational decision. Avoid building one
+enormous dashboard containing every metric in the platform.
+
+A service dashboard can begin with traffic, success rate, latency, saturation, dependency
+health, and recent deployments. Deeper dashboards can then provide infrastructure or
+component-specific diagnostics.
+
+Figure 20.3 — Dashboards should move from high-level service health toward deeper
+diagnostic evidence.
+
+16. Monitoring Dependencies
+A service can appear healthy while an important dependency is failing. For this reason,
+observability should include dependency latency, error rates, timeouts, saturation, and
+availability.
+
+LearnForge • Engineering Handbook • 2026                                                                   196
+LEARNFORGE                                                                      SYSTEM ARCHITECTURE & CLEAN CODE
+
+Dependency                     Useful Signals
+
+Database                       Latency, connection pool, errors, saturation
+
+Message broker                 Queue depth, processing latency, consumer failures
+
+External API                   Latency, status codes, timeout rate
+
+Cache                          Hit ratio, memory, evictions, latency
+
+17. Deployment Correlation
+Many production incidents begin shortly after a deployment. Observability systems should
+therefore make deployments visible alongside application metrics.
+
+When engineers can see that error rate increased immediately after a specific release, the
+investigation can become significantly faster.
+
+Production Tip
+Annotate dashboards and telemetry with deployment versions, commit identifiers, feature
+flags, and environment information where appropriate.
+
+18. Health Checks
+Health checks provide a standardized way to determine whether an application or
+dependency is operational.
+
+app.get("/health/live", (_req, res) => {
+      res.status(200).json({
+        status: "ok"
+      });
+    });
+
+app.get("/health/ready", async (_req, res) => {
+      const databaseReady = await database.ping();
+
+res.status(databaseReady ? 200 : 503).json({
+        status: databaseReady ? "ready" : "not-ready"
+      });
+    });
+
+LearnForge • Engineering Handbook • 2026                                                                    197
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+Liveness and readiness should be distinguished. A process can be alive while being
+temporarily unable to serve traffic safely.
+
+19. Synthetic Monitoring
+Synthetic monitoring periodically performs controlled workflows to detect problems before
+users report them.
+
+For example, a synthetic test may load a public page, authenticate using a dedicated test
+account, or execute a safe checkout simulation. Synthetic checks should never create real
+financial or destructive operations unless the environment is explicitly designed for that
+purpose.
+
+20. Profiling and Resource Diagnosis
+Metrics can reveal that CPU or memory consumption is abnormal, but profiling can help
+explain why. CPU profiles, memory profiles, and database query analysis can expose
+inefficient code paths.
+
+Problem                                  Useful Diagnostic
+
+High CPU                                 CPU profile
+
+Memory growth                            Heap or memory profile
+
+Slow database                            Query analysis
+
+High latency                             Distributed trace
+
+21. Observability and Security
+Observability data often contains operational details and may contain user identifiers, request
+information, or other sensitive information. Logging systems must therefore follow security
+and privacy requirements.
+
+• Do not log authentication secrets.
+
+• Minimize sensitive identifiers.
+
+LearnForge • Engineering Handbook • 2026                                                         198
+LEARNFORGE                                                                    SYSTEM ARCHITECTURE & CLEAN CODE
+
+• Restrict access to telemetry platforms.
+
+• Encrypt telemetry in transit and at rest where required.
+
+• Define retention periods.
+
+• Audit access to sensitive operational data.
+
+22. Cost Control
+Observability can become expensive at scale. High-cardinality metrics, verbose logs, long
+retention periods, and full-fidelity traces can generate large volumes of data.
+
+Cost control should not mean eliminating important telemetry. Instead, engineers should
+classify data by value and retention requirements.
+
+Data                                     Possible Strategy
+
+Critical errors                          Longer retention
+
+Debug logs                               Shorter retention or sampling
+
+High-volume traces                       Intelligent sampling
+
+Rare security events                     Careful retention and access control
+
+23. Observability During Incidents
+During an incident, the primary goal is not to produce perfect explanations immediately. The
+goal is to establish impact, stabilize the system, and collect evidence that supports safe
+decisions.
+
+LearnForge • Engineering Handbook • 2026                                                                  199
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+Incident Question                        Useful Evidence
+
+Are users affected?                      Error rate and business SLIs

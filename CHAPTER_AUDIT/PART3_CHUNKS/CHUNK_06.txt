@@ -1,0 +1,709 @@
+Architect's Rule
+A migration is not production-ready until the team knows how to stop, reverse, or safely
+continue it when reality differs from the migration plan.
+
+17. Migration Risk Matrix
+
+Risk                             Probability   Impact     Mitigation
+
+Data inconsistency               Medium        High       Validation and reconciliation
+
+Performance regression           Medium        High       Load testing and gradual rollout
+
+Hidden business rule             High          High       Characterization tests and domain review
+
+Rollback failure                 Low           Critical   Test rollback before cutover
+
+18. Characterization Tests
+Before changing legacy behavior, teams should capture what the existing system actually
+does. These tests are called characterization tests.
+
+test("legacy pricing behavior is preserved", async () => {
+      const result = await legacyPricing.calculatePrice("product-123");
+
+expect(result).toEqual(1299);
+    });
+
+The purpose is not necessarily to prove that the old behavior is ideal. It creates a safety net
+that exposes accidental behavior changes during modernization.
+
+LearnForge • Engineering Handbook • 2026                                                                 254
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+19. Modernizing a Monolith
+A monolith does not need to be replaced with microservices simply because it has grown.
+Many monoliths can be improved through modularization, better testing, clearer ownership,
+and selective extraction.
+
+Problem                                  First Modernization Step
+
+Large tangled modules                    Create explicit module boundaries
+
+Shared database access                   Introduce ownership around data access
+
+Slow tests                               Create focused unit and integration tests
+
+Manual deployment                        Automate build and deployment
+
+Unclear dependencies                     Measure and document dependency graph
+
+20. Cloud Migration
+Moving an application to cloud infrastructure is not automatically modernization. Simply
+moving virtual machines without improving operational architecture may preserve the original
+problems.
+
+Cloud modernization may involve managed databases, automated infrastructure, elastic
+scaling, observability, security automation, and improved deployment processes.
+
+21. Avoiding Migration Big Bangs
+Large migration projects become risky when too many changes are combined into one
+release. Splitting the migration into independently verifiable steps reduces uncertainty.
+
+Common Mistake
+Combining database migration, service extraction, infrastructure replacement, API redesign,
+and UI changes into one cutover. If the result fails, the team cannot easily determine which
+change caused the problem.
+
+LearnForge • Engineering Handbook • 2026                                                                   255
+LEARNFORGE                                                                   SYSTEM ARCHITECTURE & CLEAN CODE
+
+22. Measuring Modernization Progress
+
+Measure                                  Useful Question
+
+Legacy dependency count                   Are obsolete components decreasing?
+
+Migration coverage                        How much functionality has moved?
+
+Incident rate                             Is modernization improving reliability?
+
+Deployment frequency                      Can teams deliver changes more easily?
+
+Change lead time                          Has engineering speed improved?
+
+23. Removing the Old System
+A migration is incomplete when the new system works but the old system continues running
+indefinitely. The old path creates cost, confusion, and maintenance obligations.
+
+Retirement should therefore be treated as an explicit migration phase: disable traffic, confirm
+consumers are gone, archive required data, remove infrastructure, and delete obsolete code.
+
+24. Practical Modernization Checklist
+   •
+       Is there a measurable reason for modernization?
+
+•
+       Is the migration divided into small verifiable steps?
+
+•
+       Are important legacy behaviors covered by tests?
+
+•
+       Is there a clear migration boundary?
+
+•
+       Can old and new implementations coexist safely?
+
+•
+       Are APIs and database schemas backward compatible during transition?
+
+•
+       Is migration telemetry available?
+
+•
+
+LearnForge • Engineering Handbook • 2026                                                                 256
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+Is rollout gradual where appropriate?
+
+•
+       Has rollback been tested?
+
+•
+       Is there a defined retirement plan for obsolete components?
+
+25. Key Takeaways
+   • Modernization should solve measurable business or engineering problems.
+
+• Incremental migration usually reduces risk compared with big-bang replacement.
+
+• The Strangler Fig pattern allows old and new architecture to coexist.
+
+• Compatibility is one of the most important tools for safe evolution.
+
+• Feature flags, shadow traffic, and gradual rollout reduce migration blast radius.
+
+• Database and API migrations require explicit compatibility strategies.
+
+• Characterization tests protect important existing behavior.
+
+• A migration is incomplete until obsolete architecture is safely retired.
+
+26. Quick Review
+  1. What makes a system legacy?
+
+2. When should refactoring be preferred over rewriting?
+
+3. How does the Strangler Fig pattern reduce migration risk?
+
+4. What is branch by abstraction?
+
+5. Why are feature flags useful during modernization?
+
+6. What is the expand-and-contract migration pattern?
+
+7. Why is API compatibility important?
+
+8. What purpose does shadow traffic serve?
+
+9. Why should migration rollout be gradual?
+
+10. Why must the old system eventually be retired?
+
+27. Architect's Checklist
+   •
+
+LearnForge • Engineering Handbook • 2026                                                           257
+LEARNFORGE                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+Is the modernization objective measurable?
+
+•
+       Are business-critical behaviors understood?
+
+•
+       Are migration boundaries explicit?
+
+•
+       Are dependencies and data flows documented?
+
+•
+       Are compatibility requirements defined?
+
+•
+       Are data consistency risks monitored?
+
+•
+       Are rollout and rollback procedures tested?
+
+•
+       Are feature flags temporary and owned?
+
+•
+       Are migration outcomes measured?
+
+•
+       Is obsolete architecture scheduled for removal?
+
+LearnForge • Engineering Handbook • 2026                                             258
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODEChapter 25
+
+Architecture Patterns &
+Practical System Design
+Architecture patterns provide reusable ways to structure software systems, but a pattern is
+valuable only when it solves a real problem without introducing unnecessary complexity. Good
+system design combines patterns, constraints, trade-offs, and operational realities into a
+coherent whole.
+
+What You Will Learn
+
+• How to select architecture patterns based on actual system constraints.
+
+• When layered, hexagonal, event-driven, CQRS, and other patterns are useful.
+
+• How to combine patterns without creating unnecessary complexity.
+
+• How to evaluate architecture using business and technical requirements.
+
+• How to turn architecture decisions into practical system designs.
+
+1. Why Architecture Patterns Matter
+Architecture patterns are reusable approaches for organizing software systems around
+recurring structural problems. They provide vocabulary and guidance, but they are not
+complete solutions that can be copied without adaptation.
+
+For example, a layered architecture may work extremely well for a business application with
+moderate scale and a small engineering team. The same structure may become restrictive
+when independent deployment, high-volume asynchronous processing, or multiple storage
+models become dominant concerns.
+
+Architect's Rule
+Do not choose a pattern solely because it is popular; evaluate its suitability for the specific problem. Choose it because a specific problem,
+constraint, or quality attribute makes its trade-offs worthwhile.
+
+LearnForge • Engineering Handbook • 2026                                                         259
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+2. Pattern Selection Begins With Constraints
+Architecture starts with constraints rather than diagrams. Before selecting a pattern, identify
+the system's business goals, expected workload, team structure, reliability requirements,
+security constraints, and operational capabilities.
+
+Constraint          Important Question                         Possible Architectural Influence
+
+Scale               What must scale independently?             Service separation, caching, partitioning
+
+Redundancy, failover, graceful
+  Availability        Which functions must remain available?
+                                                                 degradation
+
+Latency             Which operations require fast responses?   Caching, replication, optimized paths
+
+Team
+                      How many teams own the system?             Module or service boundaries
+  structure
+
+Data                How strong must consistency be?            Transactional or event-driven models
+
+What can the organization reliably
+  Operations                                                     Monolith, modular monolith, or services
+                      operate?
+
+3. Layered Architecture
+Layered architecture separates software into conceptual levels such as presentation,
+application, domain, and infrastructure. Each layer has a defined responsibility and
+dependencies generally move in a controlled direction.
+
+Figure 25.1 — A layered architecture separates responsibilities into presentation, application,
+domain, and infrastructure concerns.
+The major advantage is conceptual simplicity. Developers can locate responsibilities more
+easily and enforce architectural boundaries through project structure and dependency rules.
+
+4. Hexagonal Architecture
+Hexagonal architecture, also called ports and adapters architecture, separates business logic
+from external technologies. The application defines ports, while adapters implement
+
+LearnForge • Engineering Handbook • 2026                                                                   260
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+communication with databases, APIs, message brokers, user interfaces, or other external
+systems.
+
+interface PaymentPort {
+      charge(amount: number, currency: string): Promise<string>;
+    }
+
+class CheckoutService {
+      constructor(private readonly payments: PaymentPort) {}
+
+async checkout(amount: number) {
+          return this.payments.charge(amount, "USD");
+        }
+    }
+
+class StripePaymentAdapter implements PaymentPort {
+      async charge(amount: number, currency: string) {
+        // External payment provider integration
+        return `payment-${amount}-${currency}`;
+      }
+    }
+
+The application depends on the port rather than directly depending on the external provider.
+This makes testing easier and allows infrastructure implementations to change without
+rewriting the core use case.
+
+5. Clean Architecture and Dependency
+   Direction
+Clean Architecture emphasizes keeping business rules independent from frameworks,
+databases, and external delivery mechanisms. The central idea is that dependencies should
+point toward stable business concepts rather than toward volatile implementation details.
+
+Layer                  Primary Responsibility                     Typical Dependency
+
+Entities               Core business rules                        Minimal or none
+
+Use Cases              Application-specific workflows             Entities and interfaces
+
+Adapters               Convert external data and requests         Use cases
+
+Infrastructure         Frameworks, databases, external services   Adapters and interfaces
+
+LearnForge • Engineering Handbook • 2026                                                        261
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+Architect's Rule
+The most important boundary is not the folder structure. It is the direction of dependency. A
+database should not define the shape of the core business logic merely because the ORM
+makes that convenient.
+
+6. Event-Driven Architecture
+Event-driven architecture allows components to communicate by publishing and consuming
+events. The producer does not necessarily need to know which consumers will process the
+event.
+
+await eventBus.publish({
+      type: "ORDER_CONFIRMED",
+      eventId: crypto.randomUUID(),
+      orderId,
+      occurredAt: new Date().toISOString()
+    });
+
+This model can reduce synchronous coupling and allow new consumers to be added without
+changing the producer. The cost is additional complexity around event schemas, ordering,
+duplication, retries, observability, and eventual consistency.
+
+7. CQRS
+Command Query Responsibility Segregation separates operations that change state from
+operations that read state. The command side focuses on business changes while the query
+side can use models optimized for retrieval.
+
+Side               Purpose                                Typical Optimization
+
+Command            Validate and perform state changes     Business rules and transactions
+
+Query              Retrieve information                   Read-optimized projections
+
+CQRS is particularly useful when read and write workloads have significantly different
+requirements. It should not be introduced simply because the application contains both reads
+and writes; every normal application does.
+
+LearnForge • Engineering Handbook • 2026                                                          262
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+Common Mistake
+Treating CQRS as mandatory for every system. Separating reads and writes can increase
+operational and consistency complexity, so the benefit must justify the additional
+architecture.
+
+8. Repository Pattern
+The repository pattern provides an abstraction around persistence operations. It can keep
+domain or application code independent from a specific database implementation.
+
+interface UserRepository {
+      findById(id: string): Promise<User | null>;
+      save(user: User): Promise<void>;
+    }
+
+class UserService {
+      constructor(private readonly users: UserRepository) {}
+
+async getUser(id: string) {
+          return this.users.findById(id);
+        }
+    }
+
+Repositories are most useful when they represent meaningful persistence operations. A
+repository that merely reproduces every ORM method may create an abstraction without
+providing meaningful architectural separation.
+
+9. Strategy Pattern
+The Strategy pattern allows interchangeable algorithms to be selected behind a stable
+interface. It is useful when behavior varies while the surrounding workflow remains the same.
+
+LearnForge • Engineering Handbook • 2026                                                        263
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+interface PricingStrategy {
+      calculate(total: number): number;
+    }
+
+class RegularPricing implements PricingStrategy {
+      calculate(total: number) {
+        return total;
+      }
+    }
+
+class StudentPricing implements PricingStrategy {
+      calculate(total: number) {
+        return total * 0.8;
+      }
+    }
+
+function checkout(
+      total: number,
+      strategy: PricingStrategy
+    ) {
+      return strategy.calculate(total);
+    }
+
+10. Adapter Pattern
+An adapter converts one interface into another interface expected by the application. It is
+particularly valuable at architectural boundaries where external systems use different data
+formats or protocols.
+
+External System                   Adapter Responsibility         Internal Interface
+
+Payment provider                  Convert provider API            PaymentPort
+
+Email provider                    Convert message format          EmailPort
+
+Legacy database                   Translate persistence model     Repository interface
+
+11. Anti-Corruption Layer
+An anti-corruption layer protects a new domain from concepts and models belonging to a
+legacy or external system. Instead of allowing foreign concepts to spread throughout the
+application, the boundary translates them.
+
+LearnForge • Engineering Handbook • 2026                                                         264
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+Figure 25.2 — An anti-corruption layer prevents legacy concepts from polluting a cleaner
+domain model.
+
+12. Strangler Fig Pattern
+The Strangler Fig pattern supports gradual modernization. Instead of rewriting an entire
+legacy system at once, new functionality is introduced around the existing system until parts
+of the old system can be safely retired.
+
+This approach reduces the risk of a large one-time migration and allows the team to learn
+from production behavior while modernization progresses.
+
+13. Backend-for-Frontend
+A Backend-for-Frontend, or BFF, provides an API tailored to a particular user interface. A
+mobile application may require a different data shape and interaction pattern from a web
+application.
+
+app.get("/mobile/home", async (req, res) => {
+      const [profile, courses, notifications] =
+        await Promise.all([
+          profileService.get(req.user.id),
+          courseService.getRecommended(req.user.id),
+          notificationService.getUnread(req.user.id)
+        ]);
+
+res.json({
+        profile,
+        courses,
+        notifications
+      });
+    });
+
+A BFF can reduce client-side orchestration and provide an interface optimized for the actual
+presentation layer. It should not become an uncontrolled business-logic dumping ground.
+
+LearnForge • Engineering Handbook • 2026                                                         265
+LEARNFORGE                                                                 SYSTEM ARCHITECTURE & CLEAN CODE
+
+14. Modular Monolith as a Pattern
+A modular monolith applies strong internal boundaries while keeping the application in one
+deployable unit. It can provide many benefits associated with good service boundaries
+without immediately introducing distributed deployment.
+
+Characteristic                           Modular Monolith       Microservices
+
+Deployment                               Usually one unit       Multiple independent units
+
+Communication                            Mostly in-process      Network communication
+
+Operational complexity                   Lower                  Higher
+
+Independent scaling                      Limited                Strong
+
+Failure boundaries                       Mostly process-level   Service-level
+
+Architect's Rule
+A well-designed modular monolith is not a failed microservice architecture. It is often the
+safest architecture for a system whose boundaries are still being discovered.
+
+LearnForge • Engineering Handbook • 2026                                                               266
+LEARNFORGE                                                                    SYSTEM ARCHITECTURE & CLEAN CODE
+
+15. Choosing Between Patterns
+
+Problem                         Potential Pattern   Primary Benefit             Primary Cost
+
+Complex internal
+                                  Modular monolith    Strong organization         Shared deployment
+  boundaries
+
+External dependency             Hexagonal           Testability and
+                                                                                  More interfaces
+  isolation                       architecture        replaceability
+
+Independent event                                   Loose temporal
+                                  Event-driven                                    Eventual consistency
+  processing                                          coupling
+
+Different read/write                                                            Synchronization
+                                  CQRS                Specialized models
+  needs                                                                           complexity
+
+Temporary dual
+  Legacy modernization            Strangler pattern   Incremental migration
+                                                                                  systems
+
+16. Combining Patterns
+Real systems rarely use only one architectural pattern. A practical system may use a modular
+monolith internally, hexagonal boundaries around important integrations, event-driven
+processing for background work, and caching for high-volume reads.
+
+The danger is pattern accumulation. Every additional pattern introduces conceptual
+vocabulary, code, configuration, and operational responsibilities.
+
+Production Tip
+Document why each major pattern exists. If the team cannot explain the problem that a
+pattern solves, reconsider whether the pattern is still necessary.
+
+LearnForge • Engineering Handbook • 2026                                                                  267
+LEARNFORGE                                                                SYSTEM ARCHITECTURE & CLEAN CODE
+
+17. Architecture Pattern Trade-offs
+
+Pattern             Strength                        Weakness                Best Fit
+
+Can create rigid        Traditional business
+  Layered             Simple structure
+                                                      dependencies            systems
+
+Domain-heavy
+  Hexagonal           External isolation              More abstractions
+                                                                              applications
+
+Asynchronous
+  Event-driven        Loose coupling                  Harder debugging
+                                                                              workflows
+
+High-scale or complex
+  CQRS                Read/write specialization       Higher complexity
+                                                                              domains
+
+Modular             Strong boundaries with simple
+                                                      Shared runtime          Growing applications
+  monolith            deployment
+
+18. Architecture Review Questions
+   • What concrete problem does this pattern solve?
+
+• Which quality attribute does it improve?
+
+• What new complexity does it introduce?
+
+• Can the current team operate it reliably?
+
+• What happens when the pattern's assumptions stop being true?
+
+• How will the architecture evolve if traffic or organizational structure changes?
+
+19. Practical System Design Example
+Consider an online learning platform containing authentication, courses, payments,
+notifications, search, and analytics. A practical architecture might begin as a modular
+monolith with clear domain boundaries.
+
+Payments can be isolated behind a port and adapter because the external provider may
+change. Notifications and analytics can use asynchronous events because they do not need to
+block course publishing. Search can use a separate projection if query requirements justify it.
+
+LearnForge • Engineering Handbook • 2026                                                              268
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+Figure 25.3 — A practical architecture can combine modular boundaries, adapters,
+asynchronous events, and specialized projections without requiring every component to
+become an independent microservice.
+
+20. Avoiding Pattern Overengineering
+Overengineering occurs when architecture becomes more complicated than the problem
+requires. A small application may not need CQRS, event sourcing, service meshes, distributed
+transactions, or multiple deployment pipelines.
+
+Common Mistake
+Confusing architectural sophistication with architectural quality. More components do not
+automatically produce a better system.
+
+21. Pattern Evolution
+Architecture patterns should evolve as evidence changes. A system may begin as a simple
+layered application, become a modular monolith as the domain grows, and later extract only
+those capabilities that demonstrate a real need for independent deployment or scaling.
+
+This evolutionary approach reduces premature decisions and allows architecture to follow
+actual system behavior.
+
+22. Pattern Selection Checklist
+   •
+       Is the underlying problem clearly defined?
+
+•
+       Is the selected pattern solving that problem directly?
+
+•
+       Are the pattern's trade-offs understood?
+
+•
+       Does the team have the skills to operate it?
+
+•
+       Does the pattern improve an important quality attribute?
+
+•
+       Is there a simpler solution?
+
+•
+       Can the architecture evolve if requirements change?
+
+•
+
+LearnForge • Engineering Handbook • 2026                                                        269
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+Is the decision documented?
+
+23. Key Takeaways
+   • Architecture patterns are tools, not goals.
+
+• Pattern selection should begin with constraints and quality attributes.
+
+• Hexagonal and clean architectures protect business logic from infrastructure details.
+
+• Event-driven architecture reduces some coupling while introducing consistency and
+       operational challenges.
+
+• CQRS is valuable only when read/write differences justify its complexity.
+
+• Modular monoliths can provide strong boundaries without distributed-system overhead.
+
+• Anti-corruption and strangler patterns are powerful tools for modernization.
+
+• Good architecture uses the minimum complexity necessary to satisfy real requirements.
+
+24. Quick Review
+  1. What should determine architecture pattern selection?
+
+2. What is the main idea behind hexagonal architecture?
+
+3. Why can CQRS be unnecessarily complex?
+
+4. What problem does an anti-corruption layer solve?
+
+5. When is a modular monolith a strong architectural choice?
+
+6. How does the strangler pattern reduce modernization risk?
+
+7. Why should architecture patterns be evaluated continuously?
+
+8. What is the danger of pattern overengineering?
+
+25. Architect's Checklist
+   •
+       Are architecture patterns tied to explicit business or technical requirements?
+
+•
+       Are the benefits and costs of each major pattern documented?
+
+•
+       Are domain boundaries clearer because of the selected patterns?
+
+•
+
+LearnForge • Engineering Handbook • 2026                                                            270
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+Are infrastructure dependencies isolated where appropriate?
+
+•
+       Are asynchronous workflows designed with idempotency and observability?
+
+•
+       Has unnecessary distributed complexity been avoided?
+
+•
+       Can the system evolve without requiring a complete rewrite?
+
+•
+       Can the engineering team explain why each major pattern exists?
+
+Production Tip
+The best architecture is rarely the one with the most patterns. It is the one whose boundaries,
+trade-offs, operational requirements, and evolution strategy are clear enough that engineers
+can make consistent decisions as the system grows.
+
+LearnForge • Engineering Handbook • 2026                                                         271

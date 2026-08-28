@@ -1,0 +1,807 @@
+Chapter 20
+
+Observability & Monitoring
+Architecture
+Observability turns complex system behavior into actionable evidence. A reliable architecture
+must make it possible to understand what happened, where it happened, why it happened,
+and which users or business operations were affected.
+
+What You Will Learn
+
+   • Why observability is an architectural capability rather than only a monitoring tool.
+
+   • How logs, metrics, traces, and events complement each other.
+
+   • How to design useful telemetry without creating excessive noise.
+
+   • How correlation IDs and distributed tracing connect service activity.
+
+   • How SLI, SLO, and error-budget concepts support engineering decisions.
+
+   • How alerting should focus on actionable user and business impact.
+
+   • How to design observability for failures, performance problems, and security events.
+
+
+
+
+   1. What Is Observability?
+Observability is the ability to understand the internal state and behavior of a system by
+examining the information it produces. In modern distributed systems, that information
+commonly includes logs, metrics, traces, events, profiles, and structured diagnostic data.
+
+Monitoring usually asks whether known conditions are healthy. Observability goes further by
+helping engineers investigate unexpected conditions. A useful observability architecture
+should help answer questions that were not necessarily predicted when the system was
+originally designed.
+
+Architect's Rule
+Design telemetry around questions engineers and operators need to answer, not around the
+number of dashboards or log lines the platform can generate.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          189
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   2. The Three Core Signals
+
+  Signal           Best For                                 Example
+
+
+  Logs             Detailed event context                   Payment request rejected
+
+
+  Metrics          Trends and aggregation                   HTTP error rate = 2.4%
+
+
+  Traces           Request flow across boundaries           API → Order → Payment
+
+
+
+
+These signals are complementary. Metrics can reveal that a problem exists, logs can explain
+individual events, and traces can show where latency or failure occurred across a distributed
+request.
+
+Figure 20.1 — Logs, metrics, and traces provide complementary views of system behavior.
+
+
+
+
+   3. Structured Logging
+Logs become more useful when important fields are structured rather than embedded only
+inside free-form text. Structured logs can be searched, aggregated, filtered, and correlated
+automatically.
+
+
+
+    logger.info({
+      event: "payment.completed",
+      paymentId,
+      orderId,
+      userId,
+      amount,
+      currency,
+      durationMs,
+      traceId
+    });
+
+
+
+
+A production log should contain enough context to investigate an event without exposing
+secrets or unnecessary personal information.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          190
+LEARNFORGE                                                                      SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Field                          Purpose
+
+
+  timestamp                      When the event occurred
+
+
+  service                        Which component produced the event
+
+
+  level                          Severity or importance
+
+
+  traceId                        Connect event to a request trace
+
+
+  requestId                      Identify an individual request
+
+
+  event                          Stable machine-readable event name
+
+
+
+
+Common Mistake
+Logging secrets, access tokens, passwords, full payment credentials, or unnecessary sensitive
+data simply because the application has access to it. Operational visibility must not become a
+data-leak mechanism.
+
+
+
+
+   4. Log Levels
+Log levels help distinguish normal diagnostic information from conditions that require
+attention. Exact levels vary by platform, but a common model includes debug, info, warn, and
+error.
+
+
+
+  Level            Typical Use
+
+
+  DEBUG            Detailed development or troubleshooting information
+
+
+  INFO             Important normal application events
+
+
+  WARN             Unexpected condition that does not necessarily indicate failure
+
+
+  ERROR            Operation failed or requires investigation
+
+
+
+
+Production systems should avoid generating enormous volumes of low-value logs. Excessive
+logging increases storage costs and makes important events harder to find.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                    191
+LEARNFORGE                                                                    SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   5. Metrics
+Metrics are numerical measurements collected over time. They are especially effective for
+identifying trends, capacity problems, and changes in system behavior.
+
+
+
+  Metric Type                   Example                      Useful Question
+
+
+  Counter                       HTTP requests                How many occurred?
+
+
+  Gauge                         Queue depth                  What is the current value?
+
+
+  Histogram                     Request latency              How is latency distributed?
+
+
+
+
+Latency distributions are often more informative than simple averages. An average response
+time may look healthy while a small but important percentage of users experience extremely
+slow requests.
+
+
+
+
+   6. The Four Golden Signals
+A practical starting point for service monitoring is the four golden signals: latency, traffic,
+errors, and saturation.
+
+
+
+  Signal              Question                                            Example
+
+
+  Latency             How long does work take?                            p95 API latency
+
+
+  Traffic             How much demand exists?                             Requests per second
+
+
+  Errors              How often does work fail?                           HTTP 5xx rate
+
+
+  Saturation          How close are resources to capacity?                CPU or queue utilization
+
+
+
+
+Production Tip
+Start service dashboards with a small set of high-value signals. Add deeper diagnostics after
+the primary health picture is clear.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                  192
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   7. Distributed Tracing
+A trace represents a logical request as it travels through multiple components. Each individual
+operation within that trace is represented by a span.
+
+Figure 20.2 — Distributed tracing shows how one request consumes time across multiple
+services.
+
+
+
+
+   8. Correlation IDs
+A correlation identifier connects related operations. In a distributed system, the identifier can
+travel through HTTP requests, messages, jobs, and service boundaries.
+
+
+
+    const correlationId =
+      request.headers.get("x-correlation-id") ??
+      crypto.randomUUID();
+
+    logger.info({
+      event: "request.started",
+      correlationId,
+      path: request.url
+    });
+
+
+
+
+Correlation IDs are particularly useful during incident investigation because an engineer can
+search for one identifier and reconstruct the path of a specific operation across multiple
+components.
+
+
+
+
+   9. Trace Context Propagation
+Tracing only becomes valuable across services when trace context is propagated correctly.
+The originating service should pass the relevant trace context to downstream services and
+message consumers.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          193
+LEARNFORGE                                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Boundary                                         Propagation Method
+
+
+  HTTP                                              Trace context headers
+
+
+  Message queue                                     Message metadata
+
+
+  Background job                                    Job context
+
+
+  Scheduled task                                    Generated root trace
+
+
+
+
+   10. Service-Level Indicators
+A Service-Level Indicator, or SLI, is a quantitative measurement of a service behavior that
+matters to users or the business.
+
+Examples include successful request percentage, request latency, payment completion rate,
+or availability of a critical workflow.
+
+
+
+  SLI                                Measurement
+
+
+  Availability                       Successful valid requests / total valid requests
+
+
+  Latency                            Percentage of requests below a defined threshold
+
+
+  Checkout success                   Completed checkouts / checkout attempts
+
+
+  Message processing                 Successfully processed messages / received messages
+
+
+
+
+   11. Service-Level Objectives
+A Service-Level Objective, or SLO, defines the target for an SLI over a specified period.
+
+For example, an engineering team might define an objective that 99.9 percent of valid API
+requests should succeed during a monthly measurement period. The exact target should
+reflect business requirements rather than arbitrary numbers.
+
+Architect's Rule
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                        194
+LEARNFORGE                                                                    SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+An SLO should describe an outcome that matters. A dashboard full of internal resource
+metrics is not a substitute for measuring whether users can successfully complete important
+operations.
+
+
+
+
+   12. Error Budgets
+An error budget represents the amount of unreliability permitted by an SLO. If a service has a
+99.9 percent availability objective, the remaining fraction represents the allowed failure
+budget during the measurement period.
+
+Error budgets create a practical connection between reliability and delivery speed. If the
+budget is being consumed rapidly, the team may need to prioritize reliability work instead of
+introducing additional operational risk.
+
+
+
+  Condition                                 Possible Engineering Response
+
+
+  Budget healthy                            Continue planned delivery
+
+
+  Budget declining quickly                  Investigate reliability risks
+
+
+  Budget exhausted                          Prioritize stabilization
+
+
+
+
+   13. Alerting Architecture
+An alert should represent a condition that requires human or automated action. If an alert
+does not lead to a meaningful response, it may be better represented as a dashboard metric
+or informational notification.
+
+
+
+  Alert                                    Quality                          Reason
+
+
+  Critical checkout failures rising        High value                       Direct business impact
+
+
+  CPU reached 70%                          Context dependent                May not require action
+
+
+  One debug log appeared                   Low value                        Usually not actionable
+
+
+
+
+Common Mistake
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                  195
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Creating alerts for every abnormal metric. Alert fatigue causes engineers to ignore
+notifications, including important ones. Prefer fewer alerts with clear ownership and
+documented actions.
+
+
+
+
+   14. Alert Severity
+Severity should reflect impact and urgency, not simply technical abnormality. A minor internal
+warning may have little operational importance, while a small failure rate on a critical
+payment workflow may deserve immediate attention.
+
+
+
+  Severity            Typical Meaning
+
+
+  Critical            Major user or business impact
+
+
+  High                Significant degradation requiring prompt action
+
+
+  Medium              Important issue that can be investigated during working hours
+
+
+  Low                 Informational or preventive condition
+
+
+
+
+   15. Dashboard Design
+A useful dashboard should support a specific operational decision. Avoid building one
+enormous dashboard containing every metric in the platform.
+
+A service dashboard can begin with traffic, success rate, latency, saturation, dependency
+health, and recent deployments. Deeper dashboards can then provide infrastructure or
+component-specific diagnostics.
+
+Figure 20.3 — Dashboards should move from high-level service health toward deeper
+diagnostic evidence.
+
+
+
+
+   16. Monitoring Dependencies
+A service can appear healthy while an important dependency is failing. For this reason,
+observability should include dependency latency, error rates, timeouts, saturation, and
+availability.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                   196
+LEARNFORGE                                                                      SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Dependency                     Useful Signals
+
+
+  Database                       Latency, connection pool, errors, saturation
+
+
+  Message broker                 Queue depth, processing latency, consumer failures
+
+
+  External API                   Latency, status codes, timeout rate
+
+
+  Cache                          Hit ratio, memory, evictions, latency
+
+
+
+
+   17. Deployment Correlation
+Many production incidents begin shortly after a deployment. Observability systems should
+therefore make deployments visible alongside application metrics.
+
+When engineers can see that error rate increased immediately after a specific release, the
+investigation can become significantly faster.
+
+Production Tip
+Annotate dashboards and telemetry with deployment versions, commit identifiers, feature
+flags, and environment information where appropriate.
+
+
+
+
+   18. Health Checks
+Health checks provide a standardized way to determine whether an application or
+dependency is operational.
+
+
+
+    app.get("/health/live", (_req, res) => {
+      res.status(200).json({
+        status: "ok"
+      });
+    });
+
+    app.get("/health/ready", async (_req, res) => {
+      const databaseReady = await database.ping();
+
+      res.status(databaseReady ? 200 : 503).json({
+        status: databaseReady ? "ready" : "not-ready"
+      });
+    });
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                    197
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Liveness and readiness should be distinguished. A process can be alive while being
+temporarily unable to serve traffic safely.
+
+
+
+
+   19. Synthetic Monitoring
+Synthetic monitoring periodically performs controlled workflows to detect problems before
+users report them.
+
+For example, a synthetic test may load a public page, authenticate using a dedicated test
+account, or execute a safe checkout simulation. Synthetic checks should never create real
+financial or destructive operations unless the environment is explicitly designed for that
+purpose.
+
+
+
+
+   20. Profiling and Resource Diagnosis
+Metrics can reveal that CPU or memory consumption is abnormal, but profiling can help
+explain why. CPU profiles, memory profiles, and database query analysis can expose
+inefficient code paths.
+
+
+
+  Problem                                  Useful Diagnostic
+
+
+  High CPU                                 CPU profile
+
+
+  Memory growth                            Heap or memory profile
+
+
+  Slow database                            Query analysis
+
+
+  High latency                             Distributed trace
+
+
+
+
+   21. Observability and Security
+Observability data often contains operational details and may contain user identifiers, request
+information, or other sensitive information. Logging systems must therefore follow security
+and privacy requirements.
+
+   • Never log authentication secrets.
+
+   • Minimize sensitive identifiers.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                         198
+LEARNFORGE                                                                    SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   • Restrict access to telemetry platforms.
+
+   • Encrypt telemetry in transit and at rest where required.
+
+   • Define retention periods.
+
+   • Audit access to sensitive operational data.
+
+
+
+
+   22. Cost Control
+Observability can become expensive at scale. High-cardinality metrics, verbose logs, long
+retention periods, and full-fidelity traces can generate large volumes of data.
+
+Cost control should not mean eliminating important telemetry. Instead, engineers should
+classify data by value and retention requirements.
+
+
+
+  Data                                     Possible Strategy
+
+
+  Critical errors                          Longer retention
+
+
+  Debug logs                               Shorter retention or sampling
+
+
+  High-volume traces                       Intelligent sampling
+
+
+  Rare security events                     Careful retention and access control
+
+
+
+
+   23. Observability During Incidents
+During an incident, the primary goal is not to produce perfect explanations immediately. The
+goal is to establish impact, stabilize the system, and collect evidence that supports safe
+decisions.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                  199
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Incident Question                        Useful Evidence
+
+
+  Are users affected?                      Error rate and business SLIs
+
+
+  When did it begin?                       Time-series metrics and deployment events
+
+
+  Where is the failure?                    Distributed traces and dependency metrics
+
+
+  What changed?                            Deployments and configuration history
+
+
+  Is recovery occurring?                   Live SLIs and error rates
+
+
+
+
+Architect's Rule
+During incidents, prioritize signals that support decisions. More telemetry is not automatically
+better telemetry.
+
+
+
+
+   24. Practical Observability Checklist
+   •
+       Are important services producing structured logs?
+
+   •
+       Are logs free of secrets and unnecessary sensitive information?
+
+   •
+       Are latency, traffic, errors, and saturation measured?
+
+   •
+       Are critical requests traceable across service boundaries?
+
+   •
+       Are correlation or trace identifiers propagated?
+
+   •
+       Are critical business workflows represented by meaningful SLIs?
+
+   •
+       Are SLOs defined for important user-facing operations?
+
+   •
+       Are alerts actionable and owned by a responsible team?
+
+   •
+       Are deployments visible in operational dashboards?
+
+   •
+       Are important dependencies monitored?
+
+   •
+       Are health checks separated into liveness and readiness where appropriate?
+
+   •
+
+
+LearnForge • Engineering Handbook • 2026                                                                   200
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+       Are telemetry retention and cost policies defined?
+
+
+
+
+   25. Key Takeaways
+   • Observability is the ability to understand system behavior from produced evidence.
+
+   • Logs, metrics, and traces provide complementary perspectives.
+
+   • Structured logging makes operational evidence easier to search and correlate.
+
+   • Metrics are particularly effective for trends, capacity, and service health.
+
+   • Distributed tracing connects activity across service boundaries.
+
+   • SLIs and SLOs should represent outcomes that matter to users or the business.
+
+   • Alerts should be actionable rather than merely interesting.
+
+   • Telemetry must be designed with security, privacy, retention, and cost in mind.
+
+
+
+
+   26. Quick Review
+  1. What is the difference between monitoring and observability?
+
+  2. Why are logs, metrics, and traces complementary?
+
+  3. What makes a log entry useful during an incident?
+
+  4. Why are latency distributions often more useful than averages?
+
+  5. What is the purpose of a correlation ID?
+
+  6. What is an SLI?
+
+  7. What is an SLO?
+
+  8. Why can excessive alerts create operational risk?
+
+  9. Why should deployments be correlated with telemetry?
+
+10. How can observability data create security or privacy risks?
+
+
+
+
+   27. Architect's Checklist
+   •
+       Can engineers determine whether users are affected?
+
+   •
+       Can the team identify when a problem started?
+
+   •
+
+
+
+LearnForge • Engineering Handbook • 2026                                                            201
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+       Can one request be followed across critical service boundaries?
+
+   •
+       Can engineers distinguish application failure from dependency failure?
+
+   •
+       Are important business operations measurable?
+
+   •
+       Are alert thresholds connected to meaningful operational outcomes?
+
+   •
+       Are telemetry costs monitored as the system scales?
+
+   •
+       Are sensitive telemetry fields controlled and protected?
+
+   •
+       Can the team investigate incidents without relying on guesswork?
+
+   •
+       Is observability tested as part of reliability engineering?
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                             202
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE

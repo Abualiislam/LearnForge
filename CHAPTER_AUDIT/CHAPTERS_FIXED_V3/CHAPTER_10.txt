@@ -1,0 +1,519 @@
+CHAPTER 10
+
+Clean Architecture
+Clean Architecture is a way of organizing software so that business rules remain independent
+from frameworks, databases, user interfaces, and other volatile implementation details. Its
+central goal is not a particular folder structure, but controlled dependency direction and long-
+term maintainability.
+
+What You Will Learn
+
+   • What Clean Architecture actually solves.
+
+   • How entities, use cases, interface adapters, and infrastructure relate to one another.
+
+   • Why the Dependency Rule is the foundation of the architecture.
+
+   • How dependency inversion protects business logic from technical details.
+
+   • How to apply Clean Architecture without creating unnecessary abstraction.
+
+   • How to structure a practical application around use cases and boundaries.
+
+   1. What Clean Architecture Means
+Clean Architecture is an architectural approach that attempts to keep the core business rules
+of an application independent from external technologies. The business logic should not need
+to know whether the application uses PostgreSQL, MongoDB, REST, GraphQL, React, Android,
+a particular web framework, or a specific cloud provider.
+
+The purpose is to make important parts of the system easier to understand, test, change, and
+protect from infrastructure churn.
+
+Architect's Rule
+Business rules should not depend directly on technical details. Technical details should adapt
+themselves to the business rules.
+
+   2. The Core Problem: Dependency Direction
+The most important idea in Clean Architecture is not the number of folders or the names of
+layers. It is the direction in which dependencies point.
+
+LearnForge • Engineering Handbook • 2026                                                           54
+LEARNFORGE                                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+If business logic directly imports a database library, HTTP framework, or external SDK, a
+technical decision has become part of the business core. Replacing that technology then
+becomes more expensive.
+
+  Design                                       Dependency Direction                            Typical Result
+
+  Business → Database                          Core depends on infrastructure                  Higher coupling
+
+  Business → HTTP framework                    Core depends on delivery mechanism              Harder testing
+
+  Infrastructure → Business abstraction        Implementation depends inward                   Lower coupling
+
+  UI → Use Case                                Presentation depends on application logic       Clear boundary
+
+   3. The Dependency Rule
+The Dependency Rule states that source-code dependencies should point toward the
+architectural center. Inner layers should not know about the details of outer layers.
+
+Figure 10.1 — Clean Architecture organizes dependencies toward the business core rather
+than allowing infrastructure to control the core.
+
+   4. The Four Major Areas
+A practical Clean Architecture implementation is commonly described using four broad areas:
+entities, use cases, interface adapters, and frameworks or infrastructure.
+
+  Area                   Responsibility                                         Examples
+
+  Entities               Core business rules                                    Order, Account, Course
+
+  Use Cases              Application-specific business workflows                CreateOrder, PublishCourse
+
+  Interface              Convert data between external and internal             Controllers, presenters,
+  Adapters               representations                                        gateways
+
+                                                                                Database, HTTP, queues, cloud
+  Infrastructure         Technical implementation details
+                                                                                SDKs
+
+LearnForge • Engineering Handbook • 2026                                                                         55
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+   5. Entities
+Entities represent important business concepts and rules that are expected to remain
+meaningful even if the application's delivery mechanism changes. An entity should not need
+to know how it is stored or how a request reached the application.
+
+    class Course {
+      constructor(
+        readonly id: string,
+        private title: string,
+        private published: boolean = false
+      ) {}
+
+        publish(): void {
+          if (this.title.trim().length < 3) {
+            throw new Error("A course requires a valid title");
+          }
+
+            this.published = true;
+        }
+
+        isPublished(): boolean {
+          return this.published;
+        }
+    }
+
+The entity contains a business rule: a course cannot be published unless it has a meaningful
+title. Notice that there is no database query, HTTP request, or framework-specific code inside
+the entity.
+
+Production Tip
+Keep domain objects focused on business behavior. Avoid turning entities into passive data
+containers when meaningful invariants belong inside them.
+
+   6. Use Cases
+Use cases describe application-specific actions. They coordinate business objects and
+required dependencies to accomplish a meaningful goal.
+
+Examples include registering a user, publishing a course, creating an order, processing a
+refund, or generating an invoice.
+
+LearnForge • Engineering Handbook • 2026                                                          56
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+    interface CourseRepository {
+      findById(id: string): Promise<Course | null>;
+      save(course: Course): Promise<void>;
+    }
+
+    class PublishCourse {
+      constructor(
+        private readonly courses: CourseRepository
+      ) {}
+
+        async execute(courseId: string): Promise<void> {
+          const course = await this.courses.findById(courseId);
+
+            if (!course) {
+              throw new Error("Course not found");
+            }
+
+            course.publish();
+            await this.courses.save(course);
+        }
+    }
+
+The use case depends on a repository abstraction rather than a concrete database
+implementation. This allows the business workflow to remain independent from the storage
+technology.
+
+   7. Dependency Inversion
+Dependency inversion is one of the most powerful techniques used to achieve the
+Dependency Rule. Instead of making the business layer depend directly on an infrastructure
+implementation, both sides communicate through an abstraction owned by the appropriate
+inner layer.
+
+Figure 10.2 — Dependency inversion keeps infrastructure replaceable behind a stable
+application-owned boundary.
+
+   8. Interface Adapters
+Interface adapters translate between the outside world and the application's internal model.
+They prevent external representations from spreading throughout the business core.
+
+For example, an HTTP controller can translate a JSON request into a use-case input object. A
+presenter can transform the use-case result into an HTTP response.
+
+LearnForge • Engineering Handbook • 2026                                                          57
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+    type PublishCourseRequest = {
+      courseId: string;
+    };
+
+    class CourseController {
+      constructor(
+        private readonly publishCourse: PublishCourse
+      ) {}
+
+        async handle(request: PublishCourseRequest) {
+          await this.publishCourse.execute(request.courseId);
+
+            return {
+              status: 204
+            };
+        }
+    }
+
+The controller knows about HTTP-oriented concerns, but the use case does not need to know
+that the request came from HTTP.
+
+   9. Frameworks Are Details
+Frameworks are useful, but they should not automatically become the center of the
+architecture. A framework can change, be replaced, or become obsolete while the business
+problem remains.
+
+  Technical Detail               Possible Change                     Protected Core
+
+  Database                       PostgreSQL → another database       Business rules
+
+  Web framework                  Express → another framework         Use cases
+
+  Transport                      REST → gRPC                         Application behavior
+
+  Queue provider                 One broker → another broker         Domain events
+
+Common Mistake
+Building business logic directly inside controllers, ORM models, request handlers, or
+framework callbacks. This makes the business rules harder to test and harder to reuse.
+
+LearnForge • Engineering Handbook • 2026                                                          58
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+   10. Repository Abstractions
+A repository abstraction represents the storage operations required by the application. The
+abstraction should express what the business needs rather than exposing every capability of
+a particular database.
+
+    interface UserRepository {
+      findById(id: string): Promise<User | null>;
+      findByEmail(email: string): Promise<User | null>;
+      save(user: User): Promise<void>;
+    }
+
+A PostgreSQL implementation can satisfy this contract without forcing the application layer to
+know SQL details.
+
+    class PostgresUserRepository implements UserRepository {
+      constructor(private readonly db: Database) {}
+
+        async findById(id: string): Promise<User | null> {
+          const row = await this.db.queryOne(
+             "SELECT * FROM users WHERE id = $1",
+            [id]
+          );
+
+            return row ? User.fromPersistence(row) : null;
+        }
+
+        async save(user: User): Promise<void> {
+          await this.db.execute(
+             "UPDATE users SET name = $1 WHERE id = $2",
+            [user.name, user.id]
+          );
+        }
+    }
+
+   11. Testing the Architecture
+Clean Architecture can make testing easier because important business behavior can be
+tested without starting the entire infrastructure stack.
+
+A use case can receive a fake repository and execute entirely in memory. This makes tests
+faster and helps isolate business behavior from database configuration.
+
+LearnForge • Engineering Handbook • 2026                                                         59
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+    class InMemoryCourseRepository
+      implements CourseRepository {
+
+        private items = new Map<string, Course>();
+
+        async findById(id: string) {
+          return this.items.get(id) ?? null;
+        }
+
+        async save(course: Course) {
+          this.items.set(course.id, course);
+        }
+    }
+
+  Test Type                       Primary Target                           Typical Speed
+
+  Unit test                        Entity or isolated use case             Very fast
+
+  Integration test                 Adapter + real infrastructure           Moderate
+
+  End-to-end test                  Complete user workflow                  Slower
+
+   12. Clean Architecture Is Not a Folder
+   Structure
+A common misunderstanding is to believe that Clean Architecture means creating directories
+named entities, usecases, controllers, repositories, and infrastructure.
+
+Folders can help communicate boundaries, but they do not create architectural quality by
+themselves. An application can have perfectly named folders while its business logic still
+depends directly on frameworks and databases.
+
+Architect's Rule
+Architecture is defined by dependency relationships and boundaries, not by directory names.
+
+   13. Avoiding Over-Engineering
+Clean Architecture can be misapplied. Adding interfaces, factories, repositories, mappers, and
+abstractions for every small operation can create more complexity than it removes.
+
+LearnForge • Engineering Handbook • 2026                                                           60
+LEARNFORGE                                                                SYSTEM ARCHITECTURE & CLEAN CODE
+
+The goal is not maximum abstraction. The goal is useful separation around areas that are
+likely to change or that contain important business rules.
+
+  Situation                                    Practical Approach
+
+  Simple CRUD application                      Prefer straightforward design
+
+  Complex business rules                       Protect the domain carefully
+
+  Frequently changing infrastructure           Use stable abstractions at boundaries
+
+  Highly regulated business logic              Prioritize explicit rules and testability
+
+   14. Practical Project Structure
+A possible structure for a medium-sized TypeScript application is:
+
+    src/
+      domain/
+        entities/
+        value-objects/
+
+       application/
+         use-cases/
+         ports/
+
+       adapters/
+         http/
+         persistence/
+
+       infrastructure/
+         database/
+         messaging/
+         config/
+
+       main.ts
+
+The exact directory names are not mandatory. What matters is that the dependency direction
+remains intentional and the core business logic is protected from external details.
+
+LearnForge • Engineering Handbook • 2026                                                               61
+LEARNFORGE                                                                SYSTEM ARCHITECTURE & CLEAN CODE
+
+   15. Dependency Injection
+Dependency injection means providing a component with the dependencies it needs rather
+than forcing it to construct those dependencies internally.
+
+    const repository = new PostgresCourseRepository(db);
+
+    const publishCourse = new PublishCourse(repository);
+
+    const controller = new CourseController(publishCourse);
+
+This composition root is an appropriate place to connect concrete infrastructure
+implementations to application abstractions.
+
+Production Tip
+Keep object composition near the application's entry point. Business components should
+receive their dependencies rather than discovering infrastructure globally.
+
+   16. Boundaries and Change
+Good architecture makes expensive changes local whenever possible. If changing the
+database requires rewriting business rules, the boundary is weak. If changing an HTTP
+transport only requires replacing an adapter, the boundary is stronger.
+
+  Change                          Weak Boundary                       Strong Boundary
+
+  Database replacement            Business code changes extensively   Replace adapter
+
+  API transport change            Use cases change                    Replace controller/adapter
+
+  UI replacement                  Business logic rewritten            Use cases remain stable
+
+  Queue provider change           Domain code changes                 Replace infrastructure adapter
+
+   17. Clean Architecture in a Real Workflow
+Consider an online learning platform where an administrator publishes a course.
+
+LearnForge • Engineering Handbook • 2026                                                               62
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+Figure 10.3 — A practical request flow through adapters, application logic, and infrastructure.
+
+   18. Common Failure Modes
+
+  Failure Mode                        Why It Hurts                Better Approach
+
+                                      Rules become tied to
+  Business logic in controllers                                   Move workflow into use cases
+                                      transport
+
+  ORM models used as domain           Persistence concerns leak   Separate domain and persistence models
+  entities                            inward                      when justified
+
+  Interface for every class           Abstraction becomes noise   Abstract meaningful boundaries
+
+                                      Dependencies become
+  Global service locator                                          Prefer explicit dependency injection
+                                      hidden
+
+                                      Business intent becomes
+  Overly generic repositories                                     Use capability-focused interfaces
+                                      unclear
+
+Common Mistake
+Assuming that more layers automatically mean better architecture. Excessive indirection can
+make a simple system harder to understand. Architecture should reduce complexity, not
+merely relocate it.
+
+   19. Practical Design Rules
+   •
+       Keep important business rules independent from infrastructure.
+
+   •
+       Make dependency direction explicit.
+
+   •
+       Put application workflows inside use cases.
+
+   •
+       Keep controllers thin.
+
+   •
+       Use abstractions where they protect meaningful boundaries.
+
+   •
+       Keep infrastructure implementations outside the business core.
+
+   •
+
+LearnForge • Engineering Handbook • 2026                                                                    63
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+       Prefer explicit dependency injection.
+
+   •
+       Test business rules without requiring the full infrastructure stack.
+
+   •
+       Avoid abstraction whose only purpose is satisfying a pattern.
+
+   •
+       Design boundaries around change and business responsibility.
+
+   20. Key Takeaways
+   • Clean Architecture is fundamentally about dependency direction.
+
+   • The business core should remain independent from technical details.
+
+   • Entities contain important business rules and invariants.
+
+   • Use cases coordinate application-specific workflows.
+
+   • Adapters translate between external systems and internal models.
+
+   • Dependency inversion makes infrastructure replaceable.
+
+   • Architecture should make important changes cheaper and more localized.
+
+   • Clean Architecture is not synonymous with a particular folder structure.
+
+   • Too much abstraction can be as harmful as too little.
+
+   21. Quick Review
+  1. What is the Dependency Rule?
+
+  2. Why should business logic avoid direct database dependencies?
+
+  3. What is the difference between an entity and a use case?
+
+  4. What role does an interface adapter play?
+
+  5. How does dependency inversion reduce coupling?
+
+  6. Why should controllers generally remain thin?
+
+  7. When can Clean Architecture become over-engineering?
+
+  8. How does architecture reduce the cost of change?
+
+   22. Architect's Checklist
+   •
+
+LearnForge • Engineering Handbook • 2026                                                              64
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+       Can the core business rules be tested without the database?
+
+   •
+       Can the transport mechanism be changed without rewriting use cases?
+
+   •
+       Are infrastructure dependencies pointing toward stable abstractions?
+
+   •
+       Are application workflows represented explicitly?
+
+   •
+       Are business invariants protected by the domain model?
+
+   •
+       Are external data formats prevented from leaking into the domain?
+
+   •
+       Is dependency injection used where it improves testability and control?
+
+   •
+       Have unnecessary abstractions been removed?
+
+   •
+       Can the team explain the dependency direction in one diagram?
+
+   23. Final Principle
+Architecture Principle
+The purpose of Clean Architecture is not to make code look sophisticated. Its purpose is to
+protect the decisions that matter most: business rules, use cases, and system behavior.
+Frameworks, databases, transports, and vendors are important implementation details, but
+they should not own the architecture.
+
+LearnForge • Engineering Handbook • 2026                                                           65
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODEChapter 11

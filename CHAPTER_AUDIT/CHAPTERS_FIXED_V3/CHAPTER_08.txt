@@ -1,0 +1,52 @@
+CHAPTER 08
+
+distributed systems are automatically superior.
+
+What You Will Learn
+
+   • How monolithic, modular-monolithic, and microservice architectures differ structurally.
+
+   • When a modular monolith is a better choice than immediate service decomposition.
+
+   • How network boundaries introduce latency, failure, deployment, and operational costs.
+
+   • How to identify service boundaries from business capabilities rather than technical layers.
+
+   • How to migrate incrementally from a monolith without creating a distributed monolith.
+
+1. The Architectural Choice Is a Trade-off
+
+One of the most common architectural mistakes is treating “monolith” and “microservices” as
+competing technologies rather than different ways of organizing system boundaries.
+
+A monolith deploys multiple capabilities as one application unit. Microservices divide
+capabilities into independently deployable services. A modular monolith sits between these
+approaches: it can be deployed as one application while maintaining strong internal
+boundaries between business modules.
+
+LearnForge • Engineering Handbook • 2026                                                          14
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+The correct choice depends on factors such as domain complexity, team structure,
+deployment independence, reliability requirements, expected scale, organizational maturity,
+and operational capacity.
+
+Architect's Rule
+Do not introduce a network boundary merely to make a diagram look distributed. A boundary
+should solve a real organizational, deployment, scaling, reliability, or domain-isolation
+problem.
+
+2. The Traditional Monolith
+
+In a monolithic architecture, the application's major capabilities run within a common
+deployable unit. The system may contain modules for authentication, payments, catalog
+management, reporting, and other business functions, while still being deployed as one
+application.
+
+Figure 6.1 — A monolith can contain multiple business capabilities while remaining one
+deployable application.
+
+Strengths
+
+   • < cat > ~/ebook_premium/chapters/chapter-06.html <<'EOF'
+     Chapter 06

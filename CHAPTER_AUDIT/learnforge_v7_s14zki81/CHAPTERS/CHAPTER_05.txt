@@ -1,0 +1,111 @@
+CHAPTER 05
+Performance, Latency and Throughput
+
+Performance, Latency and Throughput Optimizing performance requires accurate
+measurement of response time distributions rather than arithmetic averages. WHAT YOU WILL
+LEARN • Differentiating Latency, Throughput, and Response Time. • Why averages lie:
+Understanding Percentiles (p95, p99, p99.9). • Eliminating blocking I/O operations in high-
+throughput systems.
+
+What It Means Latency is the time taken for an individual operation to complete.
+Throughput is the volume of operations completed within a specific window (e.g., requests
+per second).
+
+    The Flaw of Averages
+    Measuring average latency masks severe tail latency issues. If 99 requests take 10ms and 1
+    request takes
+    10,000ms, the average response time is ~109ms. However, 1% of your user base experiences
+    an intolerable 10second delay. Architects evaluate systems using percentiles: p50
+    (median), p95, and p99.
+    // NON-BLOCKING CONCURRENCY PATTERN (Node.js)
+    // Bad: Sequential async processing creates accumulative tail latency
+    async function processOrdersSequential(orderIds: string[]) {
+    const results = [];
+    for (const id of orderIds) {
+    // Total time = sum of all individual latencies
+    const res = await processOrder(id);
+    results.push(res);
+    }
+    return results;
+    }
+    // Good: Concurrent processing caps total time near max single request latency
+    async function processOrdersConcurrent(orderIds: string[]) {
+    // Executes requests in parallel across Event Loop cycles
+    return Promise.all(orderIds.map(id => processOrder(id)));
+    }
+
+PRODUCTION TIP
+
+Configure client timeouts and circuit breakers on all external HTTP or database calls to
+prevent tail latency cascades.
+
+LearnForge • Engineering Handbook • 2026                                                           13
+
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+KEY TAKEAWAYS
+
+• Never monitor performance using arithmetic average latency; track p95 and p99
+percentiles. • Concurrency allows bounding execution times to the slowest single operation
+instead of summing latencies. QUICK REVIEW
+
+1. Why are latency percentiles more informative than mean response times? 2. What is the
+impact of unbounded tail latencies in microservice dependency chains? ARCHITECT'S
+CHECKLIST
+
+☐ Are dashboards tracking p95 and p99 response time percentiles explicitly? ☐ Do all
+downstream network calls enforce strict timeout configurations?Chapter 06
+
+Monolith, Modular Monolith and
+Microservices
+Architecture should evolve from business and operational constraints, not from the
+assumption that distributed systems are automatically superior.
+
+What You Will Learn
+
+   • How monolithic, modular-monolithic, and microservice architectures differ structurally.
+
+   • When a modular monolith is a better choice than immediate service decomposition.
+
+   • How network boundaries introduce latency, failure, deployment, and operational costs.
+
+   • How to identify service boundaries from business capabilities rather than technical layers.
+
+   • How to migrate incrementally from a monolith without creating a distributed monolith.
+
+1. The Architectural Choice Is a Trade-off
+
+One of the most common architectural mistakes is treating “monolith” and “microservices” as
+competing technologies rather than different ways of organizing system boundaries.
+
+A monolith deploys multiple capabilities as one application unit. Microservices divide
+capabilities into independently deployable services. A modular monolith sits between these
+approaches: it can be deployed as one application while maintaining strong internal
+boundaries between business modules.
+
+LearnForge • Engineering Handbook • 2026                                                          14
+
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+The correct choice depends on factors such as domain complexity, team structure,
+deployment independence, reliability requirements, expected scale, organizational maturity,
+and operational capacity.
+
+Architect's Rule
+Do not introduce a network boundary merely to make a diagram look distributed. A boundary
+should solve a real organizational, deployment, scaling, reliability, or domain-isolation
+problem.
+
+2. The Traditional Monolith
+
+In a monolithic architecture, the application's major capabilities run within a common
+deployable unit. The system may contain modules for authentication, payments, catalog
+management, reporting, and other business functions, while still being deployed as one
+application.
+
+Figure 6.1 — A monolith can contain multiple business capabilities while remaining one
+deployable application.
+
+Strengths
+
+   • < cat > ~/ebook_premium/chapters/chapter-06.html <<'EOF'

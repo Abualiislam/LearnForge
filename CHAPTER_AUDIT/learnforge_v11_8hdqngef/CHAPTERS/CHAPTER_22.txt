@@ -1,0 +1,707 @@
+CHAPTER 22
+CI/CD & Release Architecture
+
+Continuous integration and continuous delivery are not merely automation practices. They are
+architectural capabilities that reduce deployment risk, shorten feedback loops, and make
+software delivery repeatable, observable, and reversible.
+
+What You Will Learn
+
+   • How CI/CD pipelines transform source code into safely releasable software.
+
+   • How to design reliable build, test, security, and deployment stages.
+
+   • Why artifact immutability and reproducible builds matter.
+
+   • How blue-green, rolling, and canary releases differ.
+
+   • How feature flags, rollback strategies, and progressive delivery reduce risk.
+
+   • How to design pipelines that are secure, observable, and maintainable.
+
+   1. What CI/CD Actually Means
+Continuous Integration (CI) is the practice of frequently integrating code changes into a
+shared codebase while automatically validating those changes. The purpose is to discover
+integration problems early, when they are cheaper to fix.
+
+Continuous Delivery means keeping software in a releasable state through automated build,
+test, validation, and packaging processes. Continuous Deployment goes one step further by
+automatically releasing validated changes to production.
+
+  Practice                     Primary Goal                        Typical Automation
+
+  Continuous
+                               Detect integration problems early   Builds, tests, linting, static analysis
+  Integration
+
+                                                                   Packaging, staging, deployment
+  Continuous Delivery          Keep software release-ready
+                                                                   validation
+
+  Continuous                   Release validated changes           Production deployment and
+  Deployment                   automatically                       monitoring
+
+LearnForge • Engineering Handbook • 2026                                                                     217
+
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+Architect's Rule
+A deployment pipeline should make the safe path easier than the unsafe path. If developers
+must manually perform many fragile steps to release software, the architecture is carrying
+unnecessary operational risk.
+
+   2. The Delivery Pipeline
+A mature pipeline normally moves software through a sequence of increasingly expensive
+validation stages. Cheap checks should run early, while expensive integration and
+deployment tests should run after basic failures have been eliminated.
+
+Figure 22.1 — A CI/CD pipeline progressively validates a change before and after deployment.
+
+   3. Fast Feedback
+A pipeline is valuable only if developers receive useful feedback quickly. A ten-minute pipeline
+that catches a failure immediately can be more useful than a one-hour pipeline that performs
+unnecessary work before reporting a basic syntax or unit-test failure.
+
+  Stage                              Typical Purpose                      Feedback Priority
+
+  Linting                            Style and obvious code problems      Very high
+
+  Unit tests                         Validate local behavior              Very high
+
+  Build                              Verify compilation and packaging     High
+
+  Integration tests                  Validate component interaction       Medium
+
+  End-to-end tests                   Validate critical workflows          Medium
+
+  Production validation              Verify real deployment behavior      Controlled
+
+Production Tip
+Track pipeline duration as an engineering metric. If CI becomes so slow that developers avoid
+running it, teams will naturally begin bypassing important validation.
+
+LearnForge • Engineering Handbook • 2026                                                            218
+
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+   4. Build Once, Deploy Many Times
+A strong release architecture separates building software from deploying software. The
+application should ideally be built once and the resulting artifact promoted through
+environments.
+
+Rebuilding separately for development, staging, and production can produce different binaries
+even when the source commit is identical. This makes debugging and release verification
+harder.
+
+Architect's Rule
+Prefer immutable artifacts. Build a specific commit into a versioned artifact, validate that
+artifact, and promote the same artifact between environments.
+
+    interface ReleaseArtifact {
+      version: string;
+      commitSha: string;
+      imageDigest: string;
+    }
+
+    const artifact: ReleaseArtifact = {
+      version: "2.8.0",
+      commitSha: "8f31c2a",
+      imageDigest: "sha256:abc123..."
+    };
+
+    console.log(`Promoting ${artifact.version}`);
+
+   5. Reproducible Builds
+A reproducible build is one in which the same source and build inputs produce the same
+expected artifact. Reproducibility improves trust because engineers can determine exactly
+what was built and deployed.
+
+Dependencies should be explicitly versioned. Build environments should be controlled. Hidden
+dependencies on a developer's local machine should be avoided.
+
+LearnForge • Engineering Handbook • 2026                                                          219
+
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+  Risk                            Weak Practice              Better Practice
+
+  Dependency drift                Unbounded versions         Lock files and controlled updates
+
+  Environment drift               Different build machines   Standardized build environment
+
+  Unknown artifact                Manual packaging           Automated immutable artifact
+
+  Untraceable release             Manual file copying        Commit and artifact metadata
+
+   6. Quality Gates
+A quality gate is an explicit condition that must be satisfied before a pipeline can continue.
+Quality gates prevent known problems from moving into later environments.
+
+    interface QualityGate {
+      testsPassed: boolean;
+      coverageAccepted: boolean;
+      securityScanPassed: boolean;
+      artifactCreated: boolean;
+    }
+
+    function canRelease(gate: QualityGate): boolean {
+      return (
+        gate.testsPassed &&
+        gate.coverageAccepted &&
+        gate.securityScanPassed &&
+        gate.artifactCreated
+      );
+    }
+
+Quality gates should measure meaningful risk rather than arbitrary numbers. For example, a
+coverage threshold may be useful, but coverage alone cannot prove that critical business
+behavior is correct.
+
+   7. Automated Testing in CI
+CI should run tests that provide confidence appropriate to the change. Different test levels
+serve different purposes.
+
+LearnForge • Engineering Handbook • 2026                                                             220
+
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+  Test Type                       Speed           Primary Value
+
+  Unit                            Fast            Local behavior
+
+  Integration                     Moderate        Component interaction
+
+  Contract                        Moderate        API compatibility
+
+  End-to-end                      Slow            Critical user workflows
+
+Common Mistake
+Relying entirely on end-to-end tests. A large end-to-end suite can become slow, flaky, and
+difficult to diagnose. A balanced test pyramid usually provides faster and more precise
+feedback.
+
+   8. Security in the Pipeline
+Security should not be a final manual review performed immediately before production. CI/CD
+provides repeated opportunities to identify vulnerable dependencies, leaked secrets, insecure
+configuration, and dangerous code patterns.
+
+   • Dependency scanning: identify vulnerable packages.
+
+   • Secret scanning: detect credentials committed to source.
+
+   • Static analysis: identify suspicious code patterns.
+
+   • Container scanning: inspect packaged runtime images.
+
+   • Configuration validation: detect unsafe infrastructure settings.
+
+Architect's Rule
+Do not place production credentials directly in source code or repository configuration. Secrets
+should be supplied through an appropriate secret management mechanism at runtime or
+deployment time.
+
+   9. Pipeline Security
+The CI/CD system itself is part of the production security boundary. A compromised pipeline
+can modify application artifacts, access credentials, or deploy malicious code.
+
+LearnForge • Engineering Handbook • 2026                                                           221
+
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+  Threat                   Example                                  Control
+
+                                                                    Short-lived credentials and secret
+  Credential theft         Exposed deployment token
+                                                                    management
+
+  Pipeline
+                           Unauthorized workflow change             Code review and branch protection
+  modification
+
+  Artifact tampering       Modified image                           Signing and immutable registries
+
+                           Build job has production administrator
+  Excessive privilege                                               Least privilege
+                           access
+
+   10. Environment Promotion
+Many organizations use multiple environments such as development, staging, and production.
+Each environment should have a clear purpose.
+
+  Environment                Purpose                                           Typical Users
+
+  Development                Rapid feature development                         Developers
+
+  Test                       Automated integration validation                  CI system
+
+  Staging                    Production-like verification                      Engineering and QA
+
+  Production                 Real user traffic                                 Customers
+
+The important principle is not the number of environments. The important principle is that
+each environment reduces a specific type of uncertainty. Adding environments without adding
+meaningful validation creates maintenance cost without equivalent value.
+
+   11. Database Changes During Deployment
+Database migrations are one of the most important release risks. Application code and
+database schemas do not always change at exactly the same moment.
+
+LearnForge • Engineering Handbook • 2026                                                                   222
+
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+A safer approach is to use backward-compatible migration patterns. A new schema can be
+introduced before application code begins depending on it. After the application is migrated,
+obsolete structures can be removed later.
+
+Figure 22.2 — Expand-and-contract migrations reduce incompatibility between old and new
+application versions.
+
+   12. Rolling Releases
+A rolling release gradually replaces old application instances with new instances. During the
+transition, both versions may temporarily exist.
+
+  Advantage                                  Risk
+
+  Uses existing infrastructure               Old and new versions coexist
+
+  Gradual replacement                        Rollback may require replacing instances again
+
+  No full duplicate environment required     Backward compatibility becomes important
+
+   13. Blue-Green Deployment
+Blue-green deployment maintains two production-like environments. One serves traffic while
+the other receives the new release. Traffic can then be switched between environments.
+
+Figure 22.3 — Blue-green deployment separates the active environment from the candidate
+release and enables controlled traffic switching.
+
+   14. Canary Releases
+A canary release exposes a new version to a small percentage of traffic before expanding the
+release. The production environment becomes part of the validation process, but exposure is
+deliberately limited.
+
+LearnForge • Engineering Handbook • 2026                                                           223
+
+LEARNFORGE                                                                SYSTEM ARCHITECTURE & CLEAN CODE
+
+  Stage                             Traffic         Decision
+
+  Canary                            1–5%            Check errors and latency
+
+  Expansion                         10–25%          Compare behavior
+
+  Major rollout                     50%             Validate stability
+
+  Complete                          100%            Finish release
+
+The exact percentages depend on system risk and traffic volume. A canary strategy should
+define measurable promotion and rollback criteria before the release begins.
+
+   15. Feature Flags
+Feature flags separate deployment from feature activation. Code can be deployed while a
+feature remains disabled. The feature can then be activated for selected users or
+environments.
+
+    interface FeatureContext {
+      userId: string;
+      environment: string;
+    }
+
+    function isEnabled(
+      feature: string,
+      context: FeatureContext
+    ): boolean {
+      if (feature === "new-checkout") {
+        return context.environment === "staging";
+      }
+
+        return false;
+    }
+
+Production Tip
+Feature flags create operational state. Every long-lived flag should have an owner, purpose,
+expiration plan, and removal task. Forgotten flags increase code complexity.
+
+LearnForge • Engineering Handbook • 2026                                                              224
+
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+   16. Rollback Strategy
+A release strategy is incomplete without a rollback strategy. Before deploying, the team
+should know how to stop or reverse the change.
+
+  Rollback Method                 Useful When               Important Constraint
+
+  Previous artifact               Application regression    Schema compatibility
+
+  Traffic switch                  Blue-green deployment     Both environments must work
+
+  Feature disable                 Flag-controlled feature   Feature must be isolated
+
+  Canary stop                     Progressive delivery      Monitoring must be fast
+
+Common Mistake
+Treating database rollback as identical to application rollback. Database changes may be
+irreversible or destructive. Prefer forward-compatible migration strategies and tested recovery
+procedures.
+
+   17. Deployment Verification
+Deployment success should not be defined only as "the process completed." The application
+must also behave correctly after deployment.
+
+   • Health checks succeed.
+
+   • Error rates remain within acceptable limits.
+
+   • Latency remains within service objectives.
+
+   • Critical business transactions succeed.
+
+   • Logs and metrics remain healthy.
+
+   • No unexpected resource exhaustion occurs.
+
+   18. Health Checks
+Health checks allow infrastructure and deployment systems to determine whether an
+application instance can receive traffic.
+
+LearnForge • Engineering Handbook • 2026                                                           225
+
+LEARNFORGE                                                                      SYSTEM ARCHITECTURE & CLEAN CODE
+
+    app.get("/health/live", (_req, res) => {
+      res.status(200).json({
+        status: "alive"
+      });
+    });
+
+    app.get("/health/ready", async (_req, res) => {
+      const databaseReady = await checkDatabase();
+
+       if (!databaseReady) {
+         return res.status(503).json({
+           status: "not-ready"
+         });
+       }
+
+      return res.status(200).json({
+        status: "ready"
+      });
+    });
+
+Liveness and readiness checks serve different purposes. A process can be alive while
+temporarily unable to serve traffic safely.
+
+   19. Deployment Observability
+Release systems should be observable like production applications. Engineers need to know
+which version is running and whether a deployment changed system behavior.
+
+  Signal                                   Useful Question
+
+  Deployment event                         When did the release occur?
+
+  Version metadata                         Which build is running?
+
+  Error rate                               Did failures increase?
+
+  Latency                                  Did performance regress?
+
+  Business metrics                         Did user behavior change unexpectedly?
+
+LearnForge • Engineering Handbook • 2026                                                                    226
+
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+   20. Deployment Frequency and Delivery
+   Metrics
+Delivery performance should be measured using outcomes rather than vanity metrics. Useful
+indicators include deployment frequency, lead time for changes, change failure rate, and time
+to restore service.
+
+  Metric                     Meaning                                       Why It Matters
+
+  Deployment
+                             How often changes are released                Indicates delivery flow
+  frequency
+
+                                                                           Measures feedback and delivery
+  Lead time                  Time from change to production
+                                                                           speed
+
+                             Percentage of releases causing incidents or
+  Change failure rate                                                      Measures release quality
+                             rollback
+
+  Recovery time              Time required to restore normal service       Measures resilience
+
+   21. Pipeline as Code
+Pipeline definitions should generally be version-controlled alongside application code or within
+a controlled infrastructure repository. This makes pipeline changes reviewable and
+reproducible.
+
+LearnForge • Engineering Handbook • 2026                                                                   227
+
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+    name: CI
+
+    on:
+      push:
+        branches: [main]
+      pull_request:
+
+    jobs:
+      validate:
+        runs-on: ubuntu-latest
+
+          steps:
+            - uses: checkout
+            - run: npm ci
+            - run: npm run lint
+            - run: npm test
+            - run: npm run build
+
+The exact syntax depends on the CI platform. The architectural principle is more important
+than the specific tool: the delivery process should be automated, versioned, reviewable, and
+repeatable.
+
+   22. Dependency and Artifact Caching
+Caching can dramatically reduce pipeline duration, but incorrect cache invalidation can
+produce confusing failures.
+
+  Cache                                    Benefit               Risk
+
+  Package dependencies                     Faster installs       Stale dependency data
+
+  Build outputs                            Faster compilation    Incorrect reuse
+
+  Docker layers                            Faster image builds   Unexpected stale layers
+
+Cache keys should include the inputs that determine the cached result. When inputs change,
+the cache should naturally become invalid.
+
+LearnForge • Engineering Handbook • 2026                                                            228
+
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+   23. Release Approvals
+Not every production deployment requires manual approval. The appropriate level of control
+depends on risk.
+
+  Change Type                               Suggested Control
+
+  Low-risk routine change                   Automated validation and deployment
+
+  High-risk infrastructure change           Additional review or approval
+
+  Emergency security fix                    Expedited controlled process
+
+  Destructive migration                     Explicit review and recovery plan
+
+Architect's Rule
+Do not add manual approvals simply because automation feels dangerous. Instead, automate
+evidence collection and place human approval only where human judgment genuinely adds
+value.
+
+   24. Release Management and Ownership
+A release pipeline should have clear ownership. Teams should know who owns the service,
+who receives deployment alerts, who can stop a rollout, and who is responsible for recovery.
+
+   • Service owner is documented.
+
+   • Deployment permissions follow least privilege.
+
+   • Rollback procedures are documented.
+
+   • Alerts have responsible teams.
+
+   • Production changes are traceable to source commits.
+
+   25. Disaster Recovery for Delivery Systems
+The CI/CD system itself can become a dependency. If the pipeline is unavailable during an
+incident, teams may be unable to deploy fixes.
+
+LearnForge • Engineering Handbook • 2026                                                           229
+
+LEARNFORGE                                                                    SYSTEM ARCHITECTURE & CLEAN CODE
+
+Important pipeline configuration, infrastructure definitions, and deployment credentials should
+therefore have appropriate backup and recovery strategies. The recovery process should be
+tested rather than assumed.
+
+   26. Release Anti-Patterns
+
+  Anti-Pattern                             Problem                        Better Approach
+
+  Manual production copying                Unrepeatable and error-prone   Automated artifact deployment
+
+  Build separately per environment         Artifact drift                 Build once and promote
+
+  No rollback plan                         Long incident recovery         Tested rollback strategy
+
+  All tests only after deployment          Late feedback                  Shift appropriate validation left
+
+  Permanent feature flags                  Growing code complexity        Flag ownership and cleanup
+
+   27. A Practical Release Workflow
+A practical production workflow can combine the principles discussed in this chapter into a
+controlled sequence.
+
+  1. Developer creates a small change.
+
+  2. Pull request triggers automated validation.
+
+  3. Linting and unit tests run first.
+
+  4. Build creates a versioned immutable artifact.
+
+  5. Security and integration checks validate the artifact.
+
+  6. The artifact is deployed to staging.
+
+  7. Smoke tests verify critical behavior.
+
+  8. The same artifact is promoted toward production.
+
+  9. A canary or controlled rollout begins.
+
+10. Monitoring determines whether the release continues.
+
+11. Failed releases are stopped or rolled back according to predefined rules.
+
+LearnForge • Engineering Handbook • 2026                                                                  230
+
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+   28. Key Takeaways
+   • CI/CD is an architectural capability, not simply a collection of scripts.
+
+   • Fast feedback reduces the cost of discovering integration problems.
+
+   • Build once and promote immutable artifacts whenever practical.
+
+   • Quality gates should measure meaningful risk.
+
+   • Security controls belong throughout the delivery pipeline.
+
+   • Database changes require backward-compatible deployment strategies.
+
+   • Canary, blue-green, and rolling releases provide different risk profiles.
+
+   • Every release needs a tested rollback or mitigation strategy.
+
+   • Deployment success must include post-release behavioral validation.
+
+   • Delivery pipelines themselves require security, ownership, and recovery planning.
+
+   29. Practical CI/CD Checklist
+   •
+       Are changes automatically built after integration?
+
+   •
+       Are unit and integration tests executed automatically?
+
+   •
+       Are security checks included in the pipeline?
+
+   •
+       Is the production artifact immutable and traceable?
+
+   •
+       Can the same artifact be promoted between environments?
+
+   •
+       Are database migrations backward compatible?
+
+   •
+       Is there a defined deployment strategy?
+
+   •
+       Is there a tested rollback or mitigation procedure?
+
+   •
+       Are production deployments observable?
+
+   •
+       Are deployment permissions protected by least privilege?
+
+   •
+       Are feature flags owned and eventually removed?
+
+LearnForge • Engineering Handbook • 2026                                                            231
+
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+   •
+       Can the CI/CD platform itself be recovered during an incident?
+
+   30. Quick Review
+  1. What is the difference between continuous integration, delivery, and deployment?
+
+  2. Why is building once and deploying the same artifact valuable?
+
+  3. What makes a build reproducible?
+
+  4. Why should cheap tests usually run before expensive tests?
+
+  5. What is the purpose of a quality gate?
+
+  6. How does a canary release reduce deployment risk?
+
+  7. What is the difference between rolling and blue-green deployment?
+
+  8. Why are feature flags useful?
+
+  9. Why can database migrations make rollback difficult?
+
+10. What should deployment observability measure?
+
+   31. Architect's Checklist
+   •
+       Is the delivery pipeline treated as production infrastructure?
+
+   •
+       Are all pipeline changes version-controlled and reviewed?
+
+   •
+       Are build inputs deterministic and dependencies controlled?
+
+   •
+       Are artifacts immutable, versioned, and traceable to commits?
+
+   •
+       Are deployment permissions minimized?
+
+   •
+       Are secrets kept outside source code?
+
+   •
+       Are release promotion criteria measurable?
+
+   •
+       Are canary or progressive rollout mechanisms available for high-risk services?
+
+   •
+       Can the organization rapidly stop a harmful release?
+
+   •
+
+LearnForge • Engineering Handbook • 2026                                                            232
+
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+       Has the rollback procedure been exercised rather than merely documented?
+
+   •
+       Are schema migrations compatible with mixed application versions?
+
+   •
+       Is there an owner for every production service and pipeline?
+
+   •
+       Can the delivery platform recover during a major infrastructure incident?
+
+LearnForge • Engineering Handbook • 2026                                                          233
+
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODEChapter 23

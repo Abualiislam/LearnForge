@@ -1,0 +1,730 @@
+Chapter 12
+
+DRY, KISS, YAGNI, Cohesion and
+Coupling
+Maintainable software is not created by adding more abstractions. It is created by controlling
+duplication, unnecessary complexity, premature features, and unhealthy dependencies while
+keeping related behavior together.
+
+What You Will Learn
+
+   • What DRY actually means beyond simple code duplication.
+
+   • How KISS helps engineers control accidental complexity.
+
+   • Why YAGNI protects systems from speculative features.
+
+   • How cohesion and coupling affect maintainability.
+
+   • How to recognize harmful duplication and harmful abstraction.
+
+   • How these principles work together during practical refactoring.
+
+
+
+
+   1. Why Simple Code Is Difficult
+Software becomes difficult to maintain when every change requires engineers to understand
+too many unrelated concepts. Complexity accumulates through duplicated rules, unnecessary
+abstractions, speculative features, unclear responsibilities, and excessive dependencies.
+
+DRY, KISS, and YAGNI are lightweight design principles that help control this complexity.
+Cohesion and coupling provide a deeper architectural vocabulary for understanding why some
+designs remain easy to change while others become fragile.
+
+Architect's Rule
+Prefer the simplest design that correctly represents the current business requirements while
+keeping important boundaries clear.
+
+
+
+
+   2. DRY — Don't Repeat Yourself
+DRY is commonly interpreted as “never write the same code twice.” That is too narrow. The
+deeper idea is that important knowledge should have a single authoritative representation
+when duplication would allow those representations to diverge.
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          82
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Two pieces of code can look similar while representing different business rules. In that
+situation, forcing them into one abstraction may create coupling rather than eliminate
+meaningful duplication.
+
+
+2.1 Obvious Duplication
+
+
+    function calculateRegularPrice(price: number) {
+      return price * 1.2;
+    }
+
+    function calculatePremiumPrice(price: number) {
+      return price * 1.2;
+    }
+
+
+
+
+If the 20 percent calculation represents the same business rule, maintaining it twice creates a
+risk that one implementation will eventually change while the other remains unchanged.
+
+
+2.2 Extracting Shared Knowledge
+
+
+    function addTax(price: number, taxRate = 0.2) {
+      return price * (1 + taxRate);
+    }
+
+    function calculateRegularPrice(price: number) {
+      return addTax(price);
+    }
+
+    function calculatePremiumPrice(price: number) {
+      return addTax(price);
+    }
+
+
+
+
+The shared tax rule now has one implementation. A change to the tax calculation can be
+made in one place.
+
+
+
+
+   3. Accidental Duplication vs Coincidental
+   Similarity
+Not every repeated-looking structure should be abstracted. Two functions may currently
+contain similar code because they happen to perform similar work, while their business rules
+are expected to evolve independently.
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          83
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Situation                                             Recommended Approach
+
+
+  Same business rule repeated                           Consider extracting shared logic
+
+
+  Same algorithm but different business meaning         Keep boundaries separate
+
+
+  Similar code with different future evolution          Avoid premature abstraction
+
+
+  Shared validation rule                                Centralize when consistency matters
+
+
+
+
+Common Mistake
+Treating every repeated line as a DRY violation. Removing textual duplication can create
+conceptual duplication elsewhere if the abstraction does not represent the same underlying
+knowledge.
+
+
+
+
+   4. DRY at the Architectural Level
+DRY can also apply to configuration, schemas, business policies, and operational knowledge.
+For example, maintaining multiple independent definitions of the same API contract can cause
+clients and servers to drift apart.
+
+
+
+    type UserStatus =
+      | "active"
+      | "suspended"
+      | "deleted";
+
+    interface User {
+      id: string;
+      status: UserStatus;
+    }
+
+
+
+
+The important principle is not simply “one file.” It is that the authoritative meaning of a
+concept should be clear and unnecessary competing definitions should be avoided.
+
+
+
+
+   5. KISS — Keep It Simple
+KISS encourages engineers to prefer understandable solutions over unnecessarily complicated
+ones. Simplicity does not mean ignoring real requirements. It means avoiding complexity that
+does not produce useful business or technical value.
+
+
+
+LearnForge • Engineering Handbook • 2026                                                            84
+LEARNFORGE                                                                      SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Simple Design                            Overengineered Design
+
+
+  Direct function call                     Multiple unnecessary abstraction layers
+
+
+  One clear data structure                 Several wrappers with little value
+
+
+  Simple validation                        Generic framework for one use case
+
+
+  Explicit control flow                    Metaprogramming without clear need
+
+
+
+
+5.1 Example
+
+
+    function isAdult(age: number): boolean {
+      return age >= 18;
+    }
+
+
+
+
+For a simple rule, a direct function is often clearer than introducing a policy engine, factory,
+registry, and configuration framework.
+
+Architect's Rule
+Complexity should have a reason. If an abstraction cannot be explained in terms of a real
+requirement, architectural boundary, or recurring variation, question whether it belongs in the
+system.
+
+
+
+
+   6. Essential vs Accidental Complexity
+Essential complexity comes from the problem itself. If a payment system must support
+refunds, fraud checks, currency conversion, and regulatory rules, those requirements create
+unavoidable complexity.
+
+Accidental complexity comes from the way the solution is implemented. Unnecessary
+frameworks, duplicated transformations, excessive indirection, and unclear dependencies can
+make a system harder than the underlying business problem requires.
+
+Figure 12.1 — Good engineering cannot remove essential complexity, but it can reduce
+accidental complexity.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                     85
+LEARNFORGE                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   7. YAGNI — You Aren't Gonna Need It
+YAGNI advises developers not to implement functionality simply because it might be needed
+in the future. Future requirements are uncertain, and premature features consume
+development time while increasing maintenance cost.
+
+
+7.1 Speculative Design
+
+
+    class UserService {
+      createUser(user: User) {
+        // current requirement
+      }
+
+        // Future features that have no current requirement:
+        // importFromLegacySystem()
+        // exportToTwentyDifferentFormats()
+        // syncWithUnknownPartner()
+    }
+
+
+
+
+Building unused functionality creates code that must be tested, documented, secured, and
+maintained even though it provides no current value.
+
+
+7.2 Better Approach
+
+
+    class UserService {
+      createUser(user: User) {
+        // Implement the requirement that exists today.
+      }
+    }
+
+
+
+
+When a real requirement appears, the system can be extended based on actual constraints
+rather than assumptions.
+
+Production Tip
+Design for change, but do not implement imaginary requirements. Stable boundaries are
+useful; speculative features are usually not.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                       86
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   8. The Relationship Between KISS and YAGNI
+KISS and YAGNI reinforce each other. KISS asks whether the current solution is more
+complicated than necessary. YAGNI asks whether functionality exists only because someone
+predicts that it may be needed later.
+
+
+
+  Question                                                                                  Principle
+
+
+  Is the implementation more complicated than necessary?                                    KISS
+
+
+  Are we building a feature without a current requirement?                                  YAGNI
+
+
+  Are we maintaining the same knowledge in multiple places?                                 DRY
+
+
+
+
+   9. Cohesion
+Cohesion describes how strongly the responsibilities within a module belong together. High
+cohesion generally means that the elements of a module contribute to one focused purpose.
+
+A highly cohesive module is easier to understand because engineers can reason about related
+behavior without navigating through unrelated functionality.
+
+
+
+  High Cohesion                                  Low Cohesion
+
+
+  Payment module owns payment rules               Payment module also generates reports
+
+
+  User module manages identity behavior           User module sends unrelated marketing campaigns
+
+
+  Notification module manages delivery            Notification module modifies billing records
+
+
+
+
+   10. Coupling
+Coupling describes the degree to which one component depends on another. Some coupling is
+unavoidable, but excessive or unstable coupling makes changes more expensive.
+
+The goal is not zero coupling. A useful system requires components to communicate. The goal
+is controlled coupling with clear ownership and stable contracts.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                    87
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Figure 12.2 — High cohesion groups related responsibilities; excessive coupling allows
+changes to propagate unnecessarily.
+
+
+
+
+   11. Cohesion and Coupling Work Together
+A common design goal is high cohesion with appropriately low coupling. Related
+responsibilities should live together, while unrelated modules should communicate through
+explicit and stable boundaries.
+
+
+
+    interface PaymentGateway {
+      charge(amount: number): Promise;
+    }
+
+    class CheckoutService {
+      constructor(
+        private readonly payment: PaymentGateway
+      ) {}
+
+        async execute(amount: number) {
+          await this.payment.charge(amount);
+        }
+    }
+
+
+
+
+Checkout behavior is cohesive, while the concrete payment implementation is kept behind a
+narrow dependency.
+
+
+
+
+   12. The Cost of High Coupling
+When components are tightly coupled, a small change can create a large testing and
+deployment surface.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                         88
+LEARNFORGE                                                                SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Coupling Problem                              Typical Consequence
+
+
+  Shared mutable state                          Unexpected side effects
+
+
+  Shared database assumptions                   Hard-to-coordinate changes
+
+
+  Large interfaces                              Unnecessary implementation changes
+
+
+  Direct infrastructure dependencies            Difficult testing
+
+
+  Circular dependencies                         Hard-to-understand architecture
+
+
+
+
+   13. Circular Dependencies
+Circular dependencies occur when modules depend on one another in a cycle. They can make
+initialization, testing, deployment, and reasoning about ownership significantly harder.
+
+
+
+    class OrderService {
+      constructor(
+        private readonly paymentService: PaymentService
+      ) {}
+    }
+
+    class PaymentService {
+      constructor(
+        private readonly orderService: OrderService
+      ) {}
+    }
+
+
+
+
+A better design often introduces a higher-level workflow or event boundary so that neither
+module must directly own the other.
+
+
+
+
+   14. Refactoring Toward Better Boundaries
+  1. Identify modules that change together frequently.
+
+  2. Identify modules that should change independently.
+
+  3. Move strongly related behavior closer together.
+
+  4. Remove dependencies that cross unrelated responsibilities.
+
+  5. Replace direct infrastructure dependencies with stable contracts where justified.
+
+
+LearnForge • Engineering Handbook • 2026                                                               89
+LEARNFORGE                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  6. Break cycles before introducing more abstractions.
+
+  7. Verify behavior with automated tests.
+
+
+
+
+   15. Practical Refactoring Example
+
+    class OrderManager {
+      createOrder(order: Order) {
+        // database logic
+        // payment logic
+        // email logic
+        // invoice generation
+        // analytics logic
+      }
+    }
+
+
+
+
+This design has low cohesion because many responsibilities are concentrated in one
+component.
+
+
+
+    class OrderService {
+      constructor(
+        private readonly orders: OrderRepository,
+        private readonly payments: PaymentGateway,
+        private readonly notifications: NotificationService
+      ) {}
+
+        async createOrder(input: CreateOrderInput) {
+          const order = await this.orders.create(input);
+
+            await this.payments.charge(
+              order.total,
+              order.paymentReference
+            );
+
+            await this.notifications.sendConfirmation(order);
+
+            return order;
+        }
+    }
+
+
+
+
+The second design gives the workflow explicit dependencies and allows each infrastructure
+concern to evolve independently.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                       90
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   16. DRY Does Not Mean Centralize Everything
+Over-centralization can create a single module that becomes a dependency for large parts of
+the application. Such a module may technically remove duplication while increasing coupling.
+
+Common Mistake
+Creating a universal utility module that contains unrelated business rules, formatters,
+validators, database helpers, and API functions. This often becomes a hidden dependency
+hub.
+
+
+
+
+   17. KISS Does Not Mean Ignoring Architecture
+Simple code does not mean putting the entire application into one file or removing every
+abstraction. A sufficiently large system needs boundaries. The KISS principle asks whether
+those boundaries are justified and understandable.
+
+A modular architecture can therefore be simple even when the system itself is large.
+
+
+
+
+   18. YAGNI and Future-Proofing
+There is an important distinction between future-proofing and speculative implementation.
+
+
+
+  Future-Proofing                                         Speculative Implementation
+
+
+  Clear interface at a real boundary                      Framework for hypothetical features
+
+
+  Configuration instead of hard-coded deployment values   Dozens of unused configuration options
+
+
+  Modular structure                                       Unused plugin architecture
+
+
+  Automated tests                                         Unused feature implementations
+
+
+
+
+   19. A Unified Design Model
+Figure 12.3 — DRY, KISS, and YAGNI help guide implementation choices while cohesion and
+coupling describe the resulting structural quality.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                            91
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   20. Practical Decision Framework
+
+  Question                                                      Preferred Direction
+
+
+  Is the same business knowledge duplicated?                    Consider DRY refactoring
+
+
+  Is the solution harder than the requirement?                  Apply KISS
+
+
+  Is functionality unsupported by a real requirement?           Apply YAGNI
+
+
+  Are unrelated responsibilities mixed together?                Increase cohesion
+
+
+  Do changes propagate unnecessarily?                           Reduce coupling
+
+
+
+
+   21. Practical Checklist
+   •
+       Is important business knowledge represented in one authoritative place?
+
+   •
+       Have accidental duplication and conceptual duplication been distinguished?
+
+   •
+       Is the implementation as simple as the requirements allow?
+
+   •
+       Are speculative features being avoided?
+
+   •
+       Are related responsibilities grouped together?
+
+   •
+       Are unrelated responsibilities separated?
+
+   •
+       Are dependencies explicit and understandable?
+
+   •
+       Are circular dependencies avoided?
+
+   •
+       Can modules evolve independently where appropriate?
+
+   •
+       Have abstractions been justified by real value?
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          92
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   22. Review Questions
+  1. What does DRY mean beyond avoiding repeated lines of code?
+
+  2. When can removing duplication increase coupling?
+
+  3. What is accidental complexity?
+
+  4. How does KISS differ from simply writing less code?
+
+  5. What problem does YAGNI address?
+
+  6. What is high cohesion?
+
+  7. Why is zero coupling not a realistic goal?
+
+  8. What problems can circular dependencies create?
+
+  9. How can excessive abstraction violate KISS?
+
+10. How should an engineer decide whether to extract shared logic?
+
+
+
+
+   23. Key Takeaways
+   • DRY is about avoiding duplicated knowledge, not eliminating every similar line of code.
+
+   • KISS encourages solutions whose complexity is justified by real requirements.
+
+   • YAGNI protects teams from implementing uncertain future features prematurely.
+
+   • High cohesion keeps related responsibilities together.
+
+   • Controlled coupling prevents unnecessary change propagation.
+
+   • Good design balances reuse with independence.
+
+   • Abstractions should solve real problems rather than satisfy principles mechanically.
+
+   • Simple, focused modules are easier to test, understand, and evolve.
+
+
+
+
+   24. Architect's Final Checklist
+   •
+       Does every shared abstraction represent shared knowledge?
+
+   •
+       Could this abstraction create more coupling than it removes?
+
+   •
+       Is every major feature supported by a real requirement?
+
+   •
+       Is accidental complexity being actively reduced?
+
+   •
+
+LearnForge • Engineering Handbook • 2026                                                           93
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+       Are module responsibilities coherent?
+
+   •
+       Are dependencies crossing boundaries for a clear reason?
+
+   •
+       Can a new engineer understand the structure without excessive explanation?
+
+   •
+       Does the design remain simple without sacrificing necessary architecture?
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                          94
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE

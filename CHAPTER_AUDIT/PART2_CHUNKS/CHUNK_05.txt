@@ -1,0 +1,697 @@
+await tx.insert("order_items", {
+           order_id: order.id,
+           product_id: order.productId,
+           quantity: order.quantity
+         });
+
+return order;
+        });
+    }
+
+The transaction boundary should match the business operation being protected. It should not
+be made unnecessarily large because long transactions can hold locks and consume database
+resources.
+
+9. Isolation Levels
+Concurrent transactions can observe or interfere with each other in different ways. Database
+systems therefore provide isolation levels that balance correctness, concurrency, and
+performance.
+
+LearnForge • Engineering Handbook • 2026                                                                       127
+LEARNFORGE                                                                         SYSTEM ARCHITECTURE & CLEAN CODE
+
+Isolation Level                General Idea
+
+Read Uncommitted               Allows the weakest visibility guarantees.
+
+Read Committed                 Prevents reading data that has not been committed.
+
+Repeatable Read                Provides stronger repeatability for reads within a transaction.
+
+Serializable                   Provides the strongest isolation at higher concurrency cost.
+
+The exact behavior varies between database engines. Architects should consult the
+documentation of the selected database rather than assuming that names alone imply
+identical behavior.
+
+10. Indexes
+Indexes allow databases to locate rows more efficiently for supported query patterns. They
+can dramatically improve read performance but consume storage and add work to inserts,
+updates, and deletes.
+
+CREATE INDEX idx_orders_customer_created
+    ON orders(customer_id, created_at);
+
+A composite index should reflect actual query patterns. The order of indexed columns matters
+because the database optimizer may only be able to efficiently use certain prefixes of the
+index.
+
+11. Query Performance
+Performance tuning should begin with evidence. Slow-query logs, execution plans, latency
+metrics, and production workload measurements are more useful than guessing.
+
+LearnForge • Engineering Handbook • 2026                                                                       128
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+Signal                         Possible Cause                     Investigation
+
+High query latency             Missing or ineffective index       Inspect execution plan
+
+High CPU                       Expensive queries                  Profile query workload
+
+Lock contention                Long or conflicting transactions   Inspect locks and transaction duration
+
+Connection exhaustion          Too many concurrent clients        Review pooling and concurrency
+
+12. Connection Pooling
+Opening a new database connection for every request can create unnecessary overhead.
+Connection pools maintain a controlled number of reusable connections.
+
+const pool = new Pool({
+      max: 20,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 2_000
+    });
+
+Pool size should be based on database capacity, workload, query duration, application
+concurrency, and the number of application instances. More connections do not automatically
+produce more throughput.
+
+13. Read Replicas
+Read replicas allow some read workloads to be served from copies of the primary database.
+This can reduce pressure on the primary and improve read scalability.
+
+Figure 15.2 — Replication can distribute read workloads while preserving a designated write
+authority.
+
+14. Replication Lag
+Read replicas may not contain the newest committed data immediately. This creates
+replication lag and therefore possible stale reads.
+
+LearnForge • Engineering Handbook • 2026                                                                     129
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+Production Tip
+Do not send every read to replicas automatically. User flows that require read-after-write
+consistency may need to read from the primary or use another consistency mechanism.
+
+15. Caching
+Caching stores frequently accessed data closer to the application or user. A cache can reduce
+database load and latency, but introduces another copy of data that must eventually become
+invalid or expire.
+
+async function getProduct(id: string) {
+      const cached = await cache.get(`product:${id}`);
+
+if (cached) {
+          return JSON.parse(cached);
+        }
+
+const product = await db.query(
+           "SELECT * FROM products WHERE id = $1",
+          [id]
+        );
+
+await cache.set(
+           `product:${id}`,
+           JSON.stringify(product),
+          { ttl: 300 }
+        );
+
+return product;
+    }
+
+The central cache question is not only how to store data. It is how and when cached data
+becomes invalid.
+
+LearnForge • Engineering Handbook • 2026                                                         130
+LEARNFORGE                                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+16. Cache Invalidation
+
+Strategy                      Advantage                               Risk
+
+TTL                           Simple automatic expiration             Data may remain stale
+
+Explicit invalidation         Faster freshness after changes          More application complexity
+
+Write-through                 Cache updated with writes               Additional write path complexity
+
+Cache-aside                   Simple and widely applicable            Requires careful invalidation
+
+17. Partitioning
+Partitioning divides a large dataset into smaller logical or physical partitions. The goal may be
+improved scalability, maintenance, or query performance.
+
+A partition key should distribute workload effectively. A poor key can create hot partitions
+where a disproportionate amount of traffic reaches one partition.
+
+Architect's Rule
+Choose partition keys using real access patterns. A technically valid key that concentrates
+traffic can become a scalability bottleneck.
+
+18. Sharding
+Sharding distributes data across independent database nodes. It can provide horizontal
+capacity beyond a single database instance, but it also makes operations, queries,
+transactions, and migrations more complicated.
+
+Benefit                                           Trade-off
+
+Horizontal capacity                                More operational complexity
+
+Distributed storage                                Cross-shard queries become harder
+
+Potential workload isolation                       Rebalancing can be difficult
+
+LearnForge • Engineering Handbook • 2026                                                                        131
+LEARNFORGE                                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+19. Database per Service
+In a microservice architecture, database ownership should normally follow service ownership.
+This does not necessarily mean every service needs a different database technology. It means
+that one service should not casually modify another service's internal tables.
+
+Common Mistake
+Sharing database tables across independent services. This creates hidden coupling because
+schema changes become coordination requirements across teams.
+
+20. Schema Migrations
+Database schemas evolve continuously. Production migrations should be backward-
+compatible whenever old and new application versions may coexist.
+
+ALTER TABLE users
+    ADD COLUMN display_name VARCHAR(120);
+
+UPDATE users
+    SET display_name = name
+    WHERE display_name IS NULL;
+
+A safer deployment may add the new field first, deploy code that can work with both
+schemas, backfill data, and only later remove obsolete structures.
+
+21. Expand and Contract
+
+Phase               Action
+
+Expand              Add new schema structures without breaking old code.
+
+Migrate             Move or backfill existing data.
+
+Switch              Deploy application code using the new structure.
+
+Contract            Remove obsolete structures after they are no longer used.
+
+LearnForge • Engineering Handbook • 2026                                                                      132
+LEARNFORGE                                                                     SYSTEM ARCHITECTURE & CLEAN CODE
+
+22. Backups and Recovery
+A backup strategy is incomplete if restoration has never been tested. Organizations need to
+understand how much data they can afford to lose and how quickly service must be restored.
+
+Concept                         Question
+
+RPO                             How much recent data loss is acceptable?
+
+RTO                             How quickly must service be restored?
+
+Backup retention                How long must recoverable copies remain available?
+
+Restore testing                 Can the team actually recover the system?
+
+23. Database Security
+Database security begins with least privilege. Applications should receive only the
+permissions they require. Credentials should be managed through appropriate secret-
+management mechanisms rather than embedded in source code.
+
+const databaseConfig = {
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME
+    };
+
+Encryption in transit, encryption at rest, auditing, access controls, credential rotation, and
+network isolation should be evaluated according to the sensitivity and regulatory
+requirements of the data.
+
+24. Database Observability
+   • Latency: how long queries and transactions take.
+
+• Throughput: how much work the database processes.
+
+• Error rate: how frequently operations fail.
+
+LearnForge • Engineering Handbook • 2026                                                                   133
+LEARNFORGE                                                                       SYSTEM ARCHITECTURE & CLEAN CODE
+
+• Connections: whether connection pools are exhausted.
+
+• Locks: whether transactions are blocking one another.
+
+• Storage: whether capacity is approaching limits.
+
+25. Practical Database Decision Framework
+
+Question                                          Architectural Direction
+
+Are strong relationships and transactions
+                                                    Prefer a relational model.
+  central?
+
+Are access patterns primarily key-based?          Evaluate key-value storage.
+
+Is flexible document structure important?         Evaluate document storage.
+
+Is read traffic much larger than write traffic?   Consider replicas and caching.
+
+Is one database reaching capacity?                Measure first, then evaluate partitioning or sharding.
+
+Invest in automated migrations and compatibility
+  Are schema changes frequent?
+                                                    practices.
+
+26. Database Architecture Checklist
+   •
+       Is the data model aligned with business concepts?
+
+•
+       Are integrity constraints enforced appropriately?
+
+•
+       Are transaction boundaries clearly defined?
+
+•
+       Are important queries supported by appropriate indexes?
+
+•
+       Is connection pooling configured according to measured capacity?
+
+•
+       Are replica consistency characteristics understood?
+
+•
+       Is cache invalidation behavior documented?
+
+•
+
+LearnForge • Engineering Handbook • 2026                                                                     134
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+Are partition keys based on actual access patterns?
+
+•
+       Is database ownership clear between services?
+
+•
+       Are migrations backward-compatible where required?
+
+•
+       Are backups regularly tested through restoration?
+
+•
+       Are RPO and RTO requirements defined?
+
+•
+       Is database access protected by least privilege?
+
+•
+       Are database latency, errors, locks, and capacity monitored?
+
+27. Key Takeaways
+   • Database architecture is a business and systems-design decision, not merely a
+       technology choice.
+
+• Relational databases remain powerful when relationships, integrity, and transactions
+       matter.
+
+• NoSQL databases are useful when their data models match the workload.
+
+• Indexes improve reads but add storage and write costs.
+
+• Replication improves scalability but can introduce stale reads.
+
+• Caching reduces latency and database load but creates invalidation complexity.
+
+• Partitioning and sharding can increase capacity while increasing operational complexity.
+
+• Database ownership should be explicit in service-oriented architectures.
+
+• Backups are valuable only when restoration is reliable and tested.
+
+• Security, observability, migrations, and recovery are part of database architecture.
+
+28. Quick Review
+  1. When is a relational database usually a strong architectural choice?
+
+2. What trade-offs are introduced by indexes?
+
+3. Why are transaction boundaries important?
+
+4. What problem does connection pooling solve?
+
+LearnForge • Engineering Handbook • 2026                                                           135
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+5. Why can read replicas produce stale data?
+
+6. What makes cache invalidation difficult?
+
+7. When should partitioning or sharding be considered?
+
+8. Why should services avoid directly modifying another service's tables?
+
+9. What are RPO and RTO?
+
+10. Why must database restoration be tested?
+
+29. Architect's Final Checklist
+   •
+       Have database requirements been derived from actual business workflows?
+
+•
+       Are consistency requirements explicitly documented?
+
+•
+       Are critical queries measured under realistic workload?
+
+•
+       Are indexes reviewed using execution plans?
+
+•
+       Are transactions bounded and observable?
+
+•
+       Are replication and failover behaviors understood?
+
+•
+       Are cache failure and invalidation scenarios designed?
+
+•
+       Are migrations tested before production deployment?
+
+•
+       Are backup restoration procedures automated or regularly rehearsed?
+
+•
+       Can the team explain how the database behaves during partial failure?
+
+LearnForge • Engineering Handbook • 2026                                                        136
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODEChapter 16
+
+Security Architecture
+Secure architecture is not a collection of isolated security features. It is a system-wide
+discipline that reduces attack surface, protects identities and data, limits the impact of
+compromise, and makes security behavior explicit across every architectural boundary.
+
+What You Will Learn
+
+• How to design security as an architectural concern rather than an afterthought.
+
+• The difference between authentication, authorization, and accountability.
+
+• How sessions, tokens, OAuth, and service identities work together.
+
+• How to protect APIs, secrets, data, and service-to-service communication.
+
+• How threat modeling and defense-in-depth reduce architectural risk.
+
+• How to design security controls that remain practical in production.
+
+1. Security Is an Architectural Concern
+Security cannot be added successfully at the end of a system's development. Architectural
+decisions determine where trust exists, how data moves, which components can access
+sensitive resources, and how much damage can occur after a compromise.
+
+A secure architecture therefore considers security at the same level as performance,
+reliability, maintainability, and scalability. Every boundary between users, applications,
+services, databases, networks, and external providers should have an explicit security model.
+
+Architect's Rule
+Never define a security boundary implicitly. Every important boundary should clearly define
+who is trusted, what is allowed, what is protected, and what happens when authorization fails.
+
+2. The Security Objectives
+A useful starting point is to identify what the architecture is trying to protect. Traditional
+security design commonly focuses on confidentiality, integrity, and availability.
+
+LearnForge • Engineering Handbook • 2026                                                            137
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+Objective           Meaning                             Example
+
+Prevent unauthorized access to      Protect user records from unauthorized
+  Confidentiality
+                      information                         users
+
+Integrity           Prevent unauthorized modification   Prevent alteration of payment records
+
+Availability        Keep important systems usable       Protect APIs against resource exhaustion
+
+Accountability      Determine who performed an action   Audit administrative changes
+
+3. Authentication vs Authorization
+Authentication answers the question: "Who are you?" Authorization answers a different
+question: "What are you allowed to do?"
+
+Confusing these responsibilities creates security vulnerabilities. A valid identity does not
+automatically have permission to access every resource.
+
+Figure 16.1 — Authentication establishes identity; authorization determines what that identity
+is permitted to access.
+
+4. Least Privilege
+Least privilege means granting an identity only the permissions required to perform its
+legitimate responsibilities.
+
+A database account used by a reporting service should not automatically have permission to
+delete production data. Likewise, an API endpoint should not return administrative information
+merely because the caller is authenticated.
+
+LearnForge • Engineering Handbook • 2026                                                             138
+LEARNFORGE                                                                  SYSTEM ARCHITECTURE & CLEAN CODE
+
+Identity                    Required Permission               Unnecessary Permission
+
+Read-only analyst           Read reports                      Modify production data
+
+Payment service             Create and query payments         Manage user credentials
+
+Notification worker         Read notification jobs            Delete customer accounts
+
+Administrator               Explicit administrative actions   Unrestricted access without auditing
+
+Production Tip
+Review permissions periodically. Permissions that were appropriate six months ago may no
+longer be necessary after the system evolves.
+
+5. Password Security
+Passwords should never be stored as plaintext. Applications should use a password hashing
+algorithm designed specifically for password storage, with appropriate work factors and
+unique salts.
+
+The application should also avoid exposing password-related information in logs, error
+messages, analytics, or monitoring systems.
+
+import argon2 from "argon2";
+
+async function hashPassword(password: string) {
+      return argon2.hash(password);
+    }
+
+async function verifyPassword(
+      password: string,
+      storedHash: string
+    ) {
+      return argon2.verify(storedHash, password);
+    }
+
+Common Mistake
+Using a fast general-purpose hash such as a basic SHA-256 digest directly for password
+storage. Password hashing should be intentionally expensive and should use a dedicated
+password-hashing algorithm.
+
+LearnForge • Engineering Handbook • 2026                                                                139
+LEARNFORGE                                                                       SYSTEM ARCHITECTURE & CLEAN CODE
+
+6. Session-Based Authentication
+In session-based authentication, the server maintains authentication state and gives the
+client a session identifier. The identifier should be protected using secure cookie settings.
+
+Cookie Attribute                     Purpose
+
+Secure                               Send the cookie only over HTTPS
+
+HttpOnly                             Reduce direct JavaScript access to the cookie
+
+SameSite                             Reduce cross-site request risks
+
+res.cookie("session", sessionId, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      maxAge: 1000 * 60 * 60
+    });
+
+7. Token-Based Authentication
+Token-based authentication allows a client to present a signed credential with subsequent
+requests. JSON Web Tokens are one common implementation, although tokens are not
+automatically more secure than server-side sessions.
+
+The architecture should define token lifetime, issuer, audience, signing algorithm, revocation
+behavior, and the permissions represented by the token.
+
+interface AccessTokenClaims {
+      sub: string;
+      aud: string;
+      iss: string;
+      exp: number;
+      scope: string[];
+    }
+
+Architect's Rule
+
+LearnForge • Engineering Handbook • 2026                                                                     140
+LEARNFORGE                                                                    SYSTEM ARCHITECTURE & CLEAN CODE
+
+Treat access tokens as credentials. Do not place secrets or unnecessary sensitive information
+inside them, and keep their lifetime appropriate for the risk of the operation.
+
+8. OAuth and Delegated Authorization
+OAuth allows an application to obtain delegated access to resources without requiring the
+application to receive the user's primary credentials.
+
+The important architectural idea is separation of identity, authorization, and resource
+ownership. Modern deployments should use well-defined flows appropriate to the client type
+rather than inventing custom authentication protocols.
+
+Component                                Responsibility
+
+Resource Owner                           Controls the protected resource
+
+Client                                   Requests delegated access
+
+Authorization Server                     Issues authorization credentials
+
+Resource Server                          Protects the requested resource
+
+9. Role-Based Access Control
+Role-Based Access Control, or RBAC, assigns permissions through roles. Instead of granting
+every user individual permissions, the architecture defines roles such as administrator,
+instructor, analyst, or student.
+
+type Role =
+      | "student"
+      | "instructor"
+      | "admin";
+
+const permissions: Record<Role, string[]> = {
+      student: ["course:read"],
+      instructor: ["course:read", "course:write"],
+      admin: ["course:read", "course:write", "user:manage"]
+    };
+
+LearnForge • Engineering Handbook • 2026                                                                  141
+LEARNFORGE                                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+10. Attribute-Based Authorization
+RBAC can become difficult when authorization depends on resource ownership, organization
+membership, location, risk level, or other attributes. Attribute-Based Access Control evaluates
+these properties directly.
+
+Attribute                  Example Rule
+
+User identity              User may access their own profile
+
+Organization               Employee may access resources belonging to their organization
+
+Resource owner             Owner may edit the resource
+
+Risk level                 Sensitive operation requires stronger verification
+
+11. API Security
+APIs should assume that every request may be malicious or malformed. Authentication,
+authorization, validation, rate limiting, logging, and safe error handling should be
+implemented at appropriate boundaries.
+
+Control                                  Purpose
+
+Authentication                           Identify the caller
+
+Authorization                            Enforce permissions
+
+Validation                               Reject malformed input
+
+Rate limiting                            Control abusive traffic
+
+Audit logging                            Record important security events
+
+Safe errors                              Avoid leaking internal information
+
+LearnForge • Engineering Handbook • 2026                                                                      142
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+12. Input Validation
+Input validation should happen at trust boundaries. Never assume that data from browsers,
+mobile applications, external APIs, message queues, or other services is automatically
+trustworthy.
+
+interface CreateUserInput {
+      email: string;
+      displayName: string;
+    }
+
+function validateCreateUser(input: unknown): CreateUserInput {
+      if (
+        typeof input !== "object" ||
+        input === null ||
+        typeof (input as any).email !== "string" ||
+        typeof (input as any).displayName !== "string"
+      ) {
+        throw new Error("Invalid request");
+      }
+
+return input as CreateUserInput;
+    }
+
+Validation should also enforce business constraints such as maximum lengths, allowed values,
+numeric ranges, and required relationships between fields.
+
+13. SQL Injection and Parameterized Queries
+Applications should never construct SQL queries by directly concatenating untrusted input.
+Parameterized queries separate SQL structure from values.
+
+const result = await db.query(
+       "SELECT id, email FROM users WHERE email = $1",
+      [email]
+    );
+
+Common Mistake
+Assuming that frontend validation is sufficient. Client-side validation improves user
+experience but cannot replace server-side validation.
+
+LearnForge • Engineering Handbook • 2026                                                         143
+LEARNFORGE                                                                 SYSTEM ARCHITECTURE & CLEAN CODE
+
+14. Secrets Management
+API keys, database passwords, signing keys, and service credentials should not be embedded
+directly into source code or committed to version control.
+
+Production systems should use a dedicated secrets-management mechanism or a secure
+environment configuration strategy appropriate to the deployment platform.
+
+Secret                       Unsafe Practice               Better Practice
+
+Database password            Hard-coded in repository      Managed secret configuration
+
+API key                      Committed to source control   Secret store or protected environment
+
+Signing key                  Shared in chat messages       Controlled key management
+
+15. Encryption in Transit
+Sensitive communication should be protected in transit. HTTPS and modern TLS
+configurations prevent intermediaries from trivially reading or modifying traffic.
+
+Encryption in transit should cover external client connections and, where appropriate, internal
+service-to-service communication.
+
+Figure 16.2 — Encryption in transit protects communication across architectural boundaries.

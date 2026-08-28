@@ -1,0 +1,65 @@
+CHAPTER 04
+Scalability
+
+Scalability Scalability is the structural ability of a system to handle increased load by adding
+resources, without breaking performance guarantees. WHAT YOU WILL LEARN • Vertical vs.
+Horizontal scaling trade-offs. • State management in horizontally scaled app tiers. • Database
+scale-out patterns: Read replicas vs. Sharding.
+
+What It Means A system is scalable if adding hardware resources linearly increases its
+capacity to process load. **Vertical scaling (scaling up) means adding CPU/RAM to a
+single node. Horizontal scaling** (scaling out) means adding more distinct compute nodes to
+a pool.
+
+Load Balancer
+
+API Node 1
+
+API Node 2
+
+API Node 3
+
+Stateless Application Tier To enable horizontal scaling at the API level, application nodes must
+be completely stateless. Session states must be offloaded to distributed data stores like Redis.
+
+    // STATEFUL ANTI-PATTERN (Blocks Horizontal Scaling)
+    const activeSessions = new Map<string, UserSession>(); // In-memory local state!
+    app.post('/login', (req, res) => {
+    // Session locked to this specific node process instance
+    activeSessions.set(sessionToken, user);
+    });
+    // STATELESS ARCHITECTURAL PATTERN (Enables Horizontal Scaling)
+    import { createClient } from 'redis';
+    const redis = createClient({ url: process.env.REDIS_URL });
+    app.post('/login', async (req, res) => {
+    // Shared state offloaded to centralized cache accessible by all nodes
+    await redis.set(`session:${sessionToken}`, JSON.stringify(user), { EX: 86400 });
+    });
+
+ARCHITECT'S RULE
+
+LearnForge • Engineering Handbook • 2026                                                           11
+
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+Never hold mutable operational state in node application memory if you intend to scale
+horizontally.
+
+KEY TAKEAWAYS
+
+• Horizontal scaling requires stateless application layers. • Database scaling is significantly
+harder than compute scaling; use read-replicas before introducing sharding complexity. QUICK
+REVIEW
+
+1. Why does in-memory local session storage break horizontal autoscaling? 2. What is the
+primary constraint of vertical scaling? ARCHITECT'S CHECKLIST
+
+☐ Is the API/Application service tier completely stateless? ☐ Are session tokens validated via
+stateless JWTs or backed by a shared Redis cluster?
+
+LearnForge • Engineering Handbook • 2026                                                           12
+
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODECHAPTER 05
+
+Performance, Latency and
+Throughput

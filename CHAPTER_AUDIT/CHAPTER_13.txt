@@ -1,0 +1,841 @@
+Chapter 13
+
+API Architecture
+A well-designed API is a stable contract between software components. Good API architecture
+makes systems easier to integrate, evolve, secure, test, observe, and operate without forcing
+clients to understand internal implementation details.
+
+What You Will Learn
+
+   • How to design APIs around business resources and capabilities.
+
+   • How HTTP methods and status codes communicate API behavior.
+
+   • How to design consistent request, response, and error contracts.
+
+   • How versioning protects clients while APIs evolve.
+
+   • How pagination, filtering, sorting, and rate limiting improve API usability.
+
+   • How authentication, authorization, validation, and idempotency fit into API architecture.
+
+   • How observability and documentation make APIs production-ready.
+
+
+
+
+   1. What Is an API?
+An Application Programming Interface (API) is a defined contract through which one software
+component communicates with another. The contract describes what can be requested, what
+data must be supplied, what response will be returned, and how errors are represented.
+
+An API should hide unnecessary implementation details. A client should not need to know how
+a service stores its data internally or which framework implements the server.
+
+Architect's Rule
+Design the API around the consumer's required business capabilities, not around the internal
+structure of your database or classes.
+
+
+
+
+   2. API as a Contract
+The most important property of a production API is predictability. Clients should be able to rely
+on stable names, data types, semantics, error formats, and documented behavior.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                            95
+LEARNFORGE                                                                         SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Contract Element            Example                                Why It Matters
+
+
+  Endpoint                    GET /courses/123                       Defines how a resource is addressed
+
+
+  Request                     JSON body or query parameters          Defines required input
+
+
+  Response                    JSON representation                    Defines returned data
+
+
+  Status code                 200, 404, 422                          Communicates operation result
+
+
+  Error contract              Structured error object                Allows predictable failure handling
+
+
+
+
+   3. Resource-Oriented API Design
+A common approach for HTTP APIs is to model important business entities as resources. URLs
+identify resources while HTTP methods communicate the intended operation.
+
+
+
+  Method              Example                  Typical Meaning
+
+
+  GET                 /courses/123             Read a resource
+
+
+  POST                /courses                 Create a resource or initiate an operation
+
+
+  PUT                 /courses/123             Replace a resource representation
+
+
+  PATCH               /courses/123             Partially modify a resource
+
+
+  DELETE              /courses/123             Remove or deactivate a resource
+
+
+
+
+Figure 13.1 — A well-designed API separates the external contract from internal business and
+data implementation.
+
+
+
+
+   4. Naming Endpoints
+Endpoint naming should be consistent and understandable. Resource names normally use
+nouns rather than verbs because the HTTP method already communicates the action.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                        96
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Avoid                                              Prefer
+
+
+  POST /getCourses                                   GET /courses
+
+
+  POST /createCourse                                 POST /courses
+
+
+  POST /deleteCourse/123                             DELETE /courses/123
+
+
+  POST /updateCourse/123                             PATCH /courses/123
+
+
+
+
+Common Mistake
+Mixing multiple naming styles in the same API. Inconsistent endpoint conventions increase
+cognitive load and make client integrations harder to maintain.
+
+
+
+
+   5. HTTP Status Codes
+Status codes are part of the API contract. They allow clients to distinguish successful
+operations from different classes of failure without parsing human-readable messages.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           97
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Status         Meaning                    Typical Example
+
+
+  200            OK                         Successful read or update
+
+
+  201            Created                    New resource created
+
+
+  204            No Content                 Successful deletion with no response body
+
+
+  400            Bad Request                Malformed request
+
+
+  401            Unauthorized               Authentication required or invalid
+
+
+  403            Forbidden                  Authenticated but not permitted
+
+
+  404            Not Found                  Resource does not exist
+
+
+  409            Conflict                   State conflict or duplicate operation
+
+
+  422            Unprocessable Content      Validation failure
+
+
+  429            Too Many Requests          Rate limit exceeded
+
+
+  500            Internal Server Error      Unexpected server failure
+
+
+  503            Service Unavailable        Temporary service or dependency failure
+
+
+
+
+   6. Request Validation
+Validation should happen at the API boundary before invalid data reaches business logic. This
+protects internal components and provides clients with clear feedback.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                             98
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+    interface CreateCourseRequest {
+      title: string;
+      description: string;
+      instructorId: string;
+    }
+
+    function validateCourseRequest(
+      input: CreateCourseRequest
+    ) {
+      if (!input.title.trim()) {
+        throw new Error("title is required");
+      }
+
+         if (!input.instructorId.trim()) {
+           throw new Error("instructorId is required");
+         }
+
+         if (input.title.length > 200) {
+           throw new Error("title is too long");
+         }
+    }
+
+
+
+
+Production applications should normally use a dedicated validation library or framework
+mechanism rather than relying only on manually written checks. The important architectural
+principle is that untrusted external input must be validated before entering trusted application
+logic.
+
+
+
+
+   7. Consistent Error Responses
+An API should use a predictable error structure. Clients should not need to parse arbitrary text
+messages to determine what went wrong.
+
+
+
+    {
+         "error": {
+           "code": "COURSE_NOT_FOUND",
+           "message": "The requested course does not exist.",
+           "requestId": "req_8f31a2"
+         }
+    }
+
+
+
+
+The internal error details shown to developers may be much more detailed than the
+information returned to clients. Sensitive stack traces, database details, credentials, and
+infrastructure information should never be exposed through public API responses.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           99
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+Production Tip
+Give every request a correlation or request identifier. When a client reports a failure, the
+identifier should allow engineers to locate the corresponding server-side logs and traces.
+
+
+
+
+   8. API Evolution
+APIs rarely remain unchanged. New fields, new behaviors, new validation rules, and new
+business capabilities are introduced over time. A good API strategy allows evolution without
+unnecessarily breaking existing consumers.
+
+Backward compatibility should be treated as an architectural concern rather than something
+discovered only after a client breaks.
+
+Architect's Rule
+Prefer additive, backward-compatible changes whenever possible. Removing or changing the
+meaning of an existing field can be more dangerous than adding a new capability.
+
+
+
+
+   9. API Versioning
+Versioning provides a mechanism for managing incompatible changes. Common strategies
+include URL versioning, header-based versioning, and media-type versioning.
+
+
+
+  Strategy           Example                                Consideration
+
+
+  URL                /api/v1/courses                        Simple and highly visible
+
+
+  Header             API-Version: 2                         Keeps URLs stable
+
+
+  Media Type         Accept: application/vnd.api.v2+json    Explicit representation versioning
+
+
+
+
+   10. API Design Principle
+   • APIs are contracts, not merely URLs.
+
+   • Consistency is more valuable than cleverness.
+
+   • Validate external input at the boundary.
+
+   • Use status codes and structured errors consistently.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                            100
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   • Design for evolution instead of assuming the first version will never change.
+
+
+
+
+   11. API Versioning
+APIs evolve as business requirements change. A well-designed API must allow the server to
+improve without unexpectedly breaking existing consumers. Versioning provides a controlled
+way to introduce incompatible changes.
+
+
+
+  Strategy             Example                      Advantage                  Trade-off
+
+
+                                                                               Multiple URLs must be
+  URL Versioning        /api/v1/users               Simple and visible
+                                                                               maintained
+
+
+  Header                Accept: application/                                   Less obvious to
+                                                    Keeps URL stable
+  Versioning            vnd.api.v2+json                                        developers
+
+
+  Query                                                                        Can become
+                        /users?version=2            Easy to implement
+  Versioning                                                                   inconsistent
+
+
+                                                    Explicit
+  Media-Type            application/
+                                                    representation             More complex tooling
+  Versioning            vnd.company.resource+json
+                                                    control
+
+
+
+
+Architect's Rule
+Do not create a new API version merely because an implementation changed. Version when
+the public contract changes in a way that existing consumers cannot safely tolerate.
+
+
+
+
+   12. Backward Compatibility
+Backward compatibility means existing clients continue to work after the server evolves.
+Additive changes are usually safer than destructive changes. For example, adding an optional
+response field is generally safer than renaming or removing an existing field.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                             101
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Change                                                     Compatibility
+
+
+  Add optional response field                                Usually safe
+
+
+  Add optional request field                                 Usually safe
+
+
+  Remove response field                                      Potentially breaking
+
+
+  Rename a field                                             Breaking
+
+
+  Change field type                                          Breaking
+
+
+  Make an optional field required                            Breaking
+
+
+
+
+   13. Authentication and Authorization
+Authentication answers the question "Who are you?" Authorization answers "What are you
+allowed to do?" These concerns should be explicitly separated in API design.
+
+
+
+    type UserContext = {
+      userId: string;
+      roles: string[];
+    };
+
+    function canUpdateCourse(user: UserContext): boolean {
+      return user.roles.includes("course_admin");
+    }
+
+
+
+
+Authentication mechanisms may include sessions, OAuth 2.0, OpenID Connect, or signed
+tokens depending on the system. Authorization should be enforced at the server boundary
+rather than relying on client-side controls.
+
+Common Mistake
+Hiding an administrative button in the frontend and assuming the operation is protected. A
+malicious client can call the API directly. Authorization must be validated by the server.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                            102
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   14. Input Validation
+An API should validate untrusted input before it reaches business logic or persistence layers.
+Validation should check required fields, types, ranges, formats, and business constraints
+where appropriate.
+
+
+
+    function validateCreateUser(input: unknown) {
+      if (!input || typeof input !== "object") {
+        throw new Error("Invalid request body");
+      }
+
+        const body = input as Record<string, unknown>;
+
+        if (typeof body.email !== "string") {
+          throw new Error("Email is required");
+        }
+
+        if (typeof body.name !== "string" || body.name.length > 100) {
+          throw new Error("Invalid name");
+        }
+    }
+
+
+
+
+Validation should produce predictable errors. Clients should be able to understand what was
+rejected without exposing internal implementation details.
+
+
+
+
+   15. Error Handling
+Consistent error responses make APIs easier to integrate and operate. An error should
+communicate the category of failure while avoiding sensitive internal information.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                             103
+LEARNFORGE                                                                 SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Status           Meaning                       Typical Use
+
+
+  400              Bad Request                   Malformed or invalid input
+
+
+  401              Unauthorized                  Missing or invalid authentication
+
+
+  403              Forbidden                     Authenticated but not permitted
+
+
+  404              Not Found                     Requested resource does not exist
+
+
+  409              Conflict                      State conflict or duplicate operation
+
+
+  429              Too Many Requests             Rate limit exceeded
+
+
+  500              Internal Server Error         Unexpected server failure
+
+
+
+
+    {
+        "error": {
+          "code": "COURSE_NOT_FOUND",
+          "message": "The requested course does not exist",
+          "requestId": "req_7f31c2a9"
+        }
+    }
+
+
+
+
+   16. Pagination, Filtering and Sorting
+Collection endpoints should avoid returning unlimited amounts of data. Pagination protects
+server resources and gives clients predictable response sizes.
+
+Figure 13.2 — Pagination prevents large collections from consuming unbounded API and
+database resources.
+
+
+
+
+   17. Rate Limiting
+Rate limiting controls how much traffic a client can generate within a defined period. It
+protects APIs from accidental overload, abusive traffic, and poorly behaved clients.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                               104
+LEARNFORGE                                                                        SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+  Strategy                         Concept
+
+
+  Fixed Window                     Count requests within fixed time intervals
+
+
+  Sliding Window                   Measure requests across a moving time range
+
+
+  Token Bucket                     Allow bursts while controlling average rate
+
+
+  Leaky Bucket                     Process requests at a controlled output rate
+
+
+
+
+Production Tip
+Rate limits should be designed around business importance. Login, payment, search, and
+public endpoints may require different limits and protection strategies.
+
+
+
+
+   18. API Idempotency
+Some API operations may be repeated because clients retry after network timeouts. For
+operations such as payments, order creation, or provisioning, the API should provide an
+idempotency mechanism.
+
+
+
+    POST /api/v1/payments
+    Idempotency-Key: 7f31c2a9-82a4-4a12-bb31-91f0a8c2e101
+    Content-Type: application/json
+
+    {
+        "amount": 5000,
+        "currency": "USD"
+    }
+
+
+
+
+The server stores the result associated with the idempotency key for an appropriate retention
+period. A repeated request using the same key can return the original result rather than
+creating another transaction.
+
+
+
+
+   19. API Documentation
+An API contract is only useful when consumers can understand how to use it. Documentation
+should describe endpoints, authentication, request schemas, responses, errors, limits,
+examples, and compatibility expectations.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                                      105
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+OpenAPI is commonly used to describe HTTP APIs in a machine-readable format. The
+specification can support documentation generation, validation, client generation, and
+contract testing.
+
+
+
+    openapi: 3.0.3
+    info:
+      title: Course API
+      version: 1.0.0
+
+    paths:
+      /courses/{id}:
+        get:
+           summary: Get a course
+           parameters:
+             - name: id
+               in: path
+               required: true
+               schema:
+                 type: string
+           responses:
+             "200":
+               description: Course returned
+             "404":
+               description: Course not found
+
+
+
+
+   20. API Observability
+A production API should expose enough telemetry to answer operational questions. At
+minimum, teams should monitor request volume, latency, error rates, saturation, and
+important business outcomes.
+
+
+
+  Signal                    Example                    Why It Matters
+
+
+  Latency                   p50, p95, p99              Shows user-facing performance
+
+
+  Errors                    4xx and 5xx rates          Shows failures and client misuse
+
+
+  Traffic                   Requests per second        Shows demand
+
+
+  Saturation                CPU, memory, connections   Shows resource pressure
+
+
+  Business metrics          Successful payments        Connects technical health to outcomes
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                            106
+LEARNFORGE                                                                SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   21. API Security Checklist
+   •
+       Authenticate requests where required.
+
+   •
+       Authorize every sensitive operation on the server.
+
+   •
+       Validate and constrain untrusted input.
+
+   •
+       Use HTTPS for network communication.
+
+   •
+       Avoid exposing secrets or internal stack traces.
+
+   •
+       Apply appropriate rate limits.
+
+   •
+       Protect sensitive endpoints from abuse.
+
+   •
+       Log security-relevant events without logging secrets.
+
+
+
+
+   22. API Design Decision Framework
+
+  Question                                           Recommended Direction
+
+
+  Is the resource clearly defined?                   Use a stable resource-oriented contract
+
+
+  Does the operation change state?                   Define idempotency and retry behavior
+
+
+  Can the collection become large?                   Add pagination and filtering
+
+
+  Will clients have different release cycles?        Design for backward compatibility
+
+
+  Is the endpoint public or high traffic?            Add rate limiting and abuse protection
+
+
+  Is the operation security-sensitive?               Require explicit authorization
+
+
+
+
+   23. Key Takeaways
+   • APIs are contracts between independently evolving components.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                              107
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+   • Resource boundaries should reflect meaningful business concepts.
+
+   • Backward compatibility is a core API design concern.
+
+   • Authentication and authorization are separate responsibilities.
+
+   • Input validation must happen at trust boundaries.
+
+   • Errors should be consistent, useful, and safe.
+
+   • Pagination and rate limiting protect system resources.
+
+   • Idempotency makes retries safer for state-changing operations.
+
+   • Documentation and observability are part of production API design.
+
+
+
+
+   24. Quick Review
+  1. What makes an API a contract?
+
+  2. When should an API be versioned?
+
+  3. Why are additive changes usually safer than destructive changes?
+
+  4. What is the difference between authentication and authorization?
+
+  5. Why should validation occur at the API boundary?
+
+  6. Why are pagination and rate limiting important?
+
+  7. How does idempotency protect state-changing operations?
+
+  8. What telemetry should a production API expose?
+
+
+
+
+   25. Architect's Checklist
+   •
+       Are API resources and responsibilities clearly defined?
+
+   •
+       Is the public contract documented?
+
+   •
+       Are breaking and non-breaking changes understood?
+
+   •
+       Is backward compatibility tested?
+
+   •
+       Are authentication and authorization enforced server-side?
+
+   •
+       Are inputs validated at trust boundaries?
+
+   •
+
+
+
+LearnForge • Engineering Handbook • 2026                                                           108
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+
+
+
+       Are collection endpoints paginated where necessary?
+
+   •
+       Are rate limits appropriate for traffic patterns?
+
+   •
+       Are retry and idempotency semantics documented?
+
+   •
+       Can engineers monitor latency, errors, traffic, and saturation?
+
+
+
+
+   26. Final Architecture Principle
+Architect's Rule
+A good API is not merely an endpoint that works. It is a stable, explicit, secure, observable
+contract that remains understandable as clients, services, teams, and business requirements
+evolve.
+
+
+
+
+LearnForge • Engineering Handbook • 2026                                                             109
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODE

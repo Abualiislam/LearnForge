@@ -1,0 +1,232 @@
+CHAPTER 06
+
+Monolith, Modular Monolith
+     and Microservices
+     Architecture should evolve from business and operational constraints, not from the
+     assumption that distributed systems are automatically superior.
+
+     What You Will Learn
+
+        ◦ How monolithic, modular-monolithic, and microservice architectures differ.
+
+        ◦ When a modular monolith is preferable to immediate service decomposition.
+
+        ◦ How network boundaries introduce latency, failure, and operational cost.
+
+        ◦ How to identify service boundaries from business capabilities.
+
+        ◦ How to migrate incrementally without creating a distributed monolith.
+
+LearnForge • Engineering Handbook • 2026                                                           15
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+        1. The Architectural Choice Is a Trade-off
+     One of the most common architectural mistakes is treating “monolith” and
+     “microservices” as competing technologies rather than different ways of organizing
+     system boundaries.
+
+     A monolith deploys multiple capabilities as one application unit. Microservices divide
+     capabilities into independently deployable services. A modular monolith sits between
+     these approaches: it can be deployed as one application while maintaining strong internal
+     boundaries between business modules.
+
+     The correct choice depends on domain complexity, team structure, deployment
+     independence, reliability requirements, expected scale, and operational maturity.
+
+     Architect's Rule
+     Do not introduce a network boundary merely to make a diagram look distributed. A
+     boundary should solve a real organizational, deployment, scaling, reliability, or domain-
+     isolation problem.
+
+        2. The Traditional Monolith
+     In a monolithic architecture, major business capabilities run inside a common deployable
+     unit. Authentication, courses, payments, reporting, and administration may all exist inside
+     the same application.
+
+     Figure 6.1 — A monolith can contain multiple business capabilities while remaining one
+     deployable application.
+
+     Strengths
+
+        ◦ Simple deployment and local development.
+
+        ◦ Low network overhead between modules.
+
+        ◦ Simple transactions across related data.
+
+        ◦ Lower infrastructure and operational complexity.
+
+        ◦ Easy debugging when the system is relatively small.
+
+     Risks
+
+        ◦ Weak internal boundaries can create tightly coupled code.
+
+LearnForge • Engineering Handbook • 2026                                                           16
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+        ◦ Large deployments can become slower and riskier.
+
+        ◦ Independent scaling of individual workloads becomes difficult.
+
+        ◦ A failure in one area can affect the whole application.
+
+     Common Mistake
+     Assuming that every monolith is badly designed. A well-structured monolith can be easier
+     to operate and evolve than a poorly designed microservice system.
+
+        3. Modular Monolith
+     A modular monolith keeps one deployment unit while enforcing explicit boundaries
+     between business capabilities.
+
+     For example, an education platform might contain separate modules for identity, courses,
+     payments, and notifications. Each module owns its internal business rules and exposes a
+     small public interface to other modules.
+
+          export interface CourseCatalog {
+            getPublishedCourse(courseId: string): Promise<CourseSummary>;
+          }
+
+          export class EnrollmentService {
+            constructor(
+              private readonly catalog: CourseCatalog,
+              private readonly enrollmentRepository: EnrollmentRepository
+            ) {}
+
+              async enroll(userId: string, courseId: string) {
+                const course = await this.catalog.getPublishedCourse(courseId);
+
+                  if (!course) {
+                    throw new Error('Course is not available');
+                  }
+
+                  return this.enrollmentRepository.create({
+                    userId,
+                    courseId
+                  });
+              }
+          }
+
+     The important architectural property is not the TypeScript syntax itself. The important
+     property is that the enrollment domain depends on an explicit business contract rather
+     than reaching directly into another module's database implementation.
+
+LearnForge • Engineering Handbook • 2026                                                              17
+LEARNFORGE                                                                  SYSTEM ARCHITECTURE & CLEAN CODE
+
+        4. Microservices
+     Microservices take modular boundaries one step further by making services
+     independently deployable processes. Communication usually occurs through HTTP, gRPC,
+     or asynchronous messaging.
+
+     Figure 6.2 — Microservices introduce explicit process and network boundaries.
+
+        5. The Cost of a Network Boundary
+     Moving functionality from an in-process call to a remote service introduces new failure
+     modes. The caller must now consider network latency, timeouts, retries, partial failure,
+     authentication, service discovery, observability, and version compatibility.
+
+       Concern                In-Process Module          Remote Service
+
+       Latency                Very low                   Network dependent
+
+       Failure                Usually local              Partial failures possible
+
+       Deployment             Shared                     Independent
+
+       Scaling                Usually application-wide   Service-specific
+
+       Operations             Lower complexity           Higher complexity
+
+       Transactions           Relatively simple          Distributed transaction challenges
+
+        6. Choosing the Right Architecture
+     A practical decision process starts with the simplest architecture that can satisfy known
+     requirements.
+
+LearnForge • Engineering Handbook • 2026                                                                 18
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
+
+       Situation                                           Recommended Starting Point
+
+       Small team and evolving product                     Modular monolith
+
+       Strong transactional requirements                   Monolith or modular monolith
+
+       Clearly independent high-scale workloads            Selective service decomposition
+
+       Large organization with autonomous teams            Potentially microservices
+
+       Unclear domain boundaries                           Modular monolith first
+
+     Production Tip
+     Microservices should usually be extracted because a boundary has become valuable, not
+     because a framework makes service creation easy.
+
+        7. Migration Without a Distributed Monolith
+     When an existing monolith has reached a point where independent deployment or scaling
+     is valuable, migration should be incremental.
+
+       1. Identify a stable business capability.
+
+       2. Define a clear ownership boundary.
+
+       3. Separate the module internally before extracting it.
+
+       4. Introduce an explicit API or event contract.
+
+       5. Move the capability behind the new boundary.
+
+       6. Measure latency, failure rate, operational cost, and deployment impact.
+
+     Architect's Rule
+     First create a modular boundary. Then, only when justified, turn that boundary into a
+     network boundary.
+
+        Key Takeaways
+        ◦ A monolith is not inherently bad architecture.
+
+        ◦ A modular monolith provides strong boundaries without network complexity.
+
+LearnForge • Engineering Handbook • 2026                                                             19
+LEARNFORGE                                                           SYSTEM ARCHITECTURE & CLEAN CODE
+
+        ◦ Microservices provide independent deployment and scaling at a significant
+           operational cost.
+
+        ◦ Business capabilities are usually stronger service-boundary candidates than technical
+           layers.
+
+        ◦ Architecture should evolve according to measurable constraints.
+
+     Quick Review
+
+       1. Why can a modular monolith be preferable to microservices for a new product?
+
+       2. What new failure modes appear when an in-process call becomes a network call?
+
+       3. Why should business capabilities influence service boundaries?
+
+     Architect's Checklist
+
+        ◦ Are business modules clearly separated?
+
+        ◦ Are module dependencies explicit?
+
+        ◦ Is a network boundary solving a measurable problem?
+
+        ◦ Have latency and failure modes been evaluated before extracting a service?
+
+LearnForge • Engineering Handbook • 2026                                                          20
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODEChapter 07
+
+Microservice Trade-offs
+Microservices can improve independent scaling and deployment, but every distributed
+boundary introduces new costs in latency, reliability, observability, security, and operational
+complexity.
+
+What You Will Learn
+
+   • How to evaluate the real benefits and costs of microservices.
+
+   • Why

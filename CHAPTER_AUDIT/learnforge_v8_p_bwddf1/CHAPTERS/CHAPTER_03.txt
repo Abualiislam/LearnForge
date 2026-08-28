@@ -1,0 +1,49 @@
+CHAPTER 03
+Requirements Before Architecture
+
+Requirements Before Architecture Designing systems without concrete functional and non-
+functional requirements guarantees overengineering or critical production failure. WHAT YOU
+WILL LEARN • How to extract explicit Architectural Characteristics from vague user stories. •
+Quantifying SLA, SLO, and SLA targets effectively. • Estimating throughput, memory, and
+storage boundaries upfront.
+
+What It Means Before drawing architecture diagrams, architects translate business goals into
+explicit, quantifiable engineering requirements. Requirements split into Functional
+Requirements (what the system does) and **Non-Functional Requirements / Quality
+Attributes** (how well the system performs it).
+
+Why It Matters Designing for "high scale" without exact numbers leads to massive financial
+waste or incorrect infrastructure choices. A system needing 100 requests per second (RPS)
+requires a radically different design than one processing 100,000 RPS.
+
+Quantifying Systems: Back-of-the-Envelope Estimation Consider an application with 10 million
+daily active users (DAU). Each user makes 20 API requests per day. • Total Daily Requests:
+$10,000,000 \times 20 = 200,000,000$ requests/day. • Average Requests Per Second (RPS):
+$200,000,000 / 86,400 \approx 2,315$ RPS. • Peak Traffic (3x Average Rule): $2,315 \times 3
+\approx 7,000$ Peak RPS.
+
+COMMON MISTAKE
+
+Designing for average load instead of peak load with a safety headroom buffer.
+
+KEY TAKEAWAYS
+
+• Always translate business requests into concrete numbers: RPS, payload size, storage
+growth, and availability percentages. • Architect for peak loads, not daily averages. QUICK
+REVIEW
+
+1. What is the difference between an SLA, an SLO, and an SLI? 2. How do you convert Daily
+Active Users into Peak RPS? ARCHITECT'S CHECKLIST
+
+LearnForge • Engineering Handbook • 2026                                                          9
+
+LEARNFORGE                                                         SYSTEM ARCHITECTURE & CLEAN CODE
+
+☐ Have maximum peak throughput metrics been calculated and verified with business
+stakeholders? ☐ Are data retention limits and storage growth expectations explicitly defined?
+
+LearnForge • Engineering Handbook • 2026                                                        10
+
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODECHAPTER 04
+
+Scalability

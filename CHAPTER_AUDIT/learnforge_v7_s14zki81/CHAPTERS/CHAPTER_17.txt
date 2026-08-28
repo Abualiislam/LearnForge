@@ -1,0 +1,494 @@
+CHAPTER 17
+Architecture Patterns & Practical System Design
+
+eployment & Infrastructure
+Architecture
+Good software architecture must survive the transition from source code to production.
+Deployment architecture defines how applications are packaged, released, scaled, monitored,
+secured, and recovered across environments.
+
+What You Will Learn
+
+   • How deployment architecture differs from application architecture.
+
+   • How environments, configuration, and secrets should be separated.
+
+   • Why containers improve deployment consistency.
+
+   • How CI/CD pipelines reduce deployment risk.
+
+   • How blue-green, rolling, and canary deployments work.
+
+   • How health checks, autoscaling, and rollback strategies improve reliability.
+
+   • How infrastructure should be designed for observability and recovery.
+
+   1. What Is Deployment Architecture?
+Deployment architecture describes how software moves from development into running
+production infrastructure. It includes application packaging, servers, containers, networks,
+databases, configuration, secrets, deployment pipelines, monitoring, scaling, and recovery
+mechanisms.
+
+A well-designed application can still fail operationally if deployment is manual, configuration is
+inconsistent, secrets are exposed, or rollback is difficult.
+
+Architect's Rule
+A system is not production-ready merely because the application works. Production readiness
+includes repeatable deployment, controlled configuration, observability, security, scaling, and
+recovery.
+
+LearnForge • Engineering Handbook • 2026                                                          152
+
+LEARNFORGE                                                                 SYSTEM ARCHITECTURE & CLEAN CODE
+
+   2. Environment Separation
+Most production systems use multiple environments. Development is optimized for rapid
+experimentation, while production is optimized for reliability and controlled change.
+
+  Environment          Purpose                             Typical Characteristics
+
+  Development          Local engineering                   Fast feedback and flexible configuration
+
+  Testing              Automated validation                Repeatable and isolated
+
+  Staging              Production-like verification        Similar infrastructure and configuration
+
+  Production           Real users and business workloads   Strict security and reliability controls
+
+Environment separation reduces the probability that experimental changes affect real users.
+However, environments should not become completely different systems because large
+differences create deployment surprises.
+
+   3. Configuration Management
+Configuration includes values that change between environments without changing
+application logic. Examples include database endpoints, service URLs, feature flags, timeout
+values, and operational limits.
+
+    interface AppConfig {
+      port: number;
+      databaseUrl: string;
+      paymentServiceUrl: string;
+      requestTimeoutMs: number;
+    }
+
+    const config: AppConfig = {
+      port: Number(process.env.PORT ?? 3000),
+      databaseUrl: process.env.DATABASE_URL!,
+      paymentServiceUrl: process.env.PAYMENT_SERVICE_URL!,
+      requestTimeoutMs: Number(process.env.REQUEST_TIMEOUT_MS ?? 1500)
+    };
+
+Common Mistake
+
+LearnForge • Engineering Handbook • 2026                                                               153
+
+LEARNFORGE                                                            SYSTEM ARCHITECTURE & CLEAN CODE
+
+Hard-coding production URLs, credentials, or environment-specific values inside source code.
+Configuration should be externally supplied and managed through controlled deployment
+mechanisms.
+
+   4. Secrets Management
+Passwords, API keys, private certificates, and database credentials are secrets. They should
+not be committed to source control or embedded directly in application code.
+
+  Secret                          Risk                           Better Approach
+
+  Database password               Unauthorized database access   Secret manager
+
+  API key                         Unauthorized API usage         Managed secret storage
+
+  Private key                     Identity compromise            Restricted secret store
+
+  Session signing key             Session forgery                Rotatable protected secret
+
+Architect's Rule
+Treat secrets as replaceable credentials. Design systems so credentials can be rotated without
+rebuilding application logic.
+
+   5. Containers
+Containers package an application together with its runtime dependencies. This reduces the
+difference between environments and makes application artifacts easier to transport.
+
+LearnForge • Engineering Handbook • 2026                                                          154
+
+LEARNFORGE                                                          SYSTEM ARCHITECTURE & CLEAN CODE
+
+    FROM node:22-alpine
+
+    WORKDIR /app
+
+    COPY package*.json ./
+    RUN npm ci --omit=dev
+
+    COPY dist ./dist
+
+    USER node
+
+    EXPOSE 3000
+
+    CMD ["node", "dist/server.js"]
+
+Containers do not automatically make an architecture scalable or secure. They are a
+packaging and isolation mechanism. Poor application design remains poor when placed inside
+a container.
+
+   6. Immutable Deployment Artifacts
+An immutable artifact is built once and then promoted through environments without
+rebuilding it for every environment.
+
+Figure 17.1 — A repeatable pipeline creates one validated artifact that can be promoted
+across environments.
+
+   7. CI/CD Architecture
+Continuous Integration validates changes frequently. Continuous Delivery automates the
+preparation and controlled release of validated artifacts. Together, they reduce manual
+deployment work and shorten feedback loops.
+
+LearnForge • Engineering Handbook • 2026                                                        155
+
+LEARNFORGE                                                                 SYSTEM ARCHITECTURE & CLEAN CODE
+
+  Pipeline Stage                Purpose                            Failure Action
+
+  Lint                          Detect code-quality issues         Stop pipeline
+
+  Unit tests                    Validate local behavior            Stop pipeline
+
+  Build                         Create deployable artifact         Stop pipeline
+
+  Security scan                 Detect vulnerabilities             Block according to policy
+
+  Integration tests             Validate boundaries                Stop or quarantine release
+
+  Deployment                    Release artifact                   Rollback or halt
+
+   8. Health Checks
+Health checks allow infrastructure and orchestration systems to determine whether an
+application is alive and capable of serving traffic.
+
+    app.get("/health/live", (_req, res) => {
+      res.status(200).json({ status: "alive" });
+    });
+
+    app.get("/health/ready", async (_req, res) => {
+      const databaseReady = await database.ping();
+
+         if (!databaseReady) {
+           return res.status(503).json({ status: "not-ready" });
+         }
+
+      return res.status(200).json({ status: "ready" });
+    });
+
+Liveness and readiness are different. Liveness asks whether the process should be restarted.
+Readiness asks whether the process should receive traffic.
+
+Production Tip
+Do not make liveness checks depend on every external service. A temporary database failure
+should not necessarily cause the process itself to restart. Use readiness checks to control
+traffic instead.
+
+LearnForge • Engineering Handbook • 2026                                                               156
+
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+   9. Rolling Deployments
+A rolling deployment gradually replaces old application instances with new instances. It
+reduces the need for a complete service shutdown.
+
+Figure 17.2 — Rolling deployments replace instances gradually rather than switching the
+entire fleet at once.
+
+   10. Blue-Green Deployment
+Blue-green deployment maintains two production environments. One environment serves
+traffic while the other receives the new release and is validated before traffic is switched.
+
+  Strategy            Advantage                            Trade-off
+
+  Rolling             Efficient resource usage             Old and new versions coexist
+
+  Blue-green          Fast rollback                        Requires additional capacity
+
+  Canary              Small exposure before full release   More sophisticated traffic control
+
+   11. Canary Releases
+A canary release sends a small percentage of traffic to the new version. Engineers monitor
+error rate, latency, resource consumption, and business metrics before increasing traffic.
+
+Architect's Rule
+Deployment strategy should match failure impact. High-risk changes deserve smaller
+exposure, stronger monitoring, and easier rollback.
+
+   12. Rollback Strategy
+A deployment is incomplete without a recovery strategy. If a release causes unexpected
+behavior, the team must be able to return to a known-good version.
+
+LearnForge • Engineering Handbook • 2026                                                           157
+
+LEARNFORGE                                                                  SYSTEM ARCHITECTURE & CLEAN CODE
+
+    # Example conceptual release flow
+    deploy artifact-v42
+
+    if health_checks_fail; then
+       rollback artifact-v41
+    fi
+
+Rollback becomes more complicated when database schemas are changed. Backward-
+compatible migrations are therefore important for safe application rollbacks.
+
+   13. Database Deployment Compatibility
+Application and database changes should not require an instantaneous switch between
+incompatible versions.
+
+  Phase                Action
+
+  Expand               Add new schema elements without removing old ones
+
+  Deploy               Release application compatible with both versions
+
+  Migrate              Move or backfill data
+
+  Contract             Remove obsolete schema elements after verification
+
+   14. Autoscaling
+Autoscaling changes application capacity according to workload. Scaling decisions can use
+CPU, memory, request rate, queue depth, or application specific metrics.
+
+Scaling more instances does not automatically solve every performance problem. If the
+database or another shared dependency is already saturated, adding application instances
+may increase the pressure.
+
+Common Mistake
+Assuming that horizontal scaling fixes every bottleneck. Always identify the actual
+constrained resource before increasing capacity.
+
+LearnForge • Engineering Handbook • 2026                                                                158
+
+LEARNFORGE                                                               SYSTEM ARCHITECTURE & CLEAN CODE
+
+   15. Infrastructure as Code
+Infrastructure as Code represents infrastructure configuration in versioned files rather than
+relying exclusively on manual console operations.
+
+    const service = {
+      name: "course-api",
+      replicas: 3,
+      cpuLimit: "500m",
+      memoryLimit: "512Mi",
+      healthPath: "/health/ready"
+    };
+
+The exact tool may vary, but the architectural principle is consistent: infrastructure changes
+should be reviewable, repeatable, and auditable.
+
+   16. Network Architecture
+Production services should not automatically have unrestricted network access. Network
+boundaries can reduce the blast radius of compromised components and accidental traffic.
+
+  Layer                    Control                           Goal
+
+  Internet                 Load balancer / firewall          Control external access
+
+  Application              Service policies                  Restrict service communication
+
+  Database                 Private network rules             Prevent direct public access
+
+  Administration           Restricted management path        Protect operational interfaces
+
+   17. Observability
+Deployment architecture must expose enough telemetry to determine whether a release is
+healthy.
+
+   • Metrics: latency, throughput, error rate, saturation.
+
+   • Logs: structured application and infrastructure events.
+
+LearnForge • Engineering Handbook • 2026                                                             159
+
+LEARNFORGE                                                                 SYSTEM ARCHITECTURE & CLEAN CODE
+
+   • Traces: request paths across distributed components.
+
+   • Deployment markers: correlation between releases and incidents.
+
+    {
+        "service": "course-api",
+        "version": "42",
+        "environment": "production",
+        "latencyMs": 143,
+        "status": "success"
+    }
+
+   18. Resource Limits
+Resource limits protect shared infrastructure from a single workload consuming excessive
+capacity.
+
+  Resource                        Why Limit It?
+
+  CPU                             Prevent noisy-neighbor behavior
+
+  Memory                          Reduce uncontrolled memory consumption
+
+  Connections                     Protect databases and network services
+
+  Queue depth                     Prevent unbounded backlog
+
+   19. Disaster Recovery
+Disaster recovery defines how a system returns to service after major infrastructure or data
+failures.
+
+Two important concepts are Recovery Point Objective (RPO) and Recovery Time Objective
+(RTO). RPO describes how much data loss is acceptable, while RTO describes how quickly
+service should be restored.
+
+LearnForge • Engineering Handbook • 2026                                                               160
+
+LEARNFORGE                                                                         SYSTEM ARCHITECTURE & CLEAN CODE
+
+  Concept                  Question
+
+  RPO                      How much recent data can we afford to lose?
+
+  RTO                      How quickly must the service recover?
+
+Production Tip
+A backup that has never been restored has not yet demonstrated that it can serve as a reliable recovery mechanism.
+Regularly test restoration procedures.
+
+   20. Deployment Security
+Deployment systems have powerful privileges and therefore become high-value security
+targets. CI/CD credentials should have the minimum permissions required for their job.
+
+   • Protect build credentials.
+
+   • Restrict deployment permissions.
+
+   • Scan dependencies and artifacts.
+
+   • Sign or verify important artifacts where appropriate.
+
+   • Audit production changes.
+
+   21. Deployment Decision Framework
+
+  Question                                     Recommended Consideration
+
+  Is downtime acceptable?                      Choose strategy accordingly
+
+  Is rollback critical?                        Prefer easily reversible releases
+
+  Is capacity limited?                         Rolling deployment may be preferable
+
+  Is the change high risk?                     Use canary or staged exposure
+
+  Is schema changing?                          Use backward-compatible migration
+
+LearnForge • Engineering Handbook • 2026                                                                       161
+
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+   22. Production Readiness Checklist
+   •
+       Are development, testing, staging, and production appropriately separated?
+
+   •
+       Is configuration externalized?
+
+   •
+       Are secrets protected and rotatable?
+
+   •
+       Is the deployment artifact reproducible?
+
+   •
+       Are automated tests executed before deployment?
+
+   •
+       Are health and readiness checks implemented?
+
+   •
+       Is rollback tested?
+
+   •
+       Are database migrations backward compatible?
+
+   •
+       Are resource limits defined?
+
+   •
+       Is production observability available?
+
+   •
+       Are backups regularly tested?
+
+   23. Key Takeaways
+   • Deployment architecture determines how software becomes reliable production
+       infrastructure.
+
+   • Configuration and secrets should remain outside application source code.
+
+   • Immutable artifacts improve deployment consistency.
+
+   • CI/CD makes releases repeatable and auditable.
+
+   • Health checks must distinguish process health from traffic readiness.
+
+   • Rolling, blue-green, and canary releases provide different risk profiles.
+
+   • Rollback and database compatibility must be designed before deployment.
+
+   • Autoscaling must consider the actual system bottleneck.
+
+   • Disaster recovery requires tested restoration, not merely backups.
+
+LearnForge • Engineering Handbook • 2026                                                           162
+
+LEARNFORGE                                                             SYSTEM ARCHITECTURE & CLEAN CODE
+
+   24. Quick Review
+  1. What is deployment architecture?
+
+  2. Why should configuration be separated from application code?
+
+  3. What is an immutable deployment artifact?
+
+  4. What is the difference between liveness and readiness?
+
+  5. How does a rolling deployment work?
+
+  6. When is a canary release useful?
+
+  7. Why are backward-compatible database migrations important?
+
+  8. What do RPO and RTO measure?
+
+   25. Architect's Checklist
+   •
+       Can the entire deployment be reproduced?
+
+   •
+       Can the previous release be restored quickly?
+
+   •
+       Are deployment credentials minimally privileged?
+
+   •
+       Can the team detect a bad release quickly?
+
+   •
+       Can infrastructure changes be reviewed and audited?
+
+   •
+       Have failure and recovery scenarios been tested?
+
+   •
+       Are critical dependencies protected from resource exhaustion?
+
+   •
+       Does the deployment strategy match the business risk?
+
+LearnForge • Engineering Handbook • 2026                                                           163
+
+LEARNFORGE                                                              SYSTEM ARCHITECTURE & CLEAN CODE
