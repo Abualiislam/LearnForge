@@ -4,13 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Study Profile — LearnForge StudyMatch</title>
-    <meta name="description" content="Create and manage your LearnForge StudyMatch profile.">
     <link rel="stylesheet" href="css/studymatch.css">
 </head>
-<body>
+<body class="sm-auth-page">
 
 <header class="sm-header">
-    <a class="sm-logo" href="index.html">LearnForge</a>
+    <a href="index.html" class="sm-logo">LearnForge StudyMatch</a>
 
     <nav class="sm-nav">
         <a href="matches.html">Find Partners</a>
@@ -20,23 +19,27 @@
     </nav>
 </header>
 
-<main class="sm-auth-page">
+<main class="sm-auth-main">
     <section class="sm-auth-card">
         <div class="sm-auth-intro">
+            <span class="sm-badge">StudyMatch</span>
             <h1>My Study Profile</h1>
-            <p>Create your profile so StudyMatch can find compatible study partners.</p>
+            <p>
+                Tell us about yourself and your study preferences so we can
+                find compatible study partners.
+            </p>
         </div>
 
-        <form id="profileForm" novalidate>
+        <form id="profileForm">
 
-            <label for="displayName">Display name</label>
+            <h2>Basic Profile</h2>
+
+            <label for="displayName">Display Name</label>
             <input
                 type="text"
                 id="displayName"
                 name="displayName"
-                maxlength="80"
                 required
-                placeholder="e.g. Ahmad"
             >
 
             <label for="country">Country</label>
@@ -44,9 +47,7 @@
                 type="text"
                 id="country"
                 name="country"
-                maxlength="80"
                 required
-                placeholder="e.g. Afghanistan"
             >
 
             <label for="region">State / Region</label>
@@ -54,8 +55,6 @@
                 type="text"
                 id="region"
                 name="region"
-                maxlength="80"
-                placeholder="e.g. Nangarhar"
             >
 
             <label for="city">City</label>
@@ -63,8 +62,6 @@
                 type="text"
                 id="city"
                 name="city"
-                maxlength="80"
-                placeholder="e.g. Jalalabad"
             >
 
             <label for="timezone">Timezone</label>
@@ -72,30 +69,132 @@
                 type="text"
                 id="timezone"
                 name="timezone"
-                maxlength="80"
-                placeholder="e.g. Asia/Kabul"
             >
 
-            <label for="bio">Short bio</label>
+            <label for="bio">Bio</label>
             <textarea
                 id="bio"
                 name="bio"
-                maxlength="500"
                 rows="4"
-                placeholder="Tell potential study partners a little about yourself."
+                placeholder="Tell potential study partners a little about yourself..."
             ></textarea>
+
+
+            <h2>Study Preferences</h2>
+
+            <label for="exam">Exam</label>
+            <select id="exam" name="exam" required>
+                <option value="">Select your exam</option>
+                <option value="USMLE Step 1">USMLE Step 1</option>
+                <option value="USMLE Step 2 CK">USMLE Step 2 CK</option>
+                <option value="CBSE">CBSE</option>
+                <option value="PLAB">PLAB</option>
+                <option value="AMC">AMC</option>
+                <option value="Other">Other</option>
+            </select>
+
+            <label for="examDate">Exam Date</label>
+            <input
+                type="date"
+                id="examDate"
+                name="examDate"
+            >
+
+            <label for="studyMode">Study Mode</label>
+            <select id="studyMode" name="studyMode" required>
+                <option value="online">Online</option>
+                <option value="in_person">In Person</option>
+                <option value="both">Both</option>
+            </select>
+
+
+            <label>Available Days</label>
+
+            <div class="sm-checkbox-grid">
+                <label><input type="checkbox" name="availableDays" value="Saturday"> Saturday</label>
+                <label><input type="checkbox" name="availableDays" value="Sunday"> Sunday</label>
+                <label><input type="checkbox" name="availableDays" value="Monday"> Monday</label>
+                <label><input type="checkbox" name="availableDays" value="Tuesday"> Tuesday</label>
+                <label><input type="checkbox" name="availableDays" value="Wednesday"> Wednesday</label>
+                <label><input type="checkbox" name="availableDays" value="Thursday"> Thursday</label>
+                <label><input type="checkbox" name="availableDays" value="Friday"> Friday</label>
+            </div>
+
+
+            <div class="sm-form-row">
+                <div>
+                    <label for="startTime">Available From</label>
+                    <input
+                        type="time"
+                        id="startTime"
+                        name="startTime"
+                    >
+                </div>
+
+                <div>
+                    <label for="endTime">Available Until</label>
+                    <input
+                        type="time"
+                        id="endTime"
+                        name="endTime"
+                    >
+                </div>
+            </div>
+
+
+            <label>Subjects</label>
+
+            <div class="sm-checkbox-grid">
+                <label><input type="checkbox" name="subjects" value="Anatomy"> Anatomy</label>
+                <label><input type="checkbox" name="subjects" value="Physiology"> Physiology</label>
+                <label><input type="checkbox" name="subjects" value="Biochemistry"> Biochemistry</label>
+                <label><input type="checkbox" name="subjects" value="Pharmacology"> Pharmacology</label>
+                <label><input type="checkbox" name="subjects" value="Pathology"> Pathology</label>
+                <label><input type="checkbox" name="subjects" value="Microbiology"> Microbiology</label>
+                <label><input type="checkbox" name="subjects" value="Immunology"> Immunology</label>
+                <label><input type="checkbox" name="subjects" value="Behavioral Science"> Behavioral Science</label>
+                <label><input type="checkbox" name="subjects" value="Other"> Other</label>
+            </div>
+
+
+            <label>Study Style</label>
+
+            <div class="sm-checkbox-grid">
+                <label><input type="checkbox" name="studyStyles" value="Questions"> Questions</label>
+                <label><input type="checkbox" name="studyStyles" value="Reading"> Reading</label>
+                <label><input type="checkbox" name="studyStyles" value="Flashcards"> Flashcards</label>
+                <label><input type="checkbox" name="studyStyles" value="Video"> Video</label>
+                <label><input type="checkbox" name="studyStyles" value="Discussion"> Discussion</label>
+                <label><input type="checkbox" name="studyStyles" value="Accountability"> Accountability</label>
+            </div>
+
+
+            <label class="sm-checkbox-single">
+                <input
+                    type="checkbox"
+                    id="isActive"
+                    checked
+                >
+                Show me in StudyMatch searches
+            </label>
+
 
             <button
                 type="submit"
                 class="sm-btn sm-btn-primary sm-auth-submit"
             >
-                Save Profile
+                Save Study Profile
             </button>
 
-            <p id="profileMessage" class="sm-form-message" role="status"></p>
+            <p id="profileMessage" class="sm-form-message"></p>
+
         </form>
     </section>
 </main>
+
+<footer class="sm-footer">
+    <p>© 2026 LearnForge StudyMatch</p>
+</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/config.js"></script>
