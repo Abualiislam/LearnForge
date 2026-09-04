@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Find Study Partners — LearnForge StudyMatch</title>
+    <meta name="description" content="Find compatible study partners for USMLE, CBSE, PLAB, AMC and other medical exams with LearnForge StudyMatch.">
+
+    <link rel="stylesheet" href="css/studymatch.css">
+</head>
+
+<body>
+
+<header class="sm-header">
+    <div class="sm-header-inner">
+        <a href="./" class="sm-logo">LearnForge <span>StudyMatch</span></a>
+
+        <nav class="sm-nav">
+            <a href="matches.html" class="active">Find Partners</a>
+            <a href="profile.html">My Profile</a>
+            <a href="connections.html">Connections</a>
+            <a href="chat.html">Messages</a>
+            <a href="#" id="logoutLink">Sign Out</a>
+        </nav>
+    </div>
+</header>
+
+<main class="sm-page">
+
+    <section class="sm-page-intro">
+        <div>
+            <span class="sm-badge">StudyMatch</span>
+            <h1>Find Your Study Partner</h1>
+            <p>
+                Discover students with similar exams, schedules, subjects,
+                study styles, and goals.
+            </p>
+        </div>
+    </section>
+
+    <section class="sm-match-layout">
+
+        <aside class="sm-filter-card">
+            <h2>Find Partners</h2>
+
+            <label for="examFilter">Exam</label>
+            <select id="examFilter">
+                <option value="">All Exams</option>
+                <option value="USMLE Step 1">USMLE Step 1</option>
+                <option value="USMLE Step 2 CK">USMLE Step 2 CK</option>
+                <option value="CBSE">CBSE</option>
+                <option value="PLAB">PLAB</option>
+                <option value="AMC">AMC</option>
+                <option value="Other">Other</option>
+            </select>
+
+            <label for="countryFilter">Country</label>
+            <input
+                type="text"
+                id="countryFilter"
+                placeholder="e.g. United States"
+            >
+
+            <label for="cityFilter">City</label>
+            <input
+                type="text"
+                id="cityFilter"
+                placeholder="e.g. Houston"
+            >
+
+            <label for="modeFilter">Study Mode</label>
+            <select id="modeFilter">
+                <option value="">Any Mode</option>
+                <option value="online">Online</option>
+                <option value="in_person">In Person</option>
+                <option value="both">Online & In Person</option>
+            </select>
+
+            <button type="button" id="resetFilters" class="sm-btn sm-btn-secondary sm-filter-reset">
+                Reset Filters
+            </button>
+        </aside>
+
+        <section class="sm-results-card">
+
+            <div class="sm-results-header">
+                <div>
+                    <h2>Recommended Partners</h2>
+                    <p id="matchSummary">Finding compatible students...</p>
+                </div>
+
+                <select id="sortMatches" aria-label="Sort matches">
+                    <option value="score">Best Match</option>
+                    <option value="date">Exam Date</option>
+                    <option value="name">Name</option>
+                </select>
+            </div>
+
+            <div id="matchMessage" class="sm-form-message"></div>
+
+            <div id="matchLoading" class="sm-loading">
+                Loading study partners...
+            </div>
+
+            <div id="matchResults" class="sm-match-results"></div>
+
+            <div id="noMatches" class="sm-empty-state" hidden>
+                <h3>No matching partners found</h3>
+                <p>
+                    Try changing your filters or updating your Study Profile
+                    to improve your matches.
+                </p>
+                <a href="profile.html" class="sm-btn sm-btn-primary">
+                    Update My Profile
+                </a>
+            </div>
+
+        </section>
+
+    </section>
+
+</main>
+
+<footer class="sm-footer">
+    <p>&copy; 2026 LearnForge StudyMatch. Built for students who study together.</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/matches.js"></script>
+
+</body>
+</html>

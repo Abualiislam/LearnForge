@@ -414,3 +414,266 @@ a {
         grid-template-columns: 1fr;
     }
 }
+
+/* ==========================================
+   STUDYMATCH — FIND PARTNERS
+   ========================================== */
+
+.sm-page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 48px 20px 70px;
+}
+
+.sm-page-intro {
+    margin-bottom: 30px;
+}
+
+.sm-page-intro h1 {
+    margin: 10px 0 8px;
+    font-size: 2.2rem;
+}
+
+.sm-page-intro p {
+    margin: 0;
+    color: #667085;
+    max-width: 680px;
+    line-height: 1.6;
+}
+
+.sm-match-layout {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.sm-filter-card,
+.sm-results-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.05);
+}
+
+.sm-filter-card {
+    position: sticky;
+    top: 20px;
+}
+
+.sm-filter-card h2,
+.sm-results-card h2 {
+    margin: 0 0 18px;
+    font-size: 1.2rem;
+}
+
+.sm-filter-card label {
+    display: block;
+    margin: 15px 0 7px;
+    font-weight: 600;
+}
+
+.sm-filter-card input,
+.sm-filter-card select,
+.sm-results-header select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 12px;
+    border: 1px solid #d7dce5;
+    border-radius: 9px;
+    font: inherit;
+    background: #fff;
+}
+
+.sm-filter-card input:focus,
+.sm-filter-card select:focus,
+.sm-results-header select:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.sm-filter-reset {
+    width: 100%;
+    margin-top: 22px;
+}
+
+.sm-results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.sm-results-header h2 {
+    margin-bottom: 5px;
+}
+
+.sm-results-header p {
+    margin: 0;
+    color: #667085;
+    font-size: 0.92rem;
+}
+
+.sm-results-header select {
+    width: auto;
+    min-width: 145px;
+}
+
+.sm-loading {
+    padding: 40px 20px;
+    text-align: center;
+    color: #667085;
+}
+
+.sm-match-results {
+    display: grid;
+    gap: 14px;
+}
+
+.sm-match-card {
+    border: 1px solid #e4e7ec;
+    border-radius: 14px;
+    padding: 20px;
+    background: #fff;
+}
+
+.sm-match-card-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.sm-match-person {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+}
+
+.sm-match-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #eef2ff;
+    color: #4f46e5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.sm-match-name {
+    margin: 0 0 4px;
+    font-size: 1.05rem;
+}
+
+.sm-match-location {
+    margin: 0;
+    color: #667085;
+    font-size: 0.9rem;
+}
+
+.sm-match-score {
+    min-width: 76px;
+    text-align: center;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #ecfdf3;
+    color: #067647;
+    font-weight: 700;
+}
+
+.sm-match-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 16px 0;
+}
+
+.sm-match-tag {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #f2f4f7;
+    color: #344054;
+    font-size: 0.82rem;
+}
+
+.sm-match-bio {
+    margin: 0 0 16px;
+    color: #475467;
+    line-height: 1.55;
+}
+
+.sm-match-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.sm-empty-state {
+    text-align: center;
+    padding: 45px 20px;
+    border: 1px dashed #d0d5dd;
+    border-radius: 14px;
+}
+
+.sm-empty-state h3 {
+    margin: 0 0 8px;
+}
+
+.sm-empty-state p {
+    color: #667085;
+    line-height: 1.55;
+    margin: 0 auto 18px;
+    max-width: 520px;
+}
+
+.sm-form-message:empty {
+    display: none;
+}
+
+.sm-form-message {
+    margin-bottom: 16px;
+    color: #b42318;
+}
+
+@media (max-width: 850px) {
+    .sm-match-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .sm-filter-card {
+        position: static;
+    }
+}
+
+@media (max-width: 600px) {
+    .sm-page {
+        padding: 32px 14px 50px;
+    }
+
+    .sm-page-intro h1 {
+        font-size: 1.8rem;
+    }
+
+    .sm-results-header {
+        flex-direction: column;
+    }
+
+    .sm-results-header select {
+        width: 100%;
+    }
+
+    .sm-match-card-header {
+        flex-direction: column;
+    }
+
+    .sm-match-score {
+        align-self: flex-start;
+    }
+}
