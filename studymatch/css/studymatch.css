@@ -1,0 +1,314 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --sm-bg: #f8fafc;
+    --sm-card: #ffffff;
+    --sm-text: #0f172a;
+    --sm-muted: #64748b;
+    --sm-border: #e2e8f0;
+    --sm-primary: #2563eb;
+    --sm-primary-dark: #1d4ed8;
+}
+
+body {
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--sm-bg);
+    color: var(--sm-text);
+    line-height: 1.6;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.sm-header {
+    min-height: 72px;
+    padding: 0 6%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    background: var(--sm-card);
+    border-bottom: 1px solid var(--sm-border);
+}
+
+.sm-logo {
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+.sm-header nav {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+}
+
+.sm-header nav > a {
+    color: var(--sm-muted);
+    font-weight: 600;
+}
+
+.sm-header nav > a:hover {
+    color: var(--sm-primary);
+}
+
+.sm-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    padding: 0 20px;
+    border-radius: 10px;
+    font-weight: 700;
+    transition: 0.2s ease;
+}
+
+.sm-btn-primary {
+    background: var(--sm-primary);
+    color: #ffffff !important;
+}
+
+.sm-btn-primary:hover {
+    background: var(--sm-primary-dark);
+    transform: translateY(-1px);
+}
+
+.sm-btn-secondary {
+    background: #ffffff;
+    color: var(--sm-text);
+    border: 1px solid var(--sm-border);
+}
+
+.sm-btn-secondary:hover {
+    border-color: var(--sm-primary);
+    color: var(--sm-primary);
+}
+
+.sm-hero {
+    min-height: 620px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 6%;
+    text-align: center;
+    background:
+        radial-gradient(circle at top, rgba(37, 99, 235, 0.10), transparent 42%),
+        var(--sm-bg);
+}
+
+.sm-hero-content {
+    width: min(850px, 100%);
+}
+
+.sm-badge {
+    display: inline-block;
+    margin-bottom: 18px;
+    padding: 7px 12px;
+    border: 1px solid #bfdbfe;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: var(--sm-primary);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+}
+
+.sm-hero h1 {
+    margin-bottom: 22px;
+    font-size: clamp(2.6rem, 7vw, 5.2rem);
+    line-height: 1.05;
+    letter-spacing: -0.055em;
+}
+
+.sm-hero p {
+    max-width: 680px;
+    margin: 0 auto;
+    color: var(--sm-muted);
+    font-size: clamp(1.05rem, 2vw, 1.25rem);
+}
+
+.sm-hero-actions {
+    margin-top: 34px;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.sm-features {
+    width: min(1150px, 88%);
+    margin: 0 auto;
+    padding: 70px 0 90px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+}
+
+.sm-features article {
+    padding: 30px;
+    background: var(--sm-card);
+    border: 1px solid var(--sm-border);
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.04);
+}
+
+.sm-features h2 {
+    margin-bottom: 12px;
+    font-size: 1.2rem;
+}
+
+.sm-features p {
+    color: var(--sm-muted);
+}
+
+.sm-footer {
+    padding: 28px 6%;
+    text-align: center;
+    color: var(--sm-muted);
+    border-top: 1px solid var(--sm-border);
+    background: #ffffff;
+}
+
+@media (max-width: 760px) {
+    .sm-header {
+        padding: 14px 5%;
+        flex-direction: column;
+    }
+
+    .sm-header nav {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .sm-hero {
+        min-height: 540px;
+        padding: 65px 5%;
+    }
+
+    .sm-features {
+        width: 90%;
+        grid-template-columns: 1fr;
+        padding-top: 45px;
+    }
+}
+
+/* =========================================
+   STUDYMATCH AUTH
+========================================= */
+
+.sm-auth-page {
+    min-height: calc(100vh - 72px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 20px;
+    background: #f8fafc;
+}
+
+.sm-auth-card {
+    width: 100%;
+    max-width: 460px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 32px;
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+}
+
+.sm-auth-intro {
+    margin-bottom: 24px;
+}
+
+.sm-auth-intro h1 {
+    margin: 0 0 10px;
+    font-size: 30px;
+}
+
+.sm-auth-intro p {
+    margin: 0;
+    color: #64748b;
+    line-height: 1.6;
+}
+
+.sm-auth-card form {
+    display: grid;
+    gap: 16px;
+}
+
+.sm-auth-card label {
+    font-weight: 600;
+    color: #334155;
+}
+
+.sm-auth-card input {
+    width: 100%;
+    padding: 13px 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    font: inherit;
+    box-sizing: border-box;
+}
+
+.sm-auth-card input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.sm-auth-submit {
+    width: 100%;
+    margin-top: 4px;
+}
+
+.sm-auth-submit:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.sm-form-message {
+    min-height: 22px;
+    margin: 0;
+    color: #b91c1c;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.sm-auth-switch {
+    margin: 22px 0 0;
+    text-align: center;
+    color: #64748b;
+}
+
+.sm-auth-switch a {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.sm-auth-switch a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 760px) {
+    .sm-auth-page {
+        padding: 28px 16px;
+        align-items: flex-start;
+    }
+
+    .sm-auth-card {
+        padding: 24px 20px;
+    }
+
+    .sm-auth-intro h1 {
+        font-size: 26px;
+    }
+}
+

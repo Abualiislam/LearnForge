@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — LearnForge StudyMatch</title>
+    <link rel="stylesheet" href="css/studymatch.css">
+</head>
+<body>
+
+<header class="sm-header">
+    <a href="../index.html" class="sm-logo">LearnForge</a>
+
+    <nav>
+        <a href="index.html">StudyMatch</a>
+        <a href="signup.html" class="sm-btn sm-btn-primary">Create Account</a>
+    </nav>
+</header>
+
+<main class="sm-auth-page">
+    <section class="sm-auth-card">
+        <span class="sm-badge">STUDYMATCH</span>
+
+        <h1>Welcome back</h1>
+
+        <p class="sm-auth-intro">
+            Sign in to find and connect with compatible study partners.
+        </p>
+
+        <form id="loginForm" novalidate>
+            <label for="loginEmail">Email</label>
+            <input
+                id="loginEmail"
+                name="email"
+                type="email"
+                autocomplete="email"
+                placeholder="you@example.com"
+                required
+            >
+
+            <label for="loginPassword">Password</label>
+            <input
+                id="loginPassword"
+                name="password"
+                type="password"
+                autocomplete="current-password"
+                placeholder="Your password"
+                required
+            >
+
+            <button type="submit" class="sm-btn sm-btn-primary sm-auth-submit">
+                Sign In
+            </button>
+
+            <p id="loginMessage" class="sm-form-message" role="status"></p>
+        </form>
+
+        <p class="sm-auth-switch">
+            Don't have an account?
+            <a href="signup.html">Create one</a>
+        </p>
+    </section>
+</main>
+
+<footer class="sm-footer">
+    <p>© 2026 LearnForge. Study smarter, together.</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+
+</body>
+</html>
