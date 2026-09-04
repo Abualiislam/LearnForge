@@ -376,6 +376,42 @@
         return article;
     }
 
+    async function sendConnectionRequest(receiverId, button) {
+        if (!currentUser || !receiverId) {
+            return;
+        }
+
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = 'Sending...';
+
+        const { error } = await supabaseClient
+            .from('connection_requests')
+            .insert({
+                sender_id: currentUser.id,
+                receiver_id: receiverId,
+                status: 'pending'
+            });
+
+        if (error) {
+            console.error('Connection request failed:', error);
+
+            if (error.code === '23505') {
+                button.textContent = 'Already Sent';
+                button.disabled = true;
+                return;
+            }
+
+            button.disabled = false;
+            button.textContent = originalText;
+            alert(error.message);
+            return;
+        }
+
+        button.textContent = 'Request Sent';
+        button.disabled = true;
+    }
+
     function escapeHtml(value) {
         return String(value || '')
             .replace(/&/g, '&amp;')
@@ -690,7 +726,7 @@
             sort.addEventListener('change', sortMatches);
         }
 
-        document.addEventListener('click', function (event) {
+        document.addEventListener('click', async function (event) {
             const profileButton =
                 event.target.closest('[data-profile-id]');
 
@@ -709,12 +745,7 @@
 
             if (connectButton) {
                 const id = connectButton.dataset.connectId;
-
-                alert(
-                    'Connection requests will be connected in the next step.'
-                );
-
-                console.log('Connect:', id);
+                await sendConnectionRequest(id, connectButton);
             }
         });
 
