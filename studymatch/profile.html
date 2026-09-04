@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Study Profile — LearnForge StudyMatch</title>
+    <meta name="description" content="Create and manage your LearnForge StudyMatch profile.">
+    <link rel="stylesheet" href="css/studymatch.css">
+</head>
+<body>
+
+<header class="sm-header">
+    <a class="sm-logo" href="index.html">LearnForge</a>
+
+    <nav class="sm-nav">
+        <a href="matches.html">Find Partners</a>
+        <a href="connections.html">Connections</a>
+        <a href="chat.html">Messages</a>
+        <a href="#" id="logoutLink">Sign Out</a>
+    </nav>
+</header>
+
+<main class="sm-auth-page">
+    <section class="sm-auth-card">
+        <div class="sm-auth-intro">
+            <h1>My Study Profile</h1>
+            <p>Create your profile so StudyMatch can find compatible study partners.</p>
+        </div>
+
+        <form id="profileForm" novalidate>
+
+            <label for="displayName">Display name</label>
+            <input
+                type="text"
+                id="displayName"
+                name="displayName"
+                maxlength="80"
+                required
+                placeholder="e.g. Ahmad"
+            >
+
+            <label for="country">Country</label>
+            <input
+                type="text"
+                id="country"
+                name="country"
+                maxlength="80"
+                required
+                placeholder="e.g. Afghanistan"
+            >
+
+            <label for="region">State / Region</label>
+            <input
+                type="text"
+                id="region"
+                name="region"
+                maxlength="80"
+                placeholder="e.g. Nangarhar"
+            >
+
+            <label for="city">City</label>
+            <input
+                type="text"
+                id="city"
+                name="city"
+                maxlength="80"
+                placeholder="e.g. Jalalabad"
+            >
+
+            <label for="timezone">Timezone</label>
+            <input
+                type="text"
+                id="timezone"
+                name="timezone"
+                maxlength="80"
+                placeholder="e.g. Asia/Kabul"
+            >
+
+            <label for="bio">Short bio</label>
+            <textarea
+                id="bio"
+                name="bio"
+                maxlength="500"
+                rows="4"
+                placeholder="Tell potential study partners a little about yourself."
+            ></textarea>
+
+            <button
+                type="submit"
+                class="sm-btn sm-btn-primary sm-auth-submit"
+            >
+                Save Profile
+            </button>
+
+            <p id="profileMessage" class="sm-form-message" role="status"></p>
+        </form>
+    </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/profile.js"></script>
+
+</body>
+</html>
