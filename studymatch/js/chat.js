@@ -208,11 +208,16 @@
 
         if (requestedUserId) {
             const requestedConversation = conversations.find(
-                conversation => conversation.partnerId === requestedUserId
+                conversation =>
+                    String(conversation.partnerId) === String(requestedUserId)
             );
 
             if (requestedConversation) {
                 await openConversation(requestedConversation.id);
+            } else {
+                showChatMessage(
+                    'The selected study partner conversation could not be found.'
+                );
             }
         }
     }
