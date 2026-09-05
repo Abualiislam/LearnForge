@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connections — LearnForge StudyMatch</title>
+    <meta name="description" content="Manage your LearnForge StudyMatch connection requests and study partner connections.">
+    <link rel="stylesheet" href="css/studymatch.css">
+</head>
+<body>
+
+<header class="sm-header">
+    <div class="sm-container sm-header-inner">
+        <a href="./" class="sm-logo">LearnForge <span>StudyMatch</span></a>
+
+        <nav class="sm-nav">
+            <a href="matches.html">Find Partners</a>
+            <a href="profile.html">My Profile</a>
+            <a href="connections.html" class="active">Connections</a>
+            <a href="chat.html">Messages</a>
+            <a href="#" id="logoutLink">Sign Out</a>
+        </nav>
+    </div>
+</header>
+
+<main class="sm-page">
+
+    <section class="sm-page-intro">
+        <span class="sm-badge">StudyMatch</span>
+        <h1>Your Connections</h1>
+        <p>
+            Manage incoming requests, sent requests, and your study partner connections.
+        </p>
+    </section>
+
+    <section class="sm-connections-section">
+        <div class="sm-results-card">
+            <h2>Incoming Requests</h2>
+            <p class="sm-section-description">
+                Students who want to connect with you.
+            </p>
+
+            <div id="incomingLoading" class="sm-loading">
+                Loading requests...
+            </div>
+
+            <div id="incomingRequests" class="sm-request-list"></div>
+
+            <div id="incomingEmpty" class="sm-empty-state" hidden>
+                <h3>No incoming requests</h3>
+                <p>
+                    When another student sends you a connection request,
+                    it will appear here.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="sm-connections-section">
+        <div class="sm-results-card">
+            <h2>My Sent Requests</h2>
+            <p class="sm-section-description">
+                Requests you have sent to other students.
+            </p>
+
+            <div id="sentLoading" class="sm-loading">
+                Loading requests...
+            </div>
+
+            <div id="sentRequests" class="sm-request-list"></div>
+
+            <div id="sentEmpty" class="sm-empty-state" hidden>
+                <h3>No sent requests</h3>
+                <p>
+                    Your outgoing connection requests will appear here.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="sm-connections-section">
+        <div class="sm-results-card">
+            <h2>Connected Study Partners</h2>
+            <p class="sm-section-description">
+                Students you have successfully connected with.
+            </p>
+
+            <div id="connectionsLoading" class="sm-loading">
+                Loading connections...
+            </div>
+
+            <div id="connectionsList" class="sm-request-list"></div>
+
+            <div id="connectionsEmpty" class="sm-empty-state" hidden>
+                <h3>No connections yet</h3>
+                <p>
+                    Accept a connection request to start building your study network.
+                </p>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<footer class="sm-footer">
+    <div class="sm-container">
+        <p>&copy; 2026 LearnForge StudyMatch. Built for students who study together.</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/connections.js"></script>
+
+</body>
+</html>
