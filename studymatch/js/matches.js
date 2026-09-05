@@ -638,7 +638,23 @@
             throw error;
         }
 
-        const userIds = (data || []).map(item => item.user_id);
+        const { data: blockedRows, error: blockedError } =
+            await supabaseClient
+                .from('blocks')
+                .select('blocked_id')
+                .eq('blocker_id', currentUser.id);
+
+        if (blockedError) {
+            throw blockedError;
+        }
+
+        const blockedIds = new Set(
+            (blockedRows || []).map(row => row.blocked_id)
+        );
+
+        const userIds = (data || [])
+            .map(item => item.user_id)
+            .filter(userId => !blockedIds.has(userId));
 
         if (!userIds.length) {
             allMatches = [];
