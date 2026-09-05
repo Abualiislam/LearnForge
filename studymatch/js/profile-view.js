@@ -453,8 +453,11 @@ function closeReportPanel() {
 }
 
 async function submitReport() {
+    const reasonSelect =
+        document.getElementById('reportReason');
+
     const reason =
-        document.getElementById('reportReason')?.value || '';
+        reasonSelect?.selectedOptions?.[0]?.value || '';
 
     const details =
         document.getElementById('reportDetails')?.value.trim() || '';
