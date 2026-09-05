@@ -736,11 +736,10 @@
             if (profileButton) {
                 const id = profileButton.dataset.profileId;
 
-                alert(
-                    'Profile viewing will be connected in the next step.'
-                );
-
-                console.log('View profile:', id);
+                if (id) {
+                    window.location.href =
+                        'profile-view.html?user=' + encodeURIComponent(id);
+                }
             }
 
             if (connectButton) {

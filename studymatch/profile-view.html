@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Profile — LearnForge StudyMatch</title>
+    <meta name="description" content="View a LearnForge StudyMatch study partner profile.">
+    <link rel="stylesheet" href="css/studymatch.css">
+</head>
+<body>
+
+<header class="sm-header">
+    <div class="sm-header-inner">
+        <a class="sm-logo" href="index.html">LearnForge</a>
+
+        <nav class="sm-nav">
+            <a href="matches.html">Find Partners</a>
+            <a href="profile.html">My Profile</a>
+            <a href="connections.html">Connections</a>
+            <a href="chat.html">Messages</a>
+            <a href="#" id="logoutLink">Sign Out</a>
+        </nav>
+    </div>
+</header>
+
+<main class="sm-page">
+    <section class="sm-page-intro">
+        <span class="sm-badge">StudyMatch Profile</span>
+        <h1 id="profileName">Study Partner</h1>
+        <p id="profileLocation">Loading profile...</p>
+    </section>
+
+    <div id="profileLoading" class="sm-loading">
+        Loading profile...
+    </div>
+
+    <div id="profileContent" class="sm-profile-view" hidden>
+
+        <section class="sm-results-card sm-profile-card">
+            <div class="sm-profile-hero">
+                <div class="sm-profile-avatar" id="profileAvatar">S</div>
+
+                <div>
+                    <h2 id="profileNameCard">Study Partner</h2>
+                    <p id="profileBio">No bio provided.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="sm-results-card sm-profile-card">
+            <h2>Study Preferences</h2>
+
+            <div class="sm-profile-grid">
+                <div>
+                    <span class="sm-profile-label">Exam</span>
+                    <strong id="profileExam">—</strong>
+                </div>
+
+                <div>
+                    <span class="sm-profile-label">Exam Date</span>
+                    <strong id="profileExamDate">—</strong>
+                </div>
+
+                <div>
+                    <span class="sm-profile-label">Study Mode</span>
+                    <strong id="profileStudyMode">—</strong>
+                </div>
+
+                <div>
+                    <span class="sm-profile-label">Timezone</span>
+                    <strong id="profileTimezone">—</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="sm-results-card sm-profile-card">
+            <h2>Availability</h2>
+
+            <div id="profileDays" class="sm-match-details"></div>
+
+            <p>
+                <strong>Time:</strong>
+                <span id="profileTime">—</span>
+            </p>
+        </section>
+
+        <section class="sm-results-card sm-profile-card">
+            <h2>Subjects</h2>
+            <div id="profileSubjects" class="sm-match-details"></div>
+        </section>
+
+        <section class="sm-results-card sm-profile-card">
+            <h2>Study Style</h2>
+            <div id="profileStyles" class="sm-match-details"></div>
+        </section>
+
+        <div class="sm-profile-actions">
+            <a href="matches.html" class="sm-btn sm-btn-secondary">
+                Back to Matches
+            </a>
+
+            <a href="chat.html" id="messageProfileButton" class="sm-btn sm-btn-primary">
+                Messages
+            </a>
+        </div>
+    </div>
+
+    <div id="profileError" class="sm-empty-state" hidden>
+        <h3>Profile unavailable</h3>
+        <p id="profileErrorMessage">
+            This study profile could not be loaded.
+        </p>
+        <a href="matches.html" class="sm-btn sm-btn-primary">
+            Back to Matches
+        </a>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/profile-view.js"></script>
+
+</body>
+</html>
