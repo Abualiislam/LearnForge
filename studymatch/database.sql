@@ -600,3 +600,124 @@ to authenticated;
 -- ============================================================
 -- END SECURE CONNECTION ACCEPTANCE RPC
 -- ============================================================
+
+-- ============================================================
+-- BLOCK-AWARE ACCESS HARDENING
+-- Keep connections, conversations, and messages inaccessible
+-- when either participant has blocked the other.
+-- ============================================================
+
+drop policy if exists "connections_select_participant"
+on public.connections;
+
+create policy "connections_select_participant"
+on public.connections
+for select
+to authenticated
+using (
+    (auth.uid() = user_a or auth.uid() = user_b)
+    and not exists (
+        select 1
+        from public.blocks b
+        where
+            (b.blocker_id = auth.uid() and b.blocked_id = case
+                when auth.uid() = user_a then user_b
+                else user_a
+            end)
+            or
+            (b.blocker_id = case
+                when auth.uid() = user_a then user_b
+                else user_a
+            end
+            and b.blocked_id = auth.uid())
+    )
+);
+
+drop policy if exists "conversations_select_participant"
+on public.conversations;
+
+create policy "conversations_select_participant"
+on public.conversations
+for select
+to authenticated
+using (
+    (auth.uid() = user_a or auth.uid() = user_b)
+    and not exists (
+        select 1
+        from public.blocks b
+        where
+            (b.blocker_id = auth.uid() and b.blocked_id = case
+                when auth.uid() = user_a then user_b
+                else user_a
+            end)
+            or
+            (b.blocker_id = case
+                when auth.uid() = user_a then user_b
+                else user_a
+            end
+            and b.blocked_id = auth.uid())
+    )
+);
+
+drop policy if exists "messages_select_participant"
+on public.messages;
+
+create policy "messages_select_participant"
+on public.messages
+for select
+to authenticated
+using (
+    exists (
+        select 1
+        from public.conversations c
+        where c.id = conversation_id
+        and (c.user_a = auth.uid() or c.user_b = auth.uid())
+        and not exists (
+            select 1
+            from public.blocks b
+            where
+                (b.blocker_id = auth.uid() and b.blocked_id = case
+                    when auth.uid() = c.user_a then c.user_b
+                    else c.user_a
+                end)
+                or
+                (b.blocker_id = case
+                    when auth.uid() = c.user_a then c.user_b
+                    else c.user_a
+                end
+                and b.blocked_id = auth.uid())
+        )
+    )
+);
+
+drop policy if exists "messages_insert_participant"
+on public.messages;
+
+create policy "messages_insert_participant"
+on public.messages
+for insert
+to authenticated
+with check (
+    auth.uid() = sender_id
+    and exists (
+        select 1
+        from public.conversations c
+        where c.id = conversation_id
+        and (c.user_a = auth.uid() or c.user_b = auth.uid())
+        and not exists (
+            select 1
+            from public.blocks b
+            where
+                (b.blocker_id = auth.uid() and b.blocked_id = case
+                    when auth.uid() = c.user_a then c.user_b
+                    else c.user_a
+                end)
+                or
+                (b.blocker_id = case
+                    when auth.uid() = c.user_a then c.user_b
+                    else c.user_a
+                end
+                and b.blocked_id = auth.uid())
+        )
+    )
+);
