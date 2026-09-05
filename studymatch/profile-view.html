@@ -102,6 +102,65 @@
             <a href="chat.html" id="messageProfileButton" class="sm-btn sm-btn-primary">
                 Messages
             </a>
+
+            <button
+                type="button"
+                id="blockProfileButton"
+                class="sm-btn sm-btn-danger"
+            >
+                Block User
+            </button>
+
+            <button
+                type="button"
+                id="reportProfileButton"
+                class="sm-btn sm-btn-secondary"
+            >
+                Report User
+            </button>
+        </div>
+
+        <div id="reportPanel" class="sm-report-panel" hidden>
+            <h3>Report this user</h3>
+
+            <label for="reportReason">Reason</label>
+            <select id="reportReason">
+                <option value="">Select a reason</option>
+                <option value="spam">Spam</option>
+                <option value="harassment">Harassment</option>
+                <option value="scam">Scam</option>
+                <option value="fake_profile">Fake profile</option>
+                <option value="inappropriate">Inappropriate</option>
+                <option value="other">Other</option>
+            </select>
+
+            <label for="reportDetails">Additional details (optional)</label>
+            <textarea
+                id="reportDetails"
+                maxlength="2000"
+                rows="5"
+                placeholder="Tell us what happened..."
+            ></textarea>
+
+            <div class="sm-report-actions">
+                <button
+                    type="button"
+                    id="cancelReportButton"
+                    class="sm-btn sm-btn-secondary"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="button"
+                    id="submitReportButton"
+                    class="sm-btn sm-btn-primary"
+                >
+                    Submit Report
+                </button>
+            </div>
+
+            <p id="reportMessage" class="sm-form-message"></p>
         </div>
     </div>
 

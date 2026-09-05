@@ -279,7 +279,245 @@
         document.getElementById('profileContent').hidden = false;
     }
 
-    async function signOut() {
+    function setSafetyMessage(message, isError = false) {
+    const element = document.getElementById('reportMessage');
+
+    if (!element) {
+        return;
+    }
+
+    element.textContent = message || '';
+    element.classList.toggle('sm-status-danger', isError);
+    element.classList.toggle(
+        'sm-status-success',
+        !isError && Boolean(message)
+    );
+}
+
+function setMessageButtonBlocked(blocked) {
+    const button =
+        document.getElementById('messageProfileButton');
+
+    if (!button) {
+        return;
+    }
+
+    if (blocked) {
+        button.dataset.originalHref =
+            button.getAttribute('href') || '';
+
+        button.removeAttribute('href');
+        button.setAttribute('aria-disabled', 'true');
+        button.textContent = 'Messages Unavailable';
+    } else {
+        const originalHref =
+            button.dataset.originalHref ||
+            ('chat.html?user=' + encodeURIComponent(viewedUserId));
+
+        button.href = originalHref;
+        button.removeAttribute('aria-disabled');
+        button.textContent = 'Messages';
+    }
+}
+
+async function checkBlockStatus() {
+    const { data, error } = await supabaseClient
+        .from('blocks')
+        .select('id')
+        .eq('blocker_id', currentUser.id)
+        .eq('blocked_id', viewedUserId)
+        .maybeSingle();
+
+    if (error) {
+        throw error;
+    }
+
+    const blocked = Boolean(data);
+
+    const blockButton =
+        document.getElementById('blockProfileButton');
+
+    if (blockButton) {
+        blockButton.textContent =
+            blocked ? 'Unblock User' : 'Block User';
+
+        blockButton.dataset.blocked =
+            blocked ? 'true' : 'false';
+    }
+
+    setMessageButtonBlocked(blocked);
+}
+
+async function toggleBlockUser() {
+    const blockButton =
+        document.getElementById('blockProfileButton');
+
+    if (!blockButton) {
+        return;
+    }
+
+    const currentlyBlocked =
+        blockButton.dataset.blocked === 'true';
+
+    if (currentlyBlocked) {
+        const confirmed = window.confirm(
+            'Unblock this user? You will be able to interact again.'
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        blockButton.disabled = true;
+        setSafetyMessage('Unblocking user...');
+
+        const { error } = await supabaseClient
+            .from('blocks')
+            .delete()
+            .eq('blocker_id', currentUser.id)
+            .eq('blocked_id', viewedUserId);
+
+        if (error) {
+            blockButton.disabled = false;
+            setSafetyMessage(
+                error.message || 'Unable to unblock this user.',
+                true
+            );
+            return;
+        }
+
+        blockButton.disabled = false;
+        blockButton.dataset.blocked = 'false';
+        blockButton.textContent = 'Block User';
+        setMessageButtonBlocked(false);
+        setSafetyMessage('User unblocked successfully.');
+        return;
+    }
+
+    const confirmed = window.confirm(
+        'Block this user? You will no longer be able to interact with this study partner.'
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    blockButton.disabled = true;
+    setSafetyMessage('Blocking user...');
+
+    const { error } = await supabaseClient
+        .from('blocks')
+        .insert({
+            blocker_id: currentUser.id,
+            blocked_id: viewedUserId
+        });
+
+    if (error) {
+        blockButton.disabled = false;
+        setSafetyMessage(
+            error.message || 'Unable to block this user.',
+            true
+        );
+        return;
+    }
+
+    blockButton.disabled = false;
+    blockButton.dataset.blocked = 'true';
+    blockButton.textContent = 'Unblock User';
+    setMessageButtonBlocked(true);
+    setSafetyMessage('User blocked successfully.');
+}
+
+function openReportPanel() {
+    const panel =
+        document.getElementById('reportPanel');
+
+    if (!panel) {
+        return;
+    }
+
+    panel.hidden = false;
+    setSafetyMessage('');
+}
+
+function closeReportPanel() {
+    const panel =
+        document.getElementById('reportPanel');
+
+    if (!panel) {
+        return;
+    }
+
+    panel.hidden = true;
+    setSafetyMessage('');
+}
+
+async function submitReport() {
+    const reason =
+        document.getElementById('reportReason')?.value || '';
+
+    const details =
+        document.getElementById('reportDetails')?.value.trim() || '';
+
+    if (!reason) {
+        setSafetyMessage(
+            'Please select a report reason.',
+            true
+        );
+        return;
+    }
+
+    if (details.length > 2000) {
+        setSafetyMessage(
+            'Report details must be 2000 characters or fewer.',
+            true
+        );
+        return;
+    }
+
+    const submitButton =
+        document.getElementById('submitReportButton');
+
+    if (submitButton) {
+        submitButton.disabled = true;
+    }
+
+    setSafetyMessage('Submitting report...');
+
+    const { error } = await supabaseClient
+        .from('reports')
+        .insert({
+            reporter_id: currentUser.id,
+            reported_id: viewedUserId,
+            reason: reason,
+            details: details || null
+        });
+
+    if (error) {
+        if (submitButton) {
+            submitButton.disabled = false;
+        }
+
+        setSafetyMessage(
+            error.message || 'Unable to submit report.',
+            true
+        );
+        return;
+    }
+
+    if (submitButton) {
+        submitButton.disabled = false;
+    }
+
+    document.getElementById('reportReason').value = '';
+    document.getElementById('reportDetails').value = '';
+
+    setSafetyMessage(
+        'Report submitted successfully. Thank you for helping keep StudyMatch safe.'
+    );
+}
+
+async function signOut() {
         const { error } =
             await supabaseClient.auth.signOut();
 
@@ -345,8 +583,49 @@
                 return;
             }
 
+            const blockButton =
+                document.getElementById('blockProfileButton');
+
+            if (blockButton) {
+                blockButton.addEventListener(
+                    'click',
+                    toggleBlockUser
+                );
+            }
+
+            const reportButton =
+                document.getElementById('reportProfileButton');
+
+            if (reportButton) {
+                reportButton.addEventListener(
+                    'click',
+                    openReportPanel
+                );
+            }
+
+            const cancelReportButton =
+                document.getElementById('cancelReportButton');
+
+            if (cancelReportButton) {
+                cancelReportButton.addEventListener(
+                    'click',
+                    closeReportPanel
+                );
+            }
+
+            const submitReportButton =
+                document.getElementById('submitReportButton');
+
+            if (submitReportButton) {
+                submitReportButton.addEventListener(
+                    'click',
+                    submitReport
+                );
+            }
+
             try {
                 await loadProfile();
+                await checkBlockStatus();
             } catch (error) {
                 console.error(
                     'Profile loading failed:',
