@@ -202,6 +202,19 @@
                     profiles[conversation.partnerId] || {};
             })
         );
+
+        const requestedUserId =
+            new URLSearchParams(window.location.search).get('user');
+
+        if (requestedUserId) {
+            const requestedConversation = conversations.find(
+                conversation => conversation.partnerId === requestedUserId
+            );
+
+            if (requestedConversation) {
+                await openConversation(requestedConversation.id);
+            }
+        }
     }
 
     async function openConversation(conversationId) {

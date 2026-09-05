@@ -487,7 +487,12 @@
         }
 
         if (action === 'message') {
-            window.location.href = 'chat.html';
+            const userId = actionButton.dataset.userId;
+
+            if (userId) {
+                window.location.href =
+                    'chat.html?user=' + encodeURIComponent(userId);
+            }
         }
     });
 
