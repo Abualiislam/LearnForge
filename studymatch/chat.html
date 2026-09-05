@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages — LearnForge StudyMatch</title>
+    <meta name="description" content="Private messages with your LearnForge StudyMatch partners.">
+    <link rel="stylesheet" href="css/studymatch.css">
+</head>
+<body>
+
+<header class="sm-header">
+    <div class="sm-container sm-header-inner">
+        <a href="./" class="sm-logo">LearnForge <span>StudyMatch</span></a>
+
+        <nav class="sm-nav">
+            <a href="matches.html">Find Partners</a>
+            <a href="profile.html">My Profile</a>
+            <a href="connections.html">Connections</a>
+            <a href="chat.html" class="active">Messages</a>
+            <a href="#" id="logoutLink">Sign Out</a>
+        </nav>
+    </div>
+</header>
+
+<main class="sm-page sm-chat-page">
+
+    <section class="sm-page-intro">
+        <span class="sm-badge">StudyMatch</span>
+        <h1>Private Messages</h1>
+        <p>
+            Chat privately with students you have connected with.
+        </p>
+    </section>
+
+    <section class="sm-chat-layout">
+
+        <aside class="sm-chat-sidebar">
+            <div class="sm-results-card">
+                <h2>Conversations</h2>
+
+                <div id="conversationLoading" class="sm-loading">
+                    Loading conversations...
+                </div>
+
+                <div id="conversationList" class="sm-conversation-list"></div>
+
+                <div id="conversationEmpty" class="sm-empty-state" hidden>
+                    <h3>No conversations yet</h3>
+                    <p>
+                        Accept a study partner request to start a private conversation.
+                    </p>
+                </div>
+            </div>
+        </aside>
+
+        <section class="sm-chat-main">
+
+            <div id="chatEmptyState" class="sm-results-card sm-chat-empty">
+                <h2>Select a conversation</h2>
+                <p>
+                    Choose a connected study partner from the list to start chatting.
+                </p>
+            </div>
+
+            <div id="chatPanel" class="sm-results-card" hidden>
+
+                <div class="sm-chat-header">
+                    <div class="sm-match-person">
+                        <div id="chatAvatar" class="sm-match-avatar">
+                            S
+                        </div>
+
+                        <div>
+                            <h2 id="chatPartnerName" class="sm-match-name">
+                                Study Partner
+                            </h2>
+
+                            <p id="chatPartnerLocation" class="sm-match-location">
+                                Location
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="chatMessage" class="sm-form-message"></div>
+
+                <div id="messageLoading" class="sm-loading">
+                    Loading messages...
+                </div>
+
+                <div id="messageList" class="sm-message-list"></div>
+
+                <form id="messageForm" class="sm-message-form">
+                    <textarea
+                        id="messageInput"
+                        name="message"
+                        rows="2"
+                        maxlength="2000"
+                        placeholder="Write a message..."
+                        required
+                    ></textarea>
+
+                    <button
+                        type="submit"
+                        class="sm-btn sm-btn-primary"
+                        id="sendMessageButton"
+                    >
+                        Send
+                    </button>
+                </form>
+
+            </div>
+
+        </section>
+
+    </section>
+
+</main>
+
+<footer class="sm-footer">
+    <div class="sm-container">
+        <p>&copy; 2026 LearnForge StudyMatch. Built for students who study together.</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/chat.js"></script>
+
+</body>
+</html>
