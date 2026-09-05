@@ -249,7 +249,7 @@
 
         const { data, error } = await supabaseClient
             .from('messages')
-            .select('id, conversation_id, sender_id, body, created_at')
+            .select('id, conversation_id, sender_id, message, created_at')
             .eq('conversation_id', activeConversation.id)
             .order('created_at', { ascending: true });
 
@@ -282,8 +282,8 @@
             return `
                 <div class="sm-message-row ${mine ? 'mine' : 'theirs'}">
                     <div class="sm-message-bubble">
-                        <div class="sm-message-body">
-                            ${escapeHtml(message.body)}
+                        <div class="sm-message-message">
+                            ${escapeHtml(message.message)}
                         </div>
 
                         <time class="sm-message-time">
@@ -334,9 +334,9 @@
         const input = document.getElementById('messageInput');
         const button = document.getElementById('sendMessageButton');
 
-        const body = input.value.trim();
+        const message = input.value.trim();
 
-        if (!body) {
+        if (!message) {
             return;
         }
 
@@ -350,7 +350,7 @@
             .insert({
                 conversation_id: activeConversation.id,
                 sender_id: currentUser.id,
-                body
+                message
             });
 
         if (error) {
