@@ -150,52 +150,65 @@
     }
 
     async function loadProfile() {
-        const profileResult = await supabaseClient
-            .from('profiles')
-            .select(`
-                id,
-                display_name,
-                country,
-                state_region,
-                city,
-                timezone,
-                bio
-            `)
-            .eq('id', viewedUserId)
-            .single();
+        const loadRequest = (async () => {
+            const profileResult = await supabaseClient
+                .from('profiles')
+                .select(`
+                    id,
+                    display_name,
+                    country,
+                    state_region,
+                    city,
+                    timezone,
+                    bio
+                `)
+                .eq('id', viewedUserId)
+                .single();
 
-        if (profileResult.error) {
-            throw profileResult.error;
-        }
+            if (profileResult.error) {
+                throw profileResult.error;
+            }
 
-        const studyResult = await supabaseClient
-            .from('study_profiles')
-            .select(`
-                user_id,
-                exam,
-                exam_date,
-                study_mode,
-                available_days,
-                start_time,
-                end_time,
-                subjects,
-                study_styles,
-                is_active
-            `)
-            .eq('user_id', viewedUserId)
-            .single();
+            const studyResult = await supabaseClient
+                .from('study_profiles')
+                .select(`
+                    user_id,
+                    exam,
+                    exam_date,
+                    study_mode,
+                    available_days,
+                    start_time,
+                    end_time,
+                    subjects,
+                    study_styles,
+                    is_active
+                `)
+                .eq('user_id', viewedUserId)
+                .single();
 
-        if (studyResult.error) {
-            throw studyResult.error;
-        }
+            if (studyResult.error) {
+                throw studyResult.error;
+            }
 
-        if (!studyResult.data.is_active) {
-            throw new Error(
-                'This study profile is currently unavailable.'
+            if (!studyResult.data.is_active) {
+                throw new Error(
+                    'This study profile is currently unavailable.'
+                );
+            }
+
+            renderProfile(profileResult.data, studyResult.data);
+        })();
+
+        const timeout = new Promise((_, reject) => {
+            setTimeout(
+                () => reject(new Error(
+                    'Profile request timed out. Please refresh and try again.'
+                )),
+                10000
             );
-        }
+        });
 
-        renderProfile(profileResult.data, studyResult.data);
+        await Promise.race([loadRequest, timeout]);
     }
 
     function renderProfile(profile, studyProfile) {
@@ -294,7 +307,23 @@
                 );
             }
 
-            const authenticated = await requireUser();
+            let authenticated;
+
+            try {
+                authenticated = await requireUser();
+            } catch (error) {
+                console.error(
+                    'StudyMatch authentication failed:',
+                    error
+                );
+
+                showError(
+                    error.message ||
+                    'Unable to verify your account.'
+                );
+
+                return;
+            }
 
             if (!authenticated) {
                 return;
